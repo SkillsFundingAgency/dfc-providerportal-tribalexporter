@@ -4,12 +4,15 @@ using System;
 
 namespace Dfc.ProviderPortal.TribalExporter.Functions
 {
-    public static class VenuesDeltaByProvider
+    public static class Export
     {
-        [FunctionName("VenuesDeltaByProvider")]
-        public static void Run([TimerTrigger("0 */5 * * * *")]TimerInfo myTimer, ILogger log)
+        [FunctionName("Export")]
+        public static void Run(
+            [TimerTrigger("0 */10 * * * *")]TimerInfo myTimer,
+            ILogger log)
         {
             log.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
+            // TODO: do more stuff here ...
         }
     }
 }

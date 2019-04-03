@@ -1,11 +1,14 @@
 ﻿using Dfc.ProviderPortal.Packages;
 using Dfc.ProviderPortal.TribalExporter.Interfaces;
-using Dfc.ProviderPortal.TribalExporter.Models;
 using Dfc.ProviderPortal.TribalExporter.Settings;
+using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
+using Microsoft.Azure.Documents.Linq;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading.Tasks;
 
 namespace Dfc.ProviderPortal.TribalExporter.Services
 {
@@ -29,14 +32,49 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             _cosmosDbCollectionSettings = cosmosDbCollectionSettings.Value;
         }
 
-        public IEnumerable<IProvider> GetAll()
+        public async Task<string> GetAllAsJsonAsync()
         {
+            var documents = new List<Document>();
             var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.ProvidersCollectionId);
+            var sql = "SELECT * FROM c WHERE c.Status = 1";
             var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
             var client = _cosmosDbHelper.GetClient();
-            var found = client.CreateDocumentQuery<Provider>(uri, options).ToList();
 
-            return found ?? new List<Provider>();
+            using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+            {
+                while (query.HasMoreResults)
+                {
+                    foreach (var document in await query.ExecuteNextAsync<Document>()) documents.Add(document);
+                }
+            }
+
+            return JsonConvert.SerializeObject(documents, Formatting.Indented);
+        }
+
+        public async Task<IEnumerable<int>> GetAllUkprnsAsync()
+        {
+            var documents = new List<Document>();
+            var ukprns = new List<int>();
+            var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.ProvidersCollectionId);
+            var sql = "SELECT c.UnitedKingdomProviderReferenceNumber FROM c WHERE c.Status = 1";
+            var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
+            var client = _cosmosDbHelper.GetClient();
+
+            using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+            {
+                while (query.HasMoreResults)
+                {
+                    foreach (var document in await query.ExecuteNextAsync<Document>()) documents.Add(document);
+                }
+            }
+
+            foreach (var document in documents)
+            {
+                int.TryParse(JObject.Parse(document.ToString())["UnitedKingdomProviderReferenceNumber"].ToString(), out int ukprn);
+                ukprns.Add(ukprn);
+            }
+
+            return ukprns;
         }
     }
 }

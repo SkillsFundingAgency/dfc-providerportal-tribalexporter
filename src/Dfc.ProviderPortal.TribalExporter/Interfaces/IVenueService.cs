@@ -1,9 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Threading.Tasks;
 
 namespace Dfc.ProviderPortal.TribalExporter.Interfaces
 {
     public interface IVenueService
     {
-        IEnumerable<IVenue> GetVenuesByProvider(IProvider provider);
+        Task<string> GetAllVenuesAsJsonForUkprnAndDateAsync(int ukprn, DateTime date);
     }
 }

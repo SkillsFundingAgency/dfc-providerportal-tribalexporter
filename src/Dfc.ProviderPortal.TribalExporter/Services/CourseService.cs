@@ -1,11 +1,13 @@
 ﻿using Dfc.ProviderPortal.Packages;
 using Dfc.ProviderPortal.TribalExporter.Interfaces;
-using Dfc.ProviderPortal.TribalExporter.Models;
 using Dfc.ProviderPortal.TribalExporter.Settings;
+using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
+using Microsoft.Azure.Documents.Linq;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading.Tasks;
 
 namespace Dfc.ProviderPortal.TribalExporter.Services
 {
@@ -29,16 +31,27 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             _cosmosDbCollectionSettings = cosmosDbCollectionSettings.Value;
         }
 
-        public IEnumerable<ICourse> GetCourseForProvider(IProvider provider)
+        public async Task<string> GetAllCoursesAsJsonForUkprnAsync(int ukprn)
         {
-            Throw.IfNull(provider, nameof(provider));
+            var documents = new List<Document>();
 
-            var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.CoursesCollectionId);
-            var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
-            var client = _cosmosDbHelper.GetClient();
-            var found = client.CreateDocumentQuery<Course>(uri, options).ToList(); // filter this more !!!
+            if (ukprn > 0)
+            {
+                var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.CoursesCollectionId);
+                var sql = $"SELECT * FROM c WHERE c.ProviderUKPRN = {ukprn}";
+                var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
+                var client = _cosmosDbHelper.GetClient();
 
-            return found ?? new List<Course>();
+                using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+                {
+                    while (query.HasMoreResults)
+                    {
+                        foreach (var document in await query.ExecuteNextAsync<Document>()) documents.Add(document);
+                    }
+                }
+            }
+
+            return JsonConvert.SerializeObject(documents, Formatting.Indented);
         }
     }
 }

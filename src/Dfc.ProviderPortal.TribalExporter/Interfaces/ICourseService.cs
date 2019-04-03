@@ -1,9 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System.Threading.Tasks;
 
 namespace Dfc.ProviderPortal.TribalExporter.Interfaces
 {
     public interface ICourseService
     {
-        IEnumerable<ICourse> GetCourseForProvider(IProvider provider);
+        Task<string> GetAllCoursesAsJsonForUkprnAsync(int ukprn);
     }
 }

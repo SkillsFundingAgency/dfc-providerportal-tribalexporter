@@ -1,9 +1,12 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Dfc.ProviderPortal.TribalExporter.Interfaces
 {
     public interface IProviderService
     {
-        IEnumerable<IProvider> GetAll();
+        Task<string> GetAllAsJsonAsync();
+
+        Task<IEnumerable<int>> GetAllUkprnsAsync();
     }
 }
