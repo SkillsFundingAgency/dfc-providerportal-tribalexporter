@@ -20,10 +20,16 @@
         "description": "Resource group the app service plan is in"
       }
     },
-    "storageConnectionString": {
+    "storageAccountName": {
       "type": "string",
       "metadata": {
-        "description": "Connection string for the storage account to store function app files"
+        "description": "Shared storage account name"
+      }
+    },
+    "storageConnectionString": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Connection string for the shared storage account"
       }
     }
   },
@@ -32,9 +38,33 @@
     "functionAppName": "[concat(parameters('functionAppPrefix'),'-fa')]",
     "appInsightName": "[concat(parameters('functionAppPrefix'),'-ai')]"
   },
-  "resources": [{
+  "resources": [
+    {
       "apiVersion": "2017-05-10",
-      "name": "ppukrlpAppInsights",
+      "name": "tribexpContainer",
+      "type": "Microsoft.Resources/deployments",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('deploymentUrlBase'),'Storage/storage-account-arm-container.json')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "storageAccountName": {
+            "value": "[parameters('storageAccountName')]"
+          },
+          "storageContainerName": {
+            "value": "tribalexporter"
+          },
+          "publicAccess": {
+            "value": "Container"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "2017-05-10",
+      "name": "tribexpAppInsights",
       "type": "Microsoft.Resources/deployments",
       "properties": {
         "mode": "Incremental",
@@ -54,10 +84,10 @@
     },
     {
       "apiVersion": "2017-05-10",
-      "name": "ppukrlpAppService",
+      "name": "tribexpAppService",
       "type": "Microsoft.Resources/deployments",
       "dependsOn": [
-        "ppukrlpAppInsights"
+        "tribexpAppInsights"
       ],
       "properties": {
         "mode": "Incremental",
@@ -82,7 +112,7 @@
             "value": [
               {
                 "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
-                "value": "[reference('ppukrlpAppInsights').outputs.InstrumentationKey.value]"
+                "value": "[reference('tribexpAppInsights').outputs.InstrumentationKey.value]"
               },
               {
                 "name": "FUNCTIONS_EXTENSION_VERSION",
@@ -112,7 +142,7 @@
     },
     "appInsightInstrumentationKey": {
       "type": "string",
-      "value": "[reference('ppukrlpAppInsights').outputs.InstrumentationKey.value]"
+      "value": "[reference('tribexpAppInsights').outputs.InstrumentationKey.value]"
     }
   }
 }
