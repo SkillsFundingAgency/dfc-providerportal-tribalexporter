@@ -26,6 +26,12 @@
         "description": "Shared storage account name"
       }
     },
+    "storageAccountResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "Shared storage account resource group"
+      }
+    },
     "storageConnectionString": {
       "type": "securestring",
       "metadata": {
@@ -43,6 +49,7 @@
       "apiVersion": "2017-05-10",
       "name": "tribexpContainer",
       "type": "Microsoft.Resources/deployments",
+      "resourceGroup": "[parameters('storageAccountResourceGroup')]",
       "properties": {
         "mode": "Incremental",
         "templateLink": {

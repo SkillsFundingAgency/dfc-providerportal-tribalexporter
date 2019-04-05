@@ -14,6 +14,9 @@
     "storageAccountName": {
       "value": "dfcfooprovstr"
     },
+    "storageAccountResourceGroup": {
+      "value": "dfc-dev-prov-rg"
+    },
     "storageConnectionString": {
       "value": "DefaultEndpointsProtocol=https;AccountName=dfcfooprovstr;AccountKey=this_is_not_a_real_account==;EndpointSuffix=core.windows.net"
     }
