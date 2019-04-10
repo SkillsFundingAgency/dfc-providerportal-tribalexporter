@@ -4,6 +4,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Interfaces
 {
     public interface ICourseService
     {
-        Task<string> GetAllCoursesAsJsonForUkprnAsync(int ukprn);
+        Task<string> GetAllLiveCoursesAsJsonForUkprnAsync(int ukprn);
     }
 }

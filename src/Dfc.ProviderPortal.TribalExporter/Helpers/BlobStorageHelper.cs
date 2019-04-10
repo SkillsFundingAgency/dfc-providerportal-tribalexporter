@@ -1,27 +1,27 @@
 ﻿using Dfc.ProviderPortal.Packages;
 using Dfc.ProviderPortal.TribalExporter.Interfaces;
+using Dfc.ProviderPortal.TribalExporter.Settings;
+using Microsoft.Extensions.Options;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Dfc.ProviderPortal.TribalExporter.Helpers
 {
     public class BlobStorageHelper : IBlobStorageHelper
     {
-        private readonly string _connectionString;
+        private readonly IBlobStorageSettings _settings;
 
-        public BlobStorageHelper(string connectionString)
+        public BlobStorageHelper(IOptions<BlobStorageSettings> settings)
         {
-            Throw.IfNullOrWhiteSpace(connectionString, nameof(connectionString));
+            Throw.IfNull(settings, nameof(settings));
 
-            _connectionString = connectionString;
+            _settings = settings.Value;
         }
 
         public CloudBlobContainer GetBlobContainer(string containerName)
         {
-            if (CloudStorageAccount.TryParse(_connectionString, out CloudStorageAccount storageAccount))
+            if (CloudStorageAccount.TryParse(_settings.ConnectionString, out CloudStorageAccount storageAccount))
             {
                 var client = storageAccount.CreateCloudBlobClient();
                 var container = client.GetContainerReference(containerName);
