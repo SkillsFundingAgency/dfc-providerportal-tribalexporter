@@ -31,14 +31,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             _cosmosDbCollectionSettings = cosmosDbCollectionSettings.Value;
         }
 
-        public async Task<string> GetAllCoursesAsJsonForUkprnAsync(int ukprn)
+        public async Task<string> GetAllLiveCoursesAsJsonForUkprnAsync(int ukprn)
         {
             var documents = new List<Document>();
 
             if (ukprn > 0)
             {
                 var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.CoursesCollectionId);
-                var sql = $"SELECT * FROM c WHERE c.ProviderUKPRN = {ukprn}";
+                var sql = $"SELECT * FROM c WHERE c.ProviderUKPRN = {ukprn} AND ARRAY_CONTAINS(c.CourseRuns, {{ RecordStatus: 1 }}, true)";
                 var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
                 var client = _cosmosDbHelper.GetClient();
 
