@@ -5,8 +5,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Dfc.ProviderPortal.TribalExporter.Helpers
 {

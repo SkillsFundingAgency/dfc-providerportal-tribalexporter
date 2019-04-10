@@ -103,7 +103,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var fileNamesFileName = $"{today.ToString("yyyyMMdd")}\\FileNames.json";
 
             log.LogInformation($"Timer trigger function {nameof(Export)} starting to create {fileNamesFileName} at {DateTime.Now}");
-            
+
             var fileNamesBlob = container.GetBlockBlobReference(fileNamesFileName);
             await fileNamesBlob.UploadTextAsync(JsonConvert.SerializeObject(fileNames, Formatting.Indented));
 
