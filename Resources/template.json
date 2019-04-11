@@ -20,10 +20,71 @@
         "description": "Resource group the app service plan is in"
       }
     },
-    "storageConnectionString": {
+    "storageAccountName": {
       "type": "string",
       "metadata": {
-        "description": "Connection string for the storage account to store function app files"
+        "description": "Shared storage account name"
+      }
+    },
+    "storageAccountResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "Shared storage account resource group"
+      }
+    },
+    "storageConnectionString": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Connection string for the shared storage account"
+      }
+    },
+    "storageContainer": {
+      "type": "string",
+      "metadata": {
+        "description": "Storage Account Container name to store exported data"
+      }
+    },
+    "cosmosDBfqdn": {
+      "type": "string",
+      "metadata": {
+        "description": "Cosmos DB account name in the format https://dfc-xxx-xxx-cdb.documents.azure.com/ for app settings"
+      }
+    },
+    "cosmosDBkey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Cosmos DB access key for app settings"
+      }
+    },
+    "cosmosDBdatabase": {
+      "type": "string",
+      "metadata": {
+        "description": "Cosmos DB database name for app settings"
+      }
+    },
+    "cosmosDBcollectionCourses": {
+      "type": "string",
+      "metadata": {
+        "description": "Cosmos DB Courses collection name for app settings"
+      }
+    },
+    "cosmosDBcollectionProviders": {
+      "type": "string",
+      "metadata": {
+        "description": "Cosmos DB Providers collection name for app settings"
+      }
+    },
+    "cosmosDBcollectionVenues": {
+      "type": "string",
+      "metadata": {
+        "description": "Cosmos DB Venues collection name for app settings"
+      }
+    },
+    "loggingLevel": {
+      "type": "string",
+      "defaultValue": "Debug",
+      "metadata": {
+        "description": "Logging level"
       }
     }
   },
@@ -32,9 +93,34 @@
     "functionAppName": "[concat(parameters('functionAppPrefix'),'-fa')]",
     "appInsightName": "[concat(parameters('functionAppPrefix'),'-ai')]"
   },
-  "resources": [{
+  "resources": [
+    {
       "apiVersion": "2017-05-10",
-      "name": "ppukrlpAppInsights",
+      "name": "tribexpContainer",
+      "type": "Microsoft.Resources/deployments",
+      "resourceGroup": "[parameters('storageAccountResourceGroup')]",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('deploymentUrlBase'),'Storage/storage-account-arm-container.json')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "storageAccountName": {
+            "value": "[parameters('storageAccountName')]"
+          },
+          "storageContainerName": {
+            "value": "[parameters('storageContainer')]"
+          },
+          "publicAccess": {
+            "value": "None"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "2017-05-10",
+      "name": "tribexpAppInsights",
       "type": "Microsoft.Resources/deployments",
       "properties": {
         "mode": "Incremental",
@@ -54,10 +140,10 @@
     },
     {
       "apiVersion": "2017-05-10",
-      "name": "ppukrlpAppService",
+      "name": "tribexpAppService",
       "type": "Microsoft.Resources/deployments",
       "dependsOn": [
-        "ppukrlpAppInsights"
+        "tribexpAppInsights"
       ],
       "properties": {
         "mode": "Incremental",
@@ -82,7 +168,7 @@
             "value": [
               {
                 "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
-                "value": "[reference('ppukrlpAppInsights').outputs.InstrumentationKey.value]"
+                "value": "[reference('tribexpAppInsights').outputs.InstrumentationKey.value]"
               },
               {
                 "name": "FUNCTIONS_EXTENSION_VERSION",
@@ -91,6 +177,66 @@
               {
                 "name": "AzureWebJobsStorage",
                 "value": "[parameters('storageConnectionString')]"
+              },
+              {
+                "name": "schedule",
+                "value": "%ExportTimerTriggerSchedule%"
+              },
+              {
+                "name": "Values__ExportTimerTriggerSchedule",
+                "value": "0 0 22 * * *"
+              },
+              {
+                "name": "Logging__ApplicationInsights__LogLevel__Default",
+                "value": "[parameters('loggingLevel')]"
+              },
+              {
+                "name": "Logging__ApplicationInsights__LogLevel__Microsoft",
+                "value": "[parameters('loggingLevel')]"
+              },
+              {
+                "name": "Logging__LogLevel__Default",
+                "value": "[parameters('loggingLevel')]"
+              },
+              {
+                "name": "AllowedHosts",
+                "value": "*"
+              },
+              {
+                "name": "ContainerName",
+                "value": "[parameters('storageContainer')]"
+              },
+              {
+                "name": "DaysBeforeToday",
+                "value": "-1"
+              },
+              {
+                "name": "BlobStorageSettings__ConnectionString",
+                "value": "[parameters('storageConnectionString')]"
+              },
+              {
+                "name": "CosmosDbSettings__EndpointUri",
+                "value": "[parameters('cosmosDBfqdn')]"
+              },
+              {
+                "name": "CosmosDbSettings__PrimaryKey",
+                "value": "[parameters('cosmosDBkey')]"
+              },
+              {
+                "name": "CosmosDbSettings__DatabaseId",
+                "value": "[parameters('cosmosDBdatabase')]"
+              },
+              {
+                "name": "CosmosDbCollectionSettings__CoursesCollectionId",
+                "value": "[parameters('cosmosDBcollectionCourses')]"
+              },
+              {
+                "name": "CosmosDbCollectionSettings__ProvidersCollectionId",
+                "value": "[parameters('cosmosDBcollectionProviders')]"
+              },
+              {
+                "name": "CosmosDbCollectionSettings__VenuesCollectionId",
+                "value": "[parameters('cosmosDBcollectionVenues')]"
               }
             ]
           },
@@ -112,7 +258,7 @@
     },
     "appInsightInstrumentationKey": {
       "type": "string",
-      "value": "[reference('ppukrlpAppInsights').outputs.InstrumentationKey.value]"
+      "value": "[reference('tribexpAppInsights').outputs.InstrumentationKey.value]"
     }
   }
 }
