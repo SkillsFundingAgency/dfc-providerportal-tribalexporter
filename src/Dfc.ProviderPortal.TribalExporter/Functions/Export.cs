@@ -78,7 +78,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             {
                 log.LogInformation($"Timer trigger function {nameof(Export)} starting to get venues data for {ukprn} at {DateTime.Now}");
 
-                var venues = await venueService.GetAllVenuesAsJsonForUkprnAndDateAsync(ukprn, DateTime.Now);
+                var venues = await venueService.GetAllVenuesAsJsonForUkprnAndDateAsync(ukprn, DateTime.Now.AddDays(-1));
 
                 log.LogInformation($"Timer trigger function {nameof(Export)} got all venue data for {ukprn} at {DateTime.Now}");
 
