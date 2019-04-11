@@ -109,6 +109,17 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             log.LogInformation($"Timer trigger function {nameof(Export)} created {fileNamesFileName} at {DateTime.Now}");
 
+
+            var emptyFileName = $"{today.ToString("yyyyMMdd")}\\Error\\empty.json";
+
+            log.LogInformation($"Timer trigger function {nameof(Export)} starting to create {emptyFileName} at {DateTime.Now}");
+
+            var emptyBlob = container.GetBlockBlobReference(emptyFileName);
+            await emptyBlob.UploadTextAsync(string.Empty);
+
+            log.LogInformation($"Timer trigger function {nameof(Export)} created {emptyFileName} at {DateTime.Now}");
+
+
             log.LogInformation($"Timer trigger function {nameof(Export)} ended executing at: {DateTime.Now}");
         }
     }
