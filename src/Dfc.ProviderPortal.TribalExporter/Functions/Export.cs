@@ -14,7 +14,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
     {
         [FunctionName("Export")]
         public static async Task Run(
-            [TimerTrigger("0 */5 * * * *")]TimerInfo myTimer,
+            [TimerTrigger("%ExportTimerTriggerSchedule%")]TimerInfo myTimer,
             ILogger log,
             [Inject] IConfiguration configuration,
             [Inject] IBlobStorageHelper blobStorageHelper,
