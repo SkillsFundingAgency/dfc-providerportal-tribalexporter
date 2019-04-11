@@ -64,7 +64,7 @@
             "value": "tribalexporter"
           },
           "publicAccess": {
-            "value": "Container"
+            "value": "None"
           }
         }
       }
