@@ -37,6 +37,55 @@
       "metadata": {
         "description": "Connection string for the shared storage account"
       }
+    },
+    "storageContainer": {
+      "type": "string",
+      "metadata": {
+        "description": "Storage Account Container name to store exported data"
+      }
+    },
+    "cosmosDBfqdn": {
+      "type": "string",
+      "metadata": {
+        "description": "Cosmos DB account name in the format https://dfc-xxx-xxx-cdb.documents.azure.com/ for app settings"
+      }
+    },
+    "cosmosDBkey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Cosmos DB access key for app settings"
+      }
+    },
+    "cosmosDBdatabase": {
+      "type": "string",
+      "metadata": {
+        "description": "Cosmos DB database name for app settings"
+      }
+    },
+    "cosmosDBcollectionCourses": {
+      "type": "string",
+      "metadata": {
+        "description": "Cosmos DB Courses collection name for app settings"
+      }
+    },
+    "cosmosDBcollectionProviders": {
+      "type": "string",
+      "metadata": {
+        "description": "Cosmos DB Providers collection name for app settings"
+      }
+    },
+    "cosmosDBcollectionVenues": {
+      "type": "string",
+      "metadata": {
+        "description": "Cosmos DB Venues collection name for app settings"
+      }
+    },
+    "loggingLevel": {
+      "type": "string",
+      "defaultValue": "Debug",
+      "metadata": {
+        "description": "Logging level"
+      }
     }
   },
   "variables": {
@@ -61,7 +110,7 @@
             "value": "[parameters('storageAccountName')]"
           },
           "storageContainerName": {
-            "value": "tribalexporter"
+            "value": "[parameters('storageContainer')]"
           },
           "publicAccess": {
             "value": "None"
@@ -128,6 +177,66 @@
               {
                 "name": "AzureWebJobsStorage",
                 "value": "[parameters('storageConnectionString')]"
+              },
+              {
+                "name": "schedule",
+                "value": "%ExportTimerTriggerSchedule%"
+              },
+              {
+                "name": "Values__ExportTimerTriggerSchedule",
+                "value": "0 0 22 * * *"
+              },
+              {
+                "name": "Logging__ApplicationInsights__LogLevel__Default",
+                "value": "[parameters('loggingLevel')]"
+              },
+              {
+                "name": "Logging__ApplicationInsights__LogLevel__Microsoft",
+                "value": "[parameters('loggingLevel')]"
+              },
+              {
+                "name": "Logging__LogLevel__Default",
+                "value": "[parameters('loggingLevel')]"
+              },
+              {
+                "name": "AllowedHosts",
+                "value": "*"
+              },
+              {
+                "name": "ContainerName",
+                "value": "[parameters('storageContainer')]"
+              },
+              {
+                "name": "DaysBeforeToday",
+                "value": "-1"
+              },
+              {
+                "name": "BlobStorageSettings__ConnectionString",
+                "value": "[parameters('storageConnectionString')]"
+              },
+              {
+                "name": "CosmosDbSettings__EndpointUri",
+                "value": "[parameters('cosmosDBfqdn')]"
+              },
+              {
+                "name": "CosmosDbSettings__PrimaryKey",
+                "value": "[parameters('cosmosDBkey')]"
+              },
+              {
+                "name": "CosmosDbSettings__DatabaseId",
+                "value": "[parameters('cosmosDBdatabase')]"
+              },
+              {
+                "name": "CosmosDbCollectionSettings__CoursesCollectionId",
+                "value": "[parameters('cosmosDBcollectionCourses')]"
+              },
+              {
+                "name": "CosmosDbCollectionSettings__ProvidersCollectionId",
+                "value": "[parameters('cosmosDBcollectionProviders')]"
+              },
+              {
+                "name": "CosmosDbCollectionSettings__VenuesCollectionId",
+                "value": "[parameters('cosmosDBcollectionVenues')]"
               }
             ]
           },
