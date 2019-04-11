@@ -5,6 +5,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Interfaces
 {
     public interface IVenueService
     {
-        Task<string> GetAllVenuesAsJsonForUkprnAndDateAsync(int ukprn, DateTime date);
+        Task<string> GetAllVenuesAsJsonForUkprnAndAfterDateAsync(int ukprn, DateTime afterDate);
     }
 }

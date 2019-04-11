@@ -24,8 +24,13 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
         {
             log.LogInformation($"Timer trigger function {nameof(Export)} started executing at: {DateTime.Now}");
 
-            var today = DateTime.Now;
             var fileNames = new List<string>();
+            var today = DateTime.Now;
+            int.TryParse(configuration["DaysBeforeToday"], out int daysBeforeToday);
+            daysBeforeToday = daysBeforeToday < 0 ? daysBeforeToday : daysBeforeToday * -1;
+            var afterDate = today.AddDays(daysBeforeToday).Date;
+
+            log.LogInformation($"Timer trigger function {nameof(Export)} configuration[\"DaysBeforeToday\"] translates to '{afterDate.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}' at {DateTime.Now}");
 
             var providersFileName = $"{today.ToString("yyyyMMdd")}\\Generated\\Providers_{today.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
 
@@ -76,9 +81,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             foreach (var ukprn in ukprns)
             {
-                log.LogInformation($"Timer trigger function {nameof(Export)} starting to get venues data for {ukprn} at {DateTime.Now}");
+                log.LogInformation($"Timer trigger function {nameof(Export)} starting to get venues data for {ukprn} (afterDate = {afterDate}) at {DateTime.Now}");
 
-                var venues = await venueService.GetAllVenuesAsJsonForUkprnAndDateAsync(ukprn, DateTime.Now.AddDays(-1));
+                var venues = await venueService.GetAllVenuesAsJsonForUkprnAndAfterDateAsync(ukprn, afterDate);
 
                 log.LogInformation($"Timer trigger function {nameof(Export)} got all venue data for {ukprn} at {DateTime.Now}");
 

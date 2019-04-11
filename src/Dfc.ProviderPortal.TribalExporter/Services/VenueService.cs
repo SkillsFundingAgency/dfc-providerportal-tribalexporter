@@ -32,14 +32,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             _cosmosDbCollectionSettings = cosmosDbCollectionSettings.Value;
         }
 
-        public async Task<string> GetAllVenuesAsJsonForUkprnAndDateAsync(int ukprn, DateTime date)
+        public async Task<string> GetAllVenuesAsJsonForUkprnAndAfterDateAsync(int ukprn, DateTime afterDate)
         {
             var documents = new List<Document>();
 
             if (ukprn > 0)
             {
                 var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.VenuesCollectionId);
-                var sql = $"SELECT * FROM c WHERE c.UKPRN = {ukprn} AND c.DateUpdated > '{date.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}'";
+                var sql = $"SELECT * FROM c WHERE c.UKPRN = {ukprn} AND c.DateUpdated > '{afterDate.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}'";
                 var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
                 var client = _cosmosDbHelper.GetClient();
 
