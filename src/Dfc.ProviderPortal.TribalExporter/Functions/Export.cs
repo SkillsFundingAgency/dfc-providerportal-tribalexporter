@@ -27,7 +27,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var today = DateTime.Now;
             var fileNames = new List<string>();
 
-            var providersFileName = $"{today.ToString("yyyyMMdd")}\\Providers_{today.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
+            var providersFileName = $"{today.ToString("yyyyMMdd")}\\Generated\\Providers_{today.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
 
             log.LogInformation($"Timer trigger function {nameof(Export)} starting to get data to create {providersFileName} at {DateTime.Now}");
 
@@ -58,7 +58,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 if (courses != "[]")
                 {
-                    var coursesFileName = $"{today.ToString("yyyyMMdd")}\\Courses_for_Providers_{ukprn}_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
+                    var coursesFileName = $"{today.ToString("yyyyMMdd")}\\Generated\\Courses_for_Providers_{ukprn}_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
 
                     log.LogInformation($"Timer trigger function {nameof(Export)} starting to create {coursesFileName} at {DateTime.Now}");
 
@@ -84,7 +84,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 if (venues != "[]")
                 {
-                    var venuesFileName = $"{today.ToString("yyyyMMdd")}\\Venues_for_Providers_{ukprn}_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
+                    var venuesFileName = $"{today.ToString("yyyyMMdd")}\\Generated\\Venues_for_Providers_{ukprn}_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
 
                     log.LogInformation($"Timer trigger function {nameof(Export)} starting to create {venuesFileName} at {DateTime.Now}");
 
@@ -100,7 +100,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 }
             }
 
-            var fileNamesFileName = $"{today.ToString("yyyyMMdd")}\\FileNames.json";
+            var fileNamesFileName = $"{today.ToString("yyyyMMdd")}\\Generated\\FileNames.json";
 
             log.LogInformation($"Timer trigger function {nameof(Export)} starting to create {fileNamesFileName} at {DateTime.Now}");
 
