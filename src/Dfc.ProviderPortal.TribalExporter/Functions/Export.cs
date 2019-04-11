@@ -12,7 +12,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 {
     public static class Export
     {
-        [FunctionName("Export")]
+        [FunctionName(nameof(Export))]
         public static async Task Run(
             [TimerTrigger("%ExportTimerTriggerSchedule%")]TimerInfo myTimer,
             ILogger log,
