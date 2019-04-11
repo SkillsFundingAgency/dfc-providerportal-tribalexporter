@@ -12,9 +12,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 {
     public static class Export
     {
-        [FunctionName("Export")]
+        [FunctionName(nameof(Export))]
         public static async Task Run(
-            [TimerTrigger("0 */5 * * * *")]TimerInfo myTimer,
+            [TimerTrigger("%ExportTimerTriggerSchedule%")]TimerInfo myTimer,
             ILogger log,
             [Inject] IConfiguration configuration,
             [Inject] IBlobStorageHelper blobStorageHelper,
@@ -24,10 +24,15 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
         {
             log.LogInformation($"Timer trigger function {nameof(Export)} started executing at: {DateTime.Now}");
 
-            var today = DateTime.Now;
             var fileNames = new List<string>();
+            var today = DateTime.Now;
+            int.TryParse(configuration["DaysBeforeToday"], out int daysBeforeToday);
+            daysBeforeToday = daysBeforeToday < 0 ? daysBeforeToday : daysBeforeToday * -1;
+            var afterDate = today.AddDays(daysBeforeToday).Date;
 
-            var providersFileName = $"{today.ToString("yyyyMMdd")}\\Providers_{today.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
+            log.LogInformation($"Timer trigger function {nameof(Export)} configuration[\"DaysBeforeToday\"] translates to '{afterDate.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}' at {DateTime.Now}");
+
+            var providersFileName = $"{today.ToString("yyyyMMdd")}\\Generated\\Providers_{today.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
 
             log.LogInformation($"Timer trigger function {nameof(Export)} starting to get data to create {providersFileName} at {DateTime.Now}");
 
@@ -58,7 +63,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 if (courses != "[]")
                 {
-                    var coursesFileName = $"{today.ToString("yyyyMMdd")}\\Courses_for_Providers_{ukprn}_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
+                    var coursesFileName = $"{today.ToString("yyyyMMdd")}\\Generated\\Courses_for_Providers_{ukprn}_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
 
                     log.LogInformation($"Timer trigger function {nameof(Export)} starting to create {coursesFileName} at {DateTime.Now}");
 
@@ -76,15 +81,15 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             foreach (var ukprn in ukprns)
             {
-                log.LogInformation($"Timer trigger function {nameof(Export)} starting to get venues data for {ukprn} at {DateTime.Now}");
+                log.LogInformation($"Timer trigger function {nameof(Export)} starting to get venues data for {ukprn} (afterDate = {afterDate}) at {DateTime.Now}");
 
-                var venues = await venueService.GetAllVenuesAsJsonForUkprnAndDateAsync(ukprn, DateTime.Now);
+                var venues = await venueService.GetAllVenuesAsJsonForUkprnAndAfterDateAsync(ukprn, afterDate);
 
                 log.LogInformation($"Timer trigger function {nameof(Export)} got all venue data for {ukprn} at {DateTime.Now}");
 
                 if (venues != "[]")
                 {
-                    var venuesFileName = $"{today.ToString("yyyyMMdd")}\\Venues_for_Providers_{ukprn}_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
+                    var venuesFileName = $"{today.ToString("yyyyMMdd")}\\Generated\\Venues_for_Providers_{ukprn}_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
 
                     log.LogInformation($"Timer trigger function {nameof(Export)} starting to create {venuesFileName} at {DateTime.Now}");
 
@@ -100,7 +105,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 }
             }
 
-            var fileNamesFileName = $"{today.ToString("yyyyMMdd")}\\FileNames.json";
+            var fileNamesFileName = $"{today.ToString("yyyyMMdd")}\\Generated\\FileNames.json";
 
             log.LogInformation($"Timer trigger function {nameof(Export)} starting to create {fileNamesFileName} at {DateTime.Now}");
 
@@ -108,6 +113,15 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             await fileNamesBlob.UploadTextAsync(JsonConvert.SerializeObject(fileNames, Formatting.Indented));
 
             log.LogInformation($"Timer trigger function {nameof(Export)} created {fileNamesFileName} at {DateTime.Now}");
+
+            var emptyFileName = $"{today.ToString("yyyyMMdd")}\\Error\\empty.json";
+
+            log.LogInformation($"Timer trigger function {nameof(Export)} starting to create {emptyFileName} at {DateTime.Now}");
+
+            var emptyBlob = container.GetBlockBlobReference(emptyFileName);
+            await emptyBlob.UploadTextAsync(string.Empty);
+
+            log.LogInformation($"Timer trigger function {nameof(Export)} created {emptyFileName} at {DateTime.Now}");
 
             log.LogInformation($"Timer trigger function {nameof(Export)} ended executing at: {DateTime.Now}");
         }
