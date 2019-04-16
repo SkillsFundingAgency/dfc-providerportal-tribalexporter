@@ -20,18 +20,6 @@
         "description": "Resource group the app service plan is in"
       }
     },
-    "storageAccountName": {
-      "type": "string",
-      "metadata": {
-        "description": "Shared storage account name"
-      }
-    },
-    "storageAccountResourceGroup": {
-      "type": "string",
-      "metadata": {
-        "description": "Shared storage account resource group"
-      }
-    },
     "storageConnectionString": {
       "type": "securestring",
       "metadata": {
@@ -40,6 +28,7 @@
     },
     "storageContainer": {
       "type": "string",
+      "defaultValue": "tribalexporter",
       "metadata": {
         "description": "Storage Account Container name to store exported data"
       }
@@ -94,30 +83,6 @@
     "appInsightName": "[concat(parameters('functionAppPrefix'),'-ai')]"
   },
   "resources": [
-    {
-      "apiVersion": "2017-05-10",
-      "name": "tribexpContainer",
-      "type": "Microsoft.Resources/deployments",
-      "resourceGroup": "[parameters('storageAccountResourceGroup')]",
-      "properties": {
-        "mode": "Incremental",
-        "templateLink": {
-          "uri": "[concat(variables('deploymentUrlBase'),'Storage/storage-account-arm-container.json')]",
-          "contentVersion": "1.0.0.0"
-        },
-        "parameters": {
-          "storageAccountName": {
-            "value": "[parameters('storageAccountName')]"
-          },
-          "storageContainerName": {
-            "value": "[parameters('storageContainer')]"
-          },
-          "publicAccess": {
-            "value": "None"
-          }
-        }
-      }
-    },
     {
       "apiVersion": "2017-05-10",
       "name": "tribexpAppInsights",
@@ -180,7 +145,7 @@
               },
               {
                 "name": "schedule",
-                "value": "%ExportTimerTriggerSchedule%"
+                "value": "0 0 22 * * *"
               },
               {
                 "name": "Values__ExportTimerTriggerSchedule",
