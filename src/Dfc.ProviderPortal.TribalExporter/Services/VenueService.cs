@@ -32,14 +32,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             _cosmosDbCollectionSettings = cosmosDbCollectionSettings.Value;
         }
 
-        public async Task<string> GetAllVenuesAsJsonForUkprnAndAfterDateAsync(int ukprn, DateTime afterDate)
+        public async Task<string> GetAllVenuesAsJsonForUkprnAsync(int ukprn)
         {
             var documents = new List<Document>();
 
             if (ukprn > 0)
             {
                 var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.VenuesCollectionId);
-                var sql = $"SELECT * FROM c WHERE c.UKPRN = {ukprn} AND c.DateUpdated > '{afterDate.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}'";
+                var sql = $"SELECT * FROM c WHERE c.UKPRN = {ukprn}";
                 var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
                 var client = _cosmosDbHelper.GetClient();
 
@@ -53,6 +53,24 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             }
 
             return JsonConvert.SerializeObject(documents, Formatting.Indented);
+        }
+
+        public async Task<bool> HasBeenAnUpdatedSinceAsync(int ukprn, DateTime date)
+        {
+            if (ukprn > 0)
+            {
+                var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.VenuesCollectionId);
+                var sql = $"SELECT * FROM c WHERE c.UKPRN = {ukprn} AND c.DateUpdated > '{date.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}'";
+                var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
+                var client = _cosmosDbHelper.GetClient();
+
+                using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+                {
+                    return query.HasMoreResults;
+                }
+            }
+
+            return false;
         }
     }
 }

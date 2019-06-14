@@ -1,11 +1,15 @@
 using Dfc.ProviderPortal.Packages.AzureFunctions.DependencyInjection;
+using Dfc.ProviderPortal.TribalExporter.Helpers;
 using Dfc.ProviderPortal.TribalExporter.Interfaces;
+using Dfc.ProviderPortal.TribalExporter.Settings;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Dfc.ProviderPortal.TribalExporter.Functions
@@ -14,116 +18,66 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
     {
         [FunctionName(nameof(Export))]
         public static async Task Run(
-            [TimerTrigger("%schedule%")]TimerInfo myTimer,
+            [TimerTrigger("00 22 * * *")]TimerInfo myTimer,
             ILogger log,
             [Inject] IConfiguration configuration,
             [Inject] IBlobStorageHelper blobStorageHelper,
+            [Inject] IMigrationProviderFileHelper migrationProviderFileHelper,
             [Inject] IProviderService providerService,
             [Inject] ICourseService courseService,
             [Inject] IVenueService venueService)
         {
             log.LogInformation($"Timer trigger function {nameof(Export)} started executing at: {DateTime.Now}");
 
+            //TODO: add more logging after you get this working ...
+
             var fileNames = new List<string>();
-            var today = DateTime.Now;
-            int.TryParse(configuration["DaysBeforeToday"], out int daysBeforeToday);
-            daysBeforeToday = daysBeforeToday < 0 ? daysBeforeToday : daysBeforeToday * -1;
-            var afterDate = today.AddDays(daysBeforeToday).Date;
-
-            log.LogInformation($"Timer trigger function {nameof(Export)} configuration[\"DaysBeforeToday\"] translates to '{afterDate.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}' at {DateTime.Now}");
-
-            var providersFileName = $"{today.ToString("yyyyMMdd")}\\Generated\\Providers_{today.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
-
-            log.LogInformation($"Timer trigger function {nameof(Export)} starting to get data to create {providersFileName} at {DateTime.Now}");
-
+            var last24HoursAgo = DateTime.Today.AddDays(-1);
+            var providersFileName = $"TEST_IGNORE_{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\Providers_{DateTime.Today.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
             var container = blobStorageHelper.GetBlobContainer(configuration["ContainerName"]);
-            var providers = await providerService.GetAllAsJsonAsync();
-            var providersBlob = container.GetBlockBlobReference(providersFileName);
+            var mpItems = await migrationProviderFileHelper.GetItemsAsync(container, configuration["MigrationProviderCsv"]);
+            var ukprns = mpItems.AsUkprns();
 
-            log.LogInformation($"Timer trigger function {nameof(Export)} got all data to create {providersFileName} at {DateTime.Now}");
-
-            await providersBlob.UploadTextAsync(providers);
-            fileNames.Add(providersFileName);
-
-            log.LogInformation($"Timer trigger function {nameof(Export)} created and uploaded {providersFileName} at {DateTime.Now}");
-
-            log.LogInformation($"Timer trigger function {nameof(Export)} starting to get all UKPRNs at {DateTime.Now}");
-
-            var ukprns = await providerService.GetAllUkprnsAsync();
-
-            log.LogInformation($"Timer trigger function {nameof(Export)} got all UKPRNs at {DateTime.Now}");
-
-            foreach (var ukprn in ukprns)
+            if (ukprns != null && ukprns.Any())
             {
-                log.LogInformation($"Timer trigger function {nameof(Export)} starting to get course data for {ukprn} at {DateTime.Now}");
+                var providers = await providerService.GetAllAsJsonAsync(ukprns);
+                var providersBlob = container.GetBlockBlobReference(providersFileName);
+                await providersBlob.UploadTextAsync(providers);
+                fileNames.Add(providersFileName);
+            }
 
-                var courses = await courseService.GetAllLiveCoursesAsJsonForUkprnAsync(ukprn);
+            foreach (var mpItem in mpItems)
+            {
+                var hasTodaysDate = mpItem.DateMigrated.Date == DateTime.Today;
+                var hasUpdatedVenues = await venueService.HasBeenAnUpdatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
+                var hasUpdatedCourses = await courseService.HasCoursesBeenUpdatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
+                var hasUpdatedCourseRuns = await courseService.HasCourseRunsBeenUpdatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
 
-                log.LogInformation($"Timer trigger function {nameof(Export)} got all course data for {ukprn} at {DateTime.Now}");
-
-                if (courses != "[]")
+                if (hasTodaysDate || hasUpdatedVenues || hasUpdatedCourses || hasUpdatedCourseRuns)
                 {
-                    var coursesFileName = $"{today.ToString("yyyyMMdd")}\\Generated\\Courses_for_Providers_{ukprn}_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
+                    var courses = await courseService.GetAllLiveCoursesAsJsonForUkprnAsync(mpItem.Ukprn);
+                    if (courses != "[]")
+                    {
+                        var coursesFileName = $"TEST_IGNORE_{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\Courses_for_Providers_{mpItem.Ukprn}_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
+                        var coursesBlob = container.GetBlockBlobReference(coursesFileName);
+                        await coursesBlob.UploadTextAsync(courses);
+                        fileNames.Add(coursesFileName);
+                    }
 
-                    log.LogInformation($"Timer trigger function {nameof(Export)} starting to create {coursesFileName} at {DateTime.Now}");
-
-                    var coursesBlob = container.GetBlockBlobReference(coursesFileName);
-                    await coursesBlob.UploadTextAsync(courses);
-                    fileNames.Add(coursesFileName);
-
-                    log.LogInformation($"Timer trigger function {nameof(Export)} created {coursesFileName} at {DateTime.Now}");
-                }
-                else
-                {
-                    log.LogInformation($"Timer trigger function {nameof(Export)} no course data for {ukprn} at {DateTime.Now}");
+                    var venues = await venueService.GetAllVenuesAsJsonForUkprnAsync(mpItem.Ukprn);
+                    if (venues != "[]")
+                    {
+                        var venuesFileName = $"TEST_IGNORE_{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\Venues_for_Providers_{mpItem.Ukprn}_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
+                        var venuesBlob = container.GetBlockBlobReference(venuesFileName);
+                        await venuesBlob.UploadTextAsync(venues);
+                        fileNames.Add(venuesFileName);
+                    }
                 }
             }
 
-            foreach (var ukprn in ukprns)
-            {
-                log.LogInformation($"Timer trigger function {nameof(Export)} starting to get venues data for {ukprn} (afterDate = {afterDate}) at {DateTime.Now}");
-
-                var venues = await venueService.GetAllVenuesAsJsonForUkprnAndAfterDateAsync(ukprn, afterDate);
-
-                log.LogInformation($"Timer trigger function {nameof(Export)} got all venue data for {ukprn} at {DateTime.Now}");
-
-                if (venues != "[]")
-                {
-                    var venuesFileName = $"{today.ToString("yyyyMMdd")}\\Generated\\Venues_for_Providers_{ukprn}_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
-
-                    log.LogInformation($"Timer trigger function {nameof(Export)} starting to create {venuesFileName} at {DateTime.Now}");
-
-                    var venuesBlob = container.GetBlockBlobReference(venuesFileName);
-                    await venuesBlob.UploadTextAsync(venues);
-                    fileNames.Add(venuesFileName);
-
-                    log.LogInformation($"Timer trigger function {nameof(Export)} created {venuesFileName} at {DateTime.Now}");
-                }
-                else
-                {
-                    log.LogInformation($"Timer trigger function {nameof(Export)} no venue data for {ukprn} at {DateTime.Now}");
-                }
-            }
-
-            var fileNamesFileName = $"{today.ToString("yyyyMMdd")}\\Generated\\FileNames.json";
-
-            log.LogInformation($"Timer trigger function {nameof(Export)} starting to create {fileNamesFileName} at {DateTime.Now}");
-
+            var fileNamesFileName = $"TEST_IGNORE_{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\FileNames.json";
             var fileNamesBlob = container.GetBlockBlobReference(fileNamesFileName);
             await fileNamesBlob.UploadTextAsync(JsonConvert.SerializeObject(fileNames, Formatting.Indented));
-
-            log.LogInformation($"Timer trigger function {nameof(Export)} created {fileNamesFileName} at {DateTime.Now}");
-
-            var emptyFileName = $"{today.ToString("yyyyMMdd")}\\Error\\empty.json";
-
-            log.LogInformation($"Timer trigger function {nameof(Export)} starting to create {emptyFileName} at {DateTime.Now}");
-
-            var emptyBlob = container.GetBlockBlobReference(emptyFileName);
-            await emptyBlob.UploadTextAsync(string.Empty);
-
-            log.LogInformation($"Timer trigger function {nameof(Export)} created {emptyFileName} at {DateTime.Now}");
-
-            log.LogInformation($"Timer trigger function {nameof(Export)} ended executing at: {DateTime.Now}");
         }
     }
 }

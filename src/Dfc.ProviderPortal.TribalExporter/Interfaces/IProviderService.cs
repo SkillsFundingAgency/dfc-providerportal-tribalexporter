@@ -5,8 +5,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Interfaces
 {
     public interface IProviderService
     {
-        Task<string> GetAllAsJsonAsync();
-
-        Task<IEnumerable<int>> GetAllUkprnsAsync();
+        Task<string> GetAllAsJsonAsync(IEnumerable<int> ukprns);
     }
 }
