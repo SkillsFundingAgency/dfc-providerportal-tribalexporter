@@ -1,34 +1,33 @@
 ﻿using Dfc.ProviderPortal.TribalExporter.Interfaces;
 using Dfc.ProviderPortal.TribalExporter.Settings;
-using Microsoft.WindowsAzure.Storage.Blob;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Dfc.ProviderPortal.TribalExporter.Helpers
 {
-    public class MigrationProviderFileHelper : IMigrationProviderFileHelper
+    public static class MigrationProviderItemHelper
     {
-        private readonly IBlobStorageHelper _blobStorageHelper;
-
-        public MigrationProviderFileHelper(IBlobStorageHelper blobStorageHelper)
+        public static string GetContentFromUri(Uri uri)
         {
-            if (blobStorageHelper == null) throw new ArgumentNullException(nameof(blobStorageHelper));
-
-            _blobStorageHelper = blobStorageHelper;
+            var req = (HttpWebRequest)WebRequest.Create(uri);
+            using (var res = (HttpWebResponse)req.GetResponse())
+            using (var stream = new StreamReader(res.GetResponseStream(), Encoding.UTF8))
+            {
+                return stream.ReadToEnd();
+            }
         }
 
-        public async Task<IEnumerable<IMiragtionProviderItem>> GetItemsAsync(CloudBlobContainer container, string fileName)
+        public static IEnumerable<IMiragtionProviderItem> GetMiragtionProviderItems(string content)
         {
             var items = new List<MiragtionProviderItem>();
             var delimitedFileSettings = new DelimitedFileSettings(true);
-            var content = await _blobStorageHelper.ReadFileAsync(container, fileName);
             var delimitedLines = DelimitedFileHelper.ReadLines(new StringReader(content), delimitedFileSettings).ToList();
             if (delimitedFileSettings.IsFirstRowHeaders) delimitedLines.RemoveAt(0);
-            
+
             foreach (var dl in delimitedLines)
             {
                 var ukprnField = dl.Fields[0];

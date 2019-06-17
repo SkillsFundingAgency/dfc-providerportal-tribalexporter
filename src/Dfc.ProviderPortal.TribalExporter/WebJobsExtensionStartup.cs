@@ -35,7 +35,6 @@ namespace Dfc.ProviderPortal.TribalExporter
             builder.Services.Configure<BlobStorageSettings>(configuration.GetSection(nameof(BlobStorageSettings)));
             builder.Services.AddScoped<ICosmosDbHelper, CosmosDbHelper>();
             builder.Services.AddScoped<IBlobStorageHelper, BlobStorageHelper>();
-            builder.Services.AddScoped<IMigrationProviderFileHelper, MigrationProviderFileHelper>();
             builder.Services.AddScoped<IProviderService, ProviderService>();
             builder.Services.AddScoped<ICourseService, CourseService>();
             builder.Services.AddScoped<IVenueService, VenueService>();

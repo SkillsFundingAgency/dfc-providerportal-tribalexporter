@@ -22,7 +22,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             ILogger log,
             [Inject] IConfiguration configuration,
             [Inject] IBlobStorageHelper blobStorageHelper,
-            [Inject] IMigrationProviderFileHelper migrationProviderFileHelper,
             [Inject] IProviderService providerService,
             [Inject] ICourseService courseService,
             [Inject] IVenueService venueService)
@@ -35,7 +34,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var last24HoursAgo = DateTime.Today.AddDays(-1);
             var providersFileName = $"TEST_IGNORE_{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\Providers_{DateTime.Today.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
             var container = blobStorageHelper.GetBlobContainer(configuration["ContainerName"]);
-            var mpItems = await migrationProviderFileHelper.GetItemsAsync(container, configuration["MigrationProviderCsv"]);
+            var migrationProvidersCsvContent = MigrationProviderItemHelper.GetContentFromUri(new Uri(configuration["MigrationProviderCsv"]));
+            var mpItems = MigrationProviderItemHelper.GetMiragtionProviderItems(migrationProvidersCsvContent);
             var ukprns = mpItems.AsUkprns();
 
             if (ukprns != null && ukprns.Any())
