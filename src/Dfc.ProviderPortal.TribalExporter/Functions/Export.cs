@@ -16,7 +16,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
     {
         [FunctionName(nameof(Export))]
         public static async Task Run(
-            [TimerTrigger("00 22 * * *")]TimerInfo myTimer,
+            [TimerTrigger("51 14 * * *")]TimerInfo myTimer,
             ILogger log,
             [Inject] IConfiguration configuration,
             [Inject] IBlobStorageHelper blobStorageHelper,
@@ -48,11 +48,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             foreach (var mpItem in mpItems)
             {
                 var hasTodaysDate = mpItem.DateMigrated.Date == DateTime.Today;
+                var dateMigratedIsInThePast = mpItem.DateMigrated.Date < DateTime.Today;
                 var hasUpdatedVenues = await venueService.HasBeenAnUpdatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
                 var hasUpdatedCourses = await courseService.HasCoursesBeenUpdatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
                 var hasUpdatedCourseRuns = await courseService.HasCourseRunsBeenUpdatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
 
-                if (hasTodaysDate || (!hasTodaysDate && (hasUpdatedVenues || hasUpdatedCourses || hasUpdatedCourseRuns)))
+                if (hasTodaysDate || (dateMigratedIsInThePast && (hasUpdatedVenues || hasUpdatedCourses || hasUpdatedCourseRuns)))
                 {
                     var courses = await courseService.GetAllLiveCoursesAsJsonForUkprnAsync(mpItem.Ukprn);
                     if (courses != "[]")

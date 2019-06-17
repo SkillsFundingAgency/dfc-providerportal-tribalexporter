@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Dfc.ProviderPortal.TribalExporter.Services
@@ -57,6 +58,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
 
         public async Task<bool> HasCoursesBeenUpdatedSinceAsync(int ukprn, DateTime date)
         {
+            var documents = new List<Document>();
+
             if (ukprn > 0)
             {
                 var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.CoursesCollectionId);
@@ -66,15 +69,20 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
 
                 using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
                 {
-                    return query.HasMoreResults;
+                    while (query.HasMoreResults)
+                    {
+                        foreach (var document in await query.ExecuteNextAsync<Document>()) documents.Add(document);
+                    }
                 }
             }
 
-            return false;
+            return documents.Count() > 0;
         }
 
         public async Task<bool> HasCourseRunsBeenUpdatedSinceAsync(int ukprn, DateTime date)
         {
+            var documents = new List<Document>();
+
             if (ukprn > 0)
             {
                 var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.CoursesCollectionId);
@@ -84,11 +92,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
 
                 using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
                 {
-                    return query.HasMoreResults;
+                    while (query.HasMoreResults)
+                    {
+                        foreach (var document in await query.ExecuteNextAsync<Document>()) documents.Add(document);
+                    }
                 }
             }
 
-            return false;
+            return documents.Count() > 0;
         }
     }
 }
