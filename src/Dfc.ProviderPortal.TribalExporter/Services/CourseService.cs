@@ -56,6 +56,52 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             return JsonConvert.SerializeObject(documents, Formatting.Indented);
         }
 
+        public async Task<bool> HasCoursesBeenCreatedSinceAsync(int ukprn, DateTime date)
+        {
+            var documents = new List<Document>();
+
+            if (ukprn > 0)
+            {
+                var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.CoursesCollectionId);
+                var sql = $"SELECT * FROM c WHERE c.ProviderUKPRN = {ukprn} AND ARRAY_CONTAINS(c.CourseRuns, {{ RecordStatus: 1 }}, true) AND c.CreatedDate > '{date.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}'";
+                var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
+                var client = _cosmosDbHelper.GetClient();
+
+                using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+                {
+                    while (query.HasMoreResults)
+                    {
+                        foreach (var document in await query.ExecuteNextAsync<Document>()) documents.Add(document);
+                    }
+                }
+            }
+
+            return documents.Count() > 0;
+        }
+
+        public async Task<bool> HasCourseRunsBeenCreatedSinceAsync(int ukprn, DateTime date)
+        {
+            var documents = new List<Document>();
+
+            if (ukprn > 0)
+            {
+                var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.CoursesCollectionId);
+                var sql = $"SELECT c.id FROM c JOIN cr IN c.CourseRuns WHERE cr.RecordStatus = 1 AND  cr.CreatedDate > '{date.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}' AND c.ProviderUKPRN = {ukprn}";
+                var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
+                var client = _cosmosDbHelper.GetClient();
+
+                using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+                {
+                    while (query.HasMoreResults)
+                    {
+                        foreach (var document in await query.ExecuteNextAsync<Document>()) documents.Add(document);
+                    }
+                }
+            }
+
+            return documents.Count() > 0;
+        }
+
         public async Task<bool> HasCoursesBeenUpdatedSinceAsync(int ukprn, DateTime date)
         {
             var documents = new List<Document>();
