@@ -11,16 +11,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
 {
     public static class MigrationProviderItemHelper
     {
-        public static string GetContentFromUri(Uri uri)
-        {
-            var req = (HttpWebRequest)WebRequest.Create(uri);
-            using (var res = (HttpWebResponse)req.GetResponse())
-            using (var stream = new StreamReader(res.GetResponseStream(), Encoding.UTF8))
-            {
-                return stream.ReadToEnd();
-            }
-        }
-
         public static IEnumerable<IMiragtionProviderItem> GetMiragtionProviderItems(string content)
         {
             var items = new List<MiragtionProviderItem>();
