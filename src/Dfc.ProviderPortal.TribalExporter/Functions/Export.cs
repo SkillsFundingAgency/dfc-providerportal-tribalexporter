@@ -49,13 +49,22 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             {
                 var hasTodaysDate = mpItem.DateMigrated.Date == DateTime.Today;
                 var dateMigratedIsInThePast = mpItem.DateMigrated.Date < DateTime.Today;
-                var hasUpdatedVenues = await venueService.HasBeenAnUpdatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
-                var hasUpdatedCourses = await courseService.HasCoursesBeenUpdatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
-                var hasUpdatedCourseRuns = await courseService.HasCourseRunsBeenUpdatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
+
                 var hasCreatedCourses = await courseService.HasCoursesBeenCreatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
                 var hasCreatedCourseRuns = await courseService.HasCourseRunsBeenCreatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
 
-                if (hasTodaysDate || (dateMigratedIsInThePast && (hasUpdatedVenues || hasUpdatedCourses || hasUpdatedCourseRuns || )))
+                var hasUpdatedCourses = await courseService.HasCoursesBeenUpdatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
+                var hasUpdatedCourseRuns = await courseService.HasCourseRunsBeenUpdatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
+
+                var hasDeletedCourses = await courseService.HasCoursesBeenDeletedSinceAsync(mpItem.Ukprn, last24HoursAgo);
+                var hasDeletedCourseRuns = await courseService.HasCourseRunsBeenDeletedSinceAsync(mpItem.Ukprn, last24HoursAgo);
+
+                var hasUpdatedVenues = await venueService.HasBeenAnUpdatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
+
+                if (hasTodaysDate 
+                    || (dateMigratedIsInThePast 
+                        && (hasCreatedCourses || hasCreatedCourseRuns || hasUpdatedCourses || hasUpdatedCourseRuns || hasDeletedCourses || hasDeletedCourseRuns ||
+                            hasUpdatedVenues)))
                 {
                     var courses = await courseService.GetAllLiveCoursesAsJsonForUkprnAsync(mpItem.Ukprn);
                     if (courses != "[]")

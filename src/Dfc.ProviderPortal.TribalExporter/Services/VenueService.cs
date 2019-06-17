@@ -40,7 +40,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             if (ukprn > 0)
             {
                 var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.VenuesCollectionId);
-                var sql = $"SELECT * FROM c WHERE c.UKPRN = {ukprn}";
+                var sql = $"SELECT * FROM c WHERE c.UKPRN = {ukprn} AND Status = 1";
                 var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
                 var client = _cosmosDbHelper.GetClient();
 
@@ -56,6 +56,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             return JsonConvert.SerializeObject(documents, Formatting.Indented);
         }
 
+        // NOTE: There is no Venue Status of "Updated" however this should cover all Created, Updated, Deleting usecases if the DateUpdated is changed in all usecases.
         public async Task<bool> HasBeenAnUpdatedSinceAsync(int ukprn, DateTime date)
         {
             var documents = new List<Document>();

@@ -147,5 +147,52 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
 
             return documents.Count() > 0;
         }
+
+        // NOTE: Not sure when Course/CourseRuns are "Deleted" if the UpdatedDate actually gets updated, I dont think it does.
+        public async Task<bool> HasCoursesBeenDeletedSinceAsync(int ukprn, DateTime date)
+        {
+            var documents = new List<Document>();
+
+            if (ukprn > 0)
+            {
+                var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.CoursesCollectionId);
+                var sql = $"SELECT * FROM c WHERE c.ProviderUKPRN = {ukprn} AND ARRAY_CONTAINS(c.CourseRuns, {{ RecordStatus: 4 }}, true) AND c.UpdatedDate > '{date.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}'";
+                var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
+                var client = _cosmosDbHelper.GetClient();
+
+                using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+                {
+                    while (query.HasMoreResults)
+                    {
+                        foreach (var document in await query.ExecuteNextAsync<Document>()) documents.Add(document);
+                    }
+                }
+            }
+
+            return documents.Count() > 0;
+        }
+
+        public async Task<bool> HasCourseRunsBeenDeletedSinceAsync(int ukprn, DateTime date)
+        {
+            var documents = new List<Document>();
+
+            if (ukprn > 0)
+            {
+                var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.CoursesCollectionId);
+                var sql = $"SELECT c.id FROM c JOIN cr IN c.CourseRuns WHERE cr.RecordStatus = 4 AND  cr.UpdatedDate > '{date.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}' AND c.ProviderUKPRN = {ukprn}";
+                var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
+                var client = _cosmosDbHelper.GetClient();
+
+                using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+                {
+                    while (query.HasMoreResults)
+                    {
+                        foreach (var document in await query.ExecuteNextAsync<Document>()) documents.Add(document);
+                    }
+                }
+            }
+
+            return documents.Count() > 0;
+        }
     }
 }
