@@ -40,7 +40,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             if (ukprn > 0)
             {
                 var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.VenuesCollectionId);
-                var sql = $"SELECT * FROM c WHERE c.UKPRN = {ukprn} AND Status = 1";
+                var sql = $"SELECT * FROM c WHERE c.UKPRN = {ukprn} AND c.Status = 1";
                 var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
                 var client = _cosmosDbHelper.GetClient();
 
