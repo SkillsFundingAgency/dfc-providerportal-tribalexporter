@@ -208,7 +208,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             }
             finally
             {
-                logFile.AppendLine($"Ending {nameof(Export)} at {DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}");
+                logFile.AppendLine($"Ending {nameof(Export)} at {DateTime.Now}");
                 var logFileName = $"TEST_IGNORE_{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\Log_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.txt";
                 var logFileNameBolb = containerExporter.GetBlockBlobReference(logFileName);
                 await logFileNameBolb.UploadTextAsync(logFile.ToString());
