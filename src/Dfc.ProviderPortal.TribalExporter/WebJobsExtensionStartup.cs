@@ -24,10 +24,7 @@ namespace Dfc.ProviderPortal.TribalExporter
                 .SetBasePath(Environment.CurrentDirectory)
                 .AddJsonFile("local.settings.json", optional: true, reloadOnChange: true)
                 .AddEnvironmentVariables()
-                .AddApplicationInsightsSettings()
                 .Build();
-
-            builder.Services.AddApplicationInsightsTelemetry(configuration);
 
             builder.Services.AddSingleton<IConfiguration>(configuration);
             builder.Services.Configure<CosmosDbSettings>(configuration.GetSection(nameof(CosmosDbSettings)));
