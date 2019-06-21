@@ -81,6 +81,13 @@
       "metadata": {
         "description": "Storage Account Container name to store provider files"
       }
+    },
+    "csvFilename": {
+      "type": "string",
+      "defaultValue": "migrationtoprovider.csv",
+      "metadata": {
+        "description": "Storage Account Container name to store provider files"
+      }
     }
   },
   "variables": {
@@ -164,6 +171,10 @@
               {
                 "name": "ContainerNameProviderFiles",
                 "value": "[parameters('containerProviderFiles')]"
+              },
+              {
+                "name": "MigrationProviderCsv",
+                "value": "[parameters('csvFilename')]"
               },
               {
                 "name": "BlobStorageSettings__ConnectionString",
