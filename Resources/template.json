@@ -79,7 +79,7 @@
       "type": "string",
       "defaultValue": "provider-files",
       "metadata": {
-        "description": "Storage Account Container name to store exported data"
+        "description": "Storage Account Container name to store provider files"
       }
     }
   },
