@@ -32,7 +32,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             var fileNames = new List<string>();
             var last24HoursAgo = DateTime.Today.AddDays(-1);
-            var providersFileName = $"TEST_IGNORE_{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\Providers_{DateTime.Today.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
+            var providersFileName = $"TEST_IGNORE_{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\Providers_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
 
             logFile.AppendLine($"24 Hours ago: {last24HoursAgo}");
             logFile.AppendLine($"Provider filename: {providersFileName}");
@@ -140,7 +140,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         {
                             logFile.AppendLine($"\t\tHas courses' data for: {mpItem}");
 
-                            var coursesFileName = $"TEST_IGNORE_{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\Courses_for_Providers_{mpItem.Ukprn}_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
+                            var coursesFileName = $"TEST_IGNORE_{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\Courses_for_Provider_{mpItem.Ukprn}_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
 
                             logFile.AppendLine($"\t\tGot reference to block bolb containers for file: {coursesFileName}");
 
@@ -171,7 +171,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         {
                             logFile.AppendLine($"\t\tHas venues' data for: {mpItem}");
 
-                            var venuesFileName = $"TEST_IGNORE_{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\Venues_for_Providers_{mpItem.Ukprn}_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
+                            var venuesFileName = $"TEST_IGNORE_{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\Venues_for_Provider_{mpItem.Ukprn}_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
 
                             logFile.AppendLine($"\t\tGot reference to block bolb containers for file: {venuesFileName}");
 
