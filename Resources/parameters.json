@@ -14,9 +14,6 @@
     "storageConnectionString": {
       "value": "DefaultEndpointsProtocol=https;AccountName=dfcfooprovstr;AccountKey=this_is_not_a_real_account==;EndpointSuffix=core.windows.net"
     },
-    "storageContainer": {
-      "value": "container"
-    },
     "cosmosDBfqdn": {
       "value": "https://dfc-foo-bar-cdb.documents.azure.com:443/"
     },
@@ -34,6 +31,9 @@
     },
     "cosmosDBcollectionVenues": {
       "value": "providerportal"
+    },
+    "schedule": {
+      "value": "0 0 23 * * *"
     }
   }
 }
