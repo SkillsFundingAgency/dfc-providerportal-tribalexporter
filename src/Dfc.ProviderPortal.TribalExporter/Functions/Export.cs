@@ -59,6 +59,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 logFile.AppendLine(migrationProviderCsv);
 
+                logFile.AppendLine(migrationProvidersCsvContent);
+
                 logFile.AppendLine($"Attempting to deserialise content into a IEnumerable<{nameof(MiragtionProviderItem)}>");
 
                 var mpItems = MigrationProviderItemHelper.GetMiragtionProviderItems(migrationProvidersCsvContent);
