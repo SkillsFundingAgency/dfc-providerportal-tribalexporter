@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Dfc.ProviderPortal.TribalExporter.Services
@@ -32,14 +33,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             _cosmosDbCollectionSettings = cosmosDbCollectionSettings.Value;
         }
 
-        public async Task<string> GetAllVenuesAsJsonForUkprnAndAfterDateAsync(int ukprn, DateTime afterDate)
+        public async Task<string> GetAllVenuesAsJsonForUkprnAsync(int ukprn)
         {
             var documents = new List<Document>();
 
             if (ukprn > 0)
             {
                 var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.VenuesCollectionId);
-                var sql = $"SELECT * FROM c WHERE c.UKPRN = {ukprn} AND c.DateUpdated > '{afterDate.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}'";
+                var sql = $"SELECT * FROM c WHERE c.UKPRN = {ukprn} AND c.Status = 1";
                 var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
                 var client = _cosmosDbHelper.GetClient();
 
@@ -53,6 +54,30 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             }
 
             return JsonConvert.SerializeObject(documents, Formatting.Indented);
+        }
+
+        // NOTE: There is no Venue Status of "Updated" however this should cover all Created, Updated, Deleting usecases if the DateUpdated is changed in all usecases.
+        public async Task<bool> HasBeenAnUpdatedSinceAsync(int ukprn, DateTime date)
+        {
+            var documents = new List<Document>();
+
+            if (ukprn > 0)
+            {
+                var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.VenuesCollectionId);
+                var sql = $"SELECT * FROM c WHERE c.UKPRN = {ukprn} AND c.DateUpdated > '{date.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}'";
+                var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
+                var client = _cosmosDbHelper.GetClient();
+
+                using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+                {
+                    while (query.HasMoreResults)
+                    {
+                        foreach (var document in await query.ExecuteNextAsync<Document>()) documents.Add(document);
+                    }
+                }
+            }
+
+            return documents.Count() > 0;
         }
     }
 }

@@ -5,6 +5,9 @@ using Microsoft.Extensions.Options;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using System;
+using System.IO;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Dfc.ProviderPortal.TribalExporter.Helpers
 {
@@ -32,6 +35,20 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
             {
                 throw new InvalidOperationException("Unable to access storage account.");
             }
+        }
+
+        public async Task<string> ReadFileAsync(CloudBlobContainer container, string fileName)
+        {
+            var text = string.Empty;
+            var blob = container.GetBlockBlobReference(fileName);
+
+            using (var memoryStream = new MemoryStream())
+            {
+                await blob.DownloadToStreamAsync(memoryStream);
+                text = Encoding.UTF8.GetString(memoryStream.ToArray());
+            }
+
+            return text;
         }
     }
 }
