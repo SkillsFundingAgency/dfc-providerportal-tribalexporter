@@ -26,13 +26,6 @@
         "description": "Connection string for the shared storage account"
       }
     },
-    "storageContainer": {
-      "type": "string",
-      "defaultValue": "tribalexporter",
-      "metadata": {
-        "description": "Storage Account Container name to store exported data"
-      }
-    },
     "cosmosDBfqdn": {
       "type": "string",
       "metadata": {
@@ -69,11 +62,24 @@
         "description": "Cosmos DB Venues collection name for app settings"
       }
     },
-    "loggingLevel": {
+    "schedule": {
       "type": "string",
-      "defaultValue": "Debug",
       "metadata": {
-        "description": "Logging level"
+        "description": "Schedule of when the function app should run"
+      }
+    },
+    "containerExporter": {
+      "type": "string",
+      "defaultValue": "tribalexporter",
+      "metadata": {
+        "description": "Storage Account Container name to store exported data"
+      }
+    },
+    "containerProviderFiles": {
+      "type": "string",
+      "defaultValue": "provider-files",
+      "metadata": {
+        "description": "Storage Account Container name to store provider files"
       }
     }
   },
@@ -145,35 +151,19 @@
               },
               {
                 "name": "schedule",
-                "value": "0 0 22 * * *"
-              },
-              {
-                "name": "Values__ExportTimerTriggerSchedule",
-                "value": "0 0 22 * * *"
-              },
-              {
-                "name": "Logging__ApplicationInsights__LogLevel__Default",
-                "value": "[parameters('loggingLevel')]"
-              },
-              {
-                "name": "Logging__ApplicationInsights__LogLevel__Microsoft",
-                "value": "[parameters('loggingLevel')]"
-              },
-              {
-                "name": "Logging__LogLevel__Default",
-                "value": "[parameters('loggingLevel')]"
+                "value": "[parameters('schedule')]"
               },
               {
                 "name": "AllowedHosts",
                 "value": "*"
               },
               {
-                "name": "ContainerName",
-                "value": "[parameters('storageContainer')]"
+                "name": "ContainerNameExporter",
+                "value": "[parameters('containerExporter')]"
               },
               {
-                "name": "DaysBeforeToday",
-                "value": "-1"
+                "name": "ContainerNameProviderFiles",
+                "value": "[parameters('containerProviderFiles')]"
               },
               {
                 "name": "BlobStorageSettings__ConnectionString",
