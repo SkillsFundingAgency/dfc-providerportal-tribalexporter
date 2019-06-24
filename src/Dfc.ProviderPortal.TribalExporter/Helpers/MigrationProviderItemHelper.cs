@@ -13,7 +13,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
     {
         public static IEnumerable<IMiragtionProviderItem> GetMiragtionProviderItems(string content, StringBuilder logger)
         {
-            logger.AppendLine($"Inside {nameof(GetMiragtionProviderItems)}");
+            logger.AppendLine($"Start {nameof(GetMiragtionProviderItems)}");
             logger.AppendLine($"Value for parameter: {nameof(content)} [content length: {content.Length}]");
             logger.Append(content);
 
@@ -59,9 +59,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
 
                     logger.AppendLine($"End if");
                 }
+
+                logger.AppendLine($"End foreach");
             }
 
-            logger.AppendLine($"End foreach");
+            logger.AppendLine($"End {nameof(GetMiragtionProviderItems)}");
 
             return items;
         }
