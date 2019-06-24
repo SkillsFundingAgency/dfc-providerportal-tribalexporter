@@ -18,7 +18,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
         [FunctionName(nameof(Export))]
         public static async Task Run(
             //[TimerTrigger("%schedule%")]TimerInfo myTimer, 
-            [TimerTrigger("02 11 * * *")]TimerInfo myTimer,
+            [TimerTrigger("11 12 * * *")]TimerInfo myTimer,
             ILogger log,
             [Inject] IConfiguration configuration,
             [Inject] IBlobStorageHelper blobStorageHelper,
@@ -63,7 +63,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 logFile.AppendLine($"Attempting to deserialise content into a IEnumerable<{nameof(MiragtionProviderItem)}>");
 
-                var mpItems = MigrationProviderItemHelper.GetMiragtionProviderItems(migrationProvidersCsvContent);
+                var mpItems = MigrationProviderItemHelper.GetMiragtionProviderItems(migrationProvidersCsvContent, logFile);
 
                 logFile.AppendLine($"Start of deserialised content into: {mpItems.Count()} items in IEnumerable<{nameof(MiragtionProviderItem)}>");
 

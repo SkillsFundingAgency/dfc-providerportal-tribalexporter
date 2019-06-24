@@ -30,23 +30,38 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
 
             if (delimitedFileSettings.IsFirstRowHeaders) delimitedLines.RemoveAt(0);
 
+            logger.AppendLine($"Number of delimeted lines {delimitedLines.Count}");
+
             foreach (var dl in delimitedLines)
             {
+                logger.AppendLine($"Start foreach");
+
                 var ukprnField = dl.Fields[0];
                 var dateField = dl.Fields[1];
 
+                logger.AppendLine($"{nameof(ukprnField)} = {ukprnField.Value}, {nameof(dateField)} = {dateField.Value}");
+
                 if (ValuesAreValid(ukprnField.Value, dateField.Value))
                 {
+                    logger.AppendLine($"Start if");
+
                     int.TryParse(ukprnField.Value, out int ukprn);
                     DateTime.TryParse(dateField.Value, out DateTime date);
-
-                    items.Add(new MiragtionProviderItem
+                    var item = new MiragtionProviderItem
                     {
                         Ukprn = ukprn,
                         DateMigrated = date
-                    });
+                    };
+
+                    items.Add(item);
+
+                    logger.AppendLine(item.ToString());
+
+                    logger.AppendLine($"End if");
                 }
             }
+
+            logger.AppendLine($"End foreach");
 
             return items;
         }
