@@ -11,11 +11,23 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
 {
     public static class MigrationProviderItemHelper
     {
-        public static IEnumerable<IMiragtionProviderItem> GetMiragtionProviderItems(string content)
+        public static IEnumerable<IMiragtionProviderItem> GetMiragtionProviderItems(string content, StringBuilder logger)
         {
+            logger.AppendLine($"Inside {nameof(GetMiragtionProviderItems)}");
+            logger.AppendLine($"Value for parameter: {nameof(content)} [content length: {content.Length}]");
+            logger.Append(content);
+
             var items = new List<MiragtionProviderItem>();
             var delimitedFileSettings = new DelimitedFileSettings(true);
+
+            logger.AppendLine($"Attempting to get delimited lines from content.");
+
             var delimitedLines = DelimitedFileHelper.ReadLines(new StringReader(content), delimitedFileSettings).ToList();
+
+            logger.AppendLine($"Got {delimitedLines.Count} delimited lines from content.");
+
+            logger.AppendLine($"{nameof(delimitedFileSettings.IsFirstRowHeaders)} = {delimitedFileSettings.IsFirstRowHeaders}");
+
             if (delimitedFileSettings.IsFirstRowHeaders) delimitedLines.RemoveAt(0);
 
             foreach (var dl in delimitedLines)
