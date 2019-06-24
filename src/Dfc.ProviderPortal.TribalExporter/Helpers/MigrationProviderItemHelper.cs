@@ -70,17 +70,30 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
 
         internal static bool ValuesAreValid(string ukprnString, string dateString, StringBuilder logger)
         {
-            if (string.IsNullOrWhiteSpace(ukprnString)
-                || string.IsNullOrWhiteSpace(dateString)
-                || !int.TryParse(ukprnString, out int ukprn)
-                || !DateTime.TryParse(dateString, out DateTime date)
-                || ukprn < 1)
+            var cond1 = string.IsNullOrWhiteSpace(ukprnString);
+            var cond2 = string.IsNullOrWhiteSpace(dateString);
+            var cond3 = !int.TryParse(ukprnString, out int ukprn);
+            var cond4 = !DateTime.TryParse(dateString, out DateTime date);
+            var cond5 = ukprn < 1;
+
+            logger.AppendLine($"{nameof(ValuesAreValid)} CONDITION {nameof(cond1)} = {cond1}");
+            logger.AppendLine($"{nameof(ValuesAreValid)} CONDITION {nameof(cond2)} = {cond2}");
+            logger.AppendLine($"{nameof(ValuesAreValid)} CONDITION {nameof(cond3)} = {cond3}");
+            logger.AppendLine($"{nameof(ValuesAreValid)} CONDITION {nameof(cond4)} = {cond4}");
+            logger.AppendLine($"{nameof(ValuesAreValid)} CONDITION {nameof(cond5)} = {cond5}");
+
+            if (cond1 || cond2 || cond2 || cond3 || cond4 || cond5)
+            //if (string.IsNullOrWhiteSpace(ukprnString)
+            //    || string.IsNullOrWhiteSpace(dateString)
+            //    || !int.TryParse(ukprnString, out int ukprn)
+            //    || !DateTime.TryParse(dateString, out DateTime date)
+            //    || ukprn < 1)
             {
-                logger.AppendLine($"{nameof(ValuesAreValid)} FALSE {nameof(ukprnString)} = ukprnString, {nameof(dateString)} = {dateString}");
+                logger.AppendLine($"{nameof(ValuesAreValid)} FALSE {nameof(ukprnString)} = {ukprnString}, {nameof(dateString)} = {dateString}");
                 return false;
             }
 
-            logger.AppendLine($"{nameof(ValuesAreValid)} TRUE {nameof(ukprnString)} = ukprnString, {nameof(dateString)} = {dateString}");
+            logger.AppendLine($"{nameof(ValuesAreValid)} TRUE {nameof(ukprnString)} = {ukprnString}, {nameof(dateString)} = {dateString}");
             return true;
         }
     }
