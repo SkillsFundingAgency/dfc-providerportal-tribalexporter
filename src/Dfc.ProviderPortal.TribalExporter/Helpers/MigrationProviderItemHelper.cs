@@ -2,6 +2,7 @@
 using Dfc.ProviderPortal.TribalExporter.Settings;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -70,10 +71,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
 
         internal static bool ValuesAreValid(string ukprnString, string dateString, StringBuilder logger)
         {
+            logger.AppendLine($"{nameof(ValuesAreValid)} Current culture info = {CultureInfo.CurrentCulture}");
+
             var cond1 = string.IsNullOrWhiteSpace(ukprnString);
             var cond2 = string.IsNullOrWhiteSpace(dateString);
             var cond3 = !int.TryParse(ukprnString, out int ukprn);
-            var cond4 = !DateTime.TryParse(dateString, out DateTime date);
+            var cond4 = !DateTime.TryParse(dateString, CultureInfo.GetCultureInfo("en-GB"), DateTimeStyles.None, out DateTime date);
             var cond5 = ukprn < 1;
 
             logger.AppendLine($"{nameof(ValuesAreValid)} CONDITION {nameof(cond1)} = {cond1}");
