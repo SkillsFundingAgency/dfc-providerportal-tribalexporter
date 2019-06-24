@@ -41,7 +41,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
 
                 logger.AppendLine($"{nameof(ukprnField)} = {ukprnField.Value}, {nameof(dateField)} = {dateField.Value}");
 
-                if (ValuesAreValid(ukprnField.Value, dateField.Value))
+                if (ValuesAreValid(ukprnField.Value, dateField.Value, logger))
                 {
                     logger.AppendLine($"Start if");
 
@@ -68,7 +68,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
             return items;
         }
 
-        internal static bool ValuesAreValid(string ukprnString, string dateString)
+        internal static bool ValuesAreValid(string ukprnString, string dateString, StringBuilder logger)
         {
             if (string.IsNullOrWhiteSpace(ukprnString)
                 || string.IsNullOrWhiteSpace(dateString)
@@ -76,9 +76,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
                 || !DateTime.TryParse(dateString, out DateTime date)
                 || ukprn < 1)
             {
+                logger.AppendLine($"{nameof(ValuesAreValid)} FALSE {nameof(ukprnString)} = ukprnString, {nameof(dateString)} = {dateString}");
                 return false;
             }
 
+            logger.AppendLine($"{nameof(ValuesAreValid)} TRUE {nameof(ukprnString)} = ukprnString, {nameof(dateString)} = {dateString}");
             return true;
         }
     }
