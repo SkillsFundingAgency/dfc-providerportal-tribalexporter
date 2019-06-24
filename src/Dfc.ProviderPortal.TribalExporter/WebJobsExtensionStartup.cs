@@ -26,7 +26,7 @@ namespace Dfc.ProviderPortal.TribalExporter
                 .AddEnvironmentVariables()
                 .Build();
 
-            builder.Services.AddSingleton<IConfiguration>(configuration);
+            builder.Services.AddSingleton<IConfigurationRoot>(configuration);
             builder.Services.Configure<CosmosDbSettings>(configuration.GetSection(nameof(CosmosDbSettings)));
             builder.Services.Configure<CosmosDbCollectionSettings>(configuration.GetSection(nameof(CosmosDbCollectionSettings)));
             builder.Services.Configure<BlobStorageSettings>(configuration.GetSection(nameof(BlobStorageSettings)));
