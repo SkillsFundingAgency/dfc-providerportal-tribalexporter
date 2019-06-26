@@ -202,7 +202,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     }
                 }
 
-                var fileNamesFileName = $"TEST_IGNORE_{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\FileNames.json";
+                var fileNamesFileName = $"{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\FileNames.json";
                 var fileNamesBlob = containerExporter.GetBlockBlobReference(fileNamesFileName);
                 await fileNamesBlob.UploadTextAsync(JsonConvert.SerializeObject(fileNames, Formatting.Indented));
             }
