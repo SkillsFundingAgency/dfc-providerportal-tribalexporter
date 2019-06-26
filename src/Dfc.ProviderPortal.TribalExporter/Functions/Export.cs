@@ -17,8 +17,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
     {
         [FunctionName(nameof(Export))]
         public static async Task Run(
-            [TimerTrigger("%schedule%")]TimerInfo myTimer, 
-            //[TimerTrigger("55 16 * * *")]TimerInfo myTimer,
+            [TimerTrigger("%schedule%")]TimerInfo myTimer,
             ILogger log,
             [Inject] IConfigurationRoot configuration,
             [Inject] IBlobStorageHelper blobStorageHelper,
@@ -202,7 +201,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     }
                 }
 
-                var fileNamesFileName = $"TEST_IGNORE_{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\FileNames.json";
+                var fileNamesFileName = $"{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\FileNames.json";
                 var fileNamesBlob = containerExporter.GetBlockBlobReference(fileNamesFileName);
                 await fileNamesBlob.UploadTextAsync(JsonConvert.SerializeObject(fileNames, Formatting.Indented));
             }

@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text;
 
 namespace Dfc.ProviderPortal.TribalExporter.Helpers
@@ -86,11 +85,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
             logger.AppendLine($"{nameof(ValuesAreValid)} CONDITION {nameof(cond5)} = {cond5}");
 
             if (cond1 || cond2 || cond2 || cond3 || cond4 || cond5)
-            //if (string.IsNullOrWhiteSpace(ukprnString)
-            //    || string.IsNullOrWhiteSpace(dateString)
-            //    || !int.TryParse(ukprnString, out int ukprn)
-            //    || !DateTime.TryParse(dateString, out DateTime date)
-            //    || ukprn < 1)
             {
                 logger.AppendLine($"{nameof(ValuesAreValid)} FALSE {nameof(ukprnString)} = {ukprnString}, {nameof(dateString)} = {dateString}");
                 return false;
