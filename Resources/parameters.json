@@ -34,6 +34,12 @@
     },
     "schedule": {
       "value": "0 0 23 * * *"
+    },
+    "ApprenticeshipServiceApiUrl": { 
+      "value": "https://not-a-real-api/a/path"
+    },
+    "ApprenticeshipServiceApiKey": {
+      "value": "not-a-real-api-key"
     }
   }
 }
