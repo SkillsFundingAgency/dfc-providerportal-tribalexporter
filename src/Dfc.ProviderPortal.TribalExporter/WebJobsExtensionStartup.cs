@@ -30,11 +30,13 @@ namespace Dfc.ProviderPortal.TribalExporter
             builder.Services.Configure<CosmosDbSettings>(configuration.GetSection(nameof(CosmosDbSettings)));
             builder.Services.Configure<CosmosDbCollectionSettings>(configuration.GetSection(nameof(CosmosDbCollectionSettings)));
             builder.Services.Configure<BlobStorageSettings>(configuration.GetSection(nameof(BlobStorageSettings)));
+            builder.Services.Configure<ApprenticeshipServiceSettings>(configuration.GetSection(nameof(ApprenticeshipServiceSettings)));
             builder.Services.AddScoped<ICosmosDbHelper, CosmosDbHelper>();
             builder.Services.AddScoped<IBlobStorageHelper, BlobStorageHelper>();
             builder.Services.AddScoped<IProviderService, ProviderService>();
             builder.Services.AddScoped<ICourseService, CourseService>();
             builder.Services.AddScoped<IVenueService, VenueService>();
+            builder.Services.AddScoped<IApprenticeshipServiceWrapper, ApprenticeshipServiceWrapper>();
         }
     }
 }

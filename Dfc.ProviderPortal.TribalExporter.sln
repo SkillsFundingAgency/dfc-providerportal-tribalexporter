@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.136
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29123.88
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dfc.ProviderPortal.TribalExporter", "src\Dfc.ProviderPortal.TribalExporter\Dfc.ProviderPortal.TribalExporter.csproj", "{5EE48CC8-9167-41E4-B1BF-5D66DA5CCF1B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dfc.ProviderPortal.TribalExporter.Tests", "tests\Dfc.ProviderPortal.TribalExporter.Tests\Dfc.ProviderPortal.TribalExporter.Tests.csproj", "{A7CE785D-AC21-4EFF-8ED5-357488687D43}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dfc.ProviderPortal.TribalExporter.Tests", "tests\Dfc.ProviderPortal.TribalExporter.Tests\Dfc.ProviderPortal.TribalExporter.Tests.csproj", "{A7CE785D-AC21-4EFF-8ED5-357488687D43}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

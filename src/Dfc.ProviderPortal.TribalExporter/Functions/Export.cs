@@ -125,8 +125,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     logFile.AppendLine($"\tHas updated Venues: {hasUpdatedVenues}");
                     logFile.AppendLine($"End of conditional data for: {mpItem}");
 
-                    if (hasTodaysDate 
-                        || (dateMigratedIsInThePast 
+                    if (hasTodaysDate
+                        || (dateMigratedIsInThePast
                             && (hasCreatedCourses || hasCreatedCourseRuns || hasUpdatedCourses || hasUpdatedCourseRuns || hasDeletedCourses || hasDeletedCourseRuns ||
                                 hasUpdatedVenues)))
                     {
