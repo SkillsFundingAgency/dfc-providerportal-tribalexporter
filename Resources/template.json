@@ -88,6 +88,18 @@
       "metadata": {
         "description": "Storage Account Container name to store provider files"
       }
+    },
+    "ApprenticeshipServiceApiUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "Url for the Apprenticeship Service api"
+      }
+    },
+    "ApprenticeshipServiceApiKey": {
+      "type": "string",
+      "metadata": {
+        "description": "api key for the Apprenticeship Service api"
+      }
     }
   },
   "variables": {
@@ -203,6 +215,14 @@
               {
                 "name": "CosmosDbCollectionSettings__VenuesCollectionId",
                 "value": "[parameters('cosmosDBcollectionVenues')]"
+              },
+              {
+                "name": "ApprenticeshipServiceSettings__ApiUrl",
+                "value": "[parameters('ApprenticeshipServiceApiUrl')]"
+              },
+              {
+                "name": "ApprenticeshipServiceSettings__ApiKey",
+                "value": "[parameters('ApprenticeshipServiceApiKey')]"
               }
             ]
           },
