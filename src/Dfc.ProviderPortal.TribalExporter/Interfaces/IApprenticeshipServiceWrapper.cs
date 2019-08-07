@@ -8,6 +8,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Interfaces
 {
     public interface IApprenticeshipServiceWrapper
     {
-        IEnumerable<TribalProvider> GetApprenticeshipDeltaUpdates();
+        string GetApprenticeshipDeltaUpdatesAsJson();
     }
 }

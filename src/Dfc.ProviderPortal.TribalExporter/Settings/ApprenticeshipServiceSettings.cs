@@ -7,7 +7,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Settings
 {
     public class ApprenticeshipServiceSettings : IApprenticeshipServiceSettings
     {
-        public string ApiUrl { get; }
-        public string ApiKey { get; }
+        public string ApiUrl { get; set; }
+        public string ApiKey { get; set; }
     }
 }

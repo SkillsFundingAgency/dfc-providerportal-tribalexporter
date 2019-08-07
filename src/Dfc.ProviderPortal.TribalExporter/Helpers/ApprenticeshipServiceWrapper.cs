@@ -15,12 +15,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
     public class ApprenticeshipServiceWrapper : IApprenticeshipServiceWrapper
     {
         private readonly IApprenticeshipServiceSettings _settings;
-        public ApprenticeshipServiceWrapper(ApprenticeshipServiceSettings settings)
+        public ApprenticeshipServiceWrapper(IOptions<ApprenticeshipServiceSettings> settings)
         {
             Throw.IfNull(settings, nameof(settings));
-            _settings = settings;
+            _settings = settings.Value;
         }
-        public IEnumerable<TribalProvider> GetApprenticeshipDeltaUpdates()
+        public string GetApprenticeshipDeltaUpdatesAsJson()
         {
             // Call service to get data
             HttpClient client = new HttpClient();
@@ -35,7 +35,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
             if (!json.StartsWith("["))
                 json = "[" + json + "]";
             client.Dispose();
-            return JsonConvert.DeserializeObject<IEnumerable<TribalProvider>>(json);
+            return json;
         }
     }
 }

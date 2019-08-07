@@ -38,14 +38,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             try
             {
                 logFile.AppendLine($"Attempting to call Apprenticeship API to gather apprenticeship delta updates");
-                var apprenticeshipDelta = apprenticeshipServiceWrapper.GetApprenticeshipDeltaUpdates();
+                var apprenticeshipDelta = apprenticeshipServiceWrapper.GetApprenticeshipDeltaUpdatesAsJson();
                 logFile.AppendLine($"Successful call to apprenticeship API");
                 if (apprenticeshipDelta != null)
                 {
                     logFile.AppendLine($"Apprenticeship Delta JSON returned");
                     var providersBlob = containerExporter.GetBlockBlobReference(providersFileName);
                     logFile.AppendLine($"Attempting to upload apprenticeship delta json");
-                    await providersBlob.UploadTextAsync(JsonConvert.SerializeObject(apprenticeshipDelta));
+                    await providersBlob.UploadTextAsync(apprenticeshipDelta);
                     logFile.AppendLine($"Upload successful");
                 }
                 else
@@ -62,7 +62,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             finally
             {
                 logFile.AppendLine($"Ending {nameof(ApprenticeshipDeltaExport)} at {DateTime.Now}");
-                var logFileName = $"{DateTime.Today.ToString("yyyyMMdd")}\\Apprenticeship\\Log_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.txt";
+                var logFileName = $"{DateTime.Today.ToString("yyyyMMdd")}\\Apprenticeships\\Logs\\Log_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.txt";
                 var logFileNameBolb = containerExporter.GetBlockBlobReference(logFileName);
                 await logFileNameBolb.UploadTextAsync(logFile.ToString());
             }
