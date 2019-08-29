@@ -21,9 +21,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             ILogger log,
             [Inject] IConfigurationRoot configuration,
             [Inject] IBlobStorageHelper blobStorageHelper,
-            [Inject] IProviderService providerService,
-            [Inject] ICourseService courseService,
-            [Inject] IVenueService venueService)
+            [Inject] IProviderCollectionService providerCollectionService,
+            [Inject] ICourseCollectionService courseCollectionService,
+            [Inject] IVenueCollectionService venueCollectionService)
         {
             //TODO: add more logging after you get this working ...
             var logFile = new StringBuilder();
@@ -76,7 +76,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 {
                     logFile.AppendLine($"Attempting to get providers' data for UKPRNS: {string.Join(",", ukprns)}");
 
-                    var providers = await providerService.GetAllAsJsonAsync(ukprns);
+                    var providers = await providerCollectionService.GetAllAsJsonAsync(ukprns);
 
                     logFile.AppendLine($"Got all the providers' data.");
 
@@ -102,16 +102,16 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     var hasTodaysDate = mpItem.DateMigrated.Date == DateTime.Today;
                     var dateMigratedIsInThePast = mpItem.DateMigrated.Date < DateTime.Today;
 
-                    var hasCreatedCourses = await courseService.HasCoursesBeenCreatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
-                    var hasCreatedCourseRuns = await courseService.HasCourseRunsBeenCreatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
+                    var hasCreatedCourses = await courseCollectionService.HasCoursesBeenCreatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
+                    var hasCreatedCourseRuns = await courseCollectionService.HasCourseRunsBeenCreatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
 
-                    var hasUpdatedCourses = await courseService.HasCoursesBeenUpdatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
-                    var hasUpdatedCourseRuns = await courseService.HasCourseRunsBeenUpdatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
+                    var hasUpdatedCourses = await courseCollectionService.HasCoursesBeenUpdatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
+                    var hasUpdatedCourseRuns = await courseCollectionService.HasCourseRunsBeenUpdatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
 
-                    var hasDeletedCourses = await courseService.HasCoursesBeenDeletedSinceAsync(mpItem.Ukprn, last24HoursAgo);
-                    var hasDeletedCourseRuns = await courseService.HasCourseRunsBeenDeletedSinceAsync(mpItem.Ukprn, last24HoursAgo);
+                    var hasDeletedCourses = await courseCollectionService.HasCoursesBeenDeletedSinceAsync(mpItem.Ukprn, last24HoursAgo);
+                    var hasDeletedCourseRuns = await courseCollectionService.HasCourseRunsBeenDeletedSinceAsync(mpItem.Ukprn, last24HoursAgo);
 
-                    var hasUpdatedVenues = await venueService.HasBeenAnUpdatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
+                    var hasUpdatedVenues = await venueCollectionService.HasBeenAnUpdatedSinceAsync(mpItem.Ukprn, last24HoursAgo);
 
                     logFile.AppendLine($"Got conditional data for: {mpItem}");
                     logFile.AppendLine($"\tHas today's date: {hasTodaysDate}");
@@ -135,7 +135,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                         logFile.AppendLine($"\tAttempting to get courses' data for: {mpItem}");
 
-                        var courses = await courseService.GetAllLiveCoursesAsJsonForUkprnAsync(mpItem.Ukprn);
+                        var courses = await courseCollectionService.GetAllLiveCoursesAsJsonForUkprnAsync(mpItem.Ukprn);
 
                         logFile.AppendLine($"\tGot courses' data for: {mpItem}");
 
@@ -166,7 +166,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                         logFile.AppendLine($"\tAttempting to get venues' data for: {mpItem}");
 
-                        var venues = await venueService.GetAllVenuesAsJsonForUkprnAsync(mpItem.Ukprn);
+                        var venues = await venueCollectionService.GetAllVenuesAsJsonForUkprnAsync(mpItem.Ukprn);
 
                         logFile.AppendLine($"\tGot venues' data for: {mpItem}");
 

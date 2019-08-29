@@ -1,0 +1,55 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyVersion>1.0.18318.2337</AssemblyVersion>
+    <FileVersion>1.0.18318.2337</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Helpers\**" />
+    <EmbeddedResource Remove="Helpers\**" />
+    <None Remove="Helpers\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Interfaces\IProviderSearchResultItem.cs" />
+    <Compile Remove="Interfaces\IVenueAddService.cs" />
+    <Compile Remove="Interfaces\IVenueAddSettings.cs" />
+    <Compile Remove="Interfaces\IVenueSearchResultItem.cs" />
+    <Compile Remove="Interfaces\IVenueSearchService.cs" />
+    <Compile Remove="Interfaces\IVenueSearchSettings.cs" />
+    <Compile Remove="Interfaces\ProviderService\IProviderAddService.cs" />
+    <Compile Remove="Interfaces\ProviderService\IProviderAddSettings.cs" />
+    <Compile Remove="ProviderSearchResultContractResolver.cs" />
+    <Compile Remove="ProviderSearchResultItem.cs" />
+    <Compile Remove="ProviderService\ProviderAddService.cs" />
+    <Compile Remove="ProviderService\ProviderAddSettings.cs" />
+    <Compile Remove="VenueAdd.cs" />
+    <Compile Remove="VenueAddResultItem.cs" />
+    <Compile Remove="VenueAddService.cs" />
+    <Compile Remove="VenueAddSettings.cs" />
+    <Compile Remove="VenueSearchResultItem.cs" />
+    <Compile Remove="VenueSearchService.cs" />
+    <Compile Remove="VenueSearchSettings.cs" />
+    <Compile Remove="VenueService\GetVenueByIdResult.cs" />
+    <Compile Remove="VenueService\GetVenueByIdResultContractResolver.cs" />
+    <Compile Remove="VenueService\UpdatedVenue.cs" />
+    <Compile Remove="VenueService\UpdatedVenueResult.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.Storage.Blob" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="2.2.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+    <PackageReference Include="PrivateSetterContractResolver" Version="2.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dfc.CourseDirectory.Common\Dfc.CourseDirectory.Common.csproj" />
+    <ProjectReference Include="..\Dfc.CourseDirectory.Models\Dfc.CourseDirectory.Models.csproj" />
+  </ItemGroup>
+
+</Project>

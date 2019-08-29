@@ -12,6 +12,7 @@
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.7.0-beta3" />
     <PackageReference Include="Microsoft.Azure.DocumentDB.Core" Version="2.2.3" />
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="1.0.24" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.6.1" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">
@@ -21,5 +22,10 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Dfc.CourseDirectory.Models\Dfc.CourseDirectory.Models.csproj" />
+    <ProjectReference Include="..\Dfc.CourseDirectory.Services\Dfc.CourseDirectory.Services.csproj" />
+    <ProjectReference Include="..\Dfc.ProviderPortal.ApprenticeshipMigration\Dfc.ProviderPortal.ApprenticeshipMigration.csproj" />
   </ItemGroup>
 </Project>
