@@ -71,7 +71,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
 
                         var provider = linedate[0];
                         var migrationdate = linedate[1];
-                        var time = linedate[2];
+                        var time = string.IsNullOrEmpty(linedate[2]) ? DateTime.Now.ToShortTimeString() : linedate[2];
                         DateTime migDate = DateTime.MinValue;
                         DateTime runTime = DateTime.MinValue;
                         int provID = 0;
