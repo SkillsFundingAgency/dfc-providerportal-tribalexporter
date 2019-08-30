@@ -8,7 +8,6 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration.Models
         public bool GenerateJsonFilesLocally { get; set; }
         public bool GenerateReportFilesLocally { get; set; }
         public string JsonApprenticeshipFilesPath { get; set; }
-        public string SelectionOfProvidersFileName { get; set; }
         public DeploymentEnvironment DeploymentEnvironment { get; set; }
         public bool DeleteCoursesByUKPRN { get; set; }
         public bool UpdateProvider { get; set; }

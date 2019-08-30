@@ -49,7 +49,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
             return providerUKPRNList;
         }
 
-        public static List<int> GetProviderUKPRNsFromBlob(IBlobStorageService blobService, out string errorMessageGetCourses)
+        public static List<int> GetProviderUKPRNsFromBlob(IBlobStorageService blobService, out string errorMessageGetCourses, int migrationHours)
         {
             var providerUKPRNList = new List<int>();
             var count = 1;
@@ -71,11 +71,15 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
 
                         var provider = linedate[0];
                         var migrationdate = linedate[1];
+                        var time = linedate[2];
                         DateTime migDate = DateTime.MinValue;
+                        DateTime runTime = DateTime.MinValue;
                         int provID = 0;
                         DateTime.TryParse(migrationdate, out migDate);
+                        DateTime.TryParse(time, out runTime);
+                        migDate = migDate.Add(runTime.TimeOfDay);
                         int.TryParse(provider, out provID);
-                        if (migDate > DateTime.MinValue && migDate == DateTime.Today && provID > 0)
+                        if (migDate > DateTime.MinValue && DateTimeWithinSpecifiedTime(migDate, migrationHours) && provID > 0)
                             providerUKPRNList.Add(provID);
 
                     }
@@ -89,5 +93,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
             errorMessageGetCourses = errors;
             return providerUKPRNList;
         }
+
+        private static bool DateTimeWithinSpecifiedTime(DateTime value, int hours)
+        {
+            return value <= DateTime.Now && value >= DateTime.Now.AddHours(-hours);
+        } 
     }
 }
