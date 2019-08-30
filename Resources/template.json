@@ -344,7 +344,6 @@
                 "name": "LarsSearchSettings__PageParamName",
                 "value": "PageNo"
               },
-
               {
                 "name": "BlobStorageSettings__AccountName",
                 "value": "[parameters('storageAccountName')]"
