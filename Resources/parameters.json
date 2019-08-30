@@ -40,6 +40,36 @@
     },
     "ApprenticeshipServiceApiKey": {
       "value": "not-a-real-api-key"
+    },
+    "sqlCourseDirectoryConnectionString": {
+      "value": "not-a-real-database-connection-string"
+    },
+    "apimCourseDirectoryKey": {
+      "value": "not-a-real-api-key"
+    },
+    "courseApiUrl": {
+      "value": "https://not-a-real-api/courses"
+    },
+    "courseTextApiUrl": {
+      "value": "https://not-a-real-api/coursestext"
+    },
+    "venueServiceApiUrl": {
+      "value": "https://not-a-real-api/venues"
+    },
+    "providerApiUrl": {
+      "value": "https://not-a-real-api/providers"
+    },
+    "azureSearchName": {
+      "value": "not-a-real-search-instance"
+    },
+    "azureSearchKey": {
+      "value": "not-a-real-search-key"
+    },
+    "storageAccountResourceGroup": {
+      "value": "not-a-real-resource-group"
+    },
+    "storageAccountName": {
+      "value": "not-a-real-storage-account"
     }
   }
 }
