@@ -207,7 +207,6 @@ namespace Dfc.ProviderPortal.TribalExporter
                 settings.RegionBasedRadius = configuration.GetValue<int>("RegionBasedRadius");
                 settings.SubRegionBasedRadius = configuration.GetValue<int>("SubRegionBasedRadius");
                 settings.RegionSubRegionRangeRadius = configuration.GetValue<int>("RegionSubRegionRangeRadius");
-                settings.SelectionOfProvidersFileName = configuration.GetValue<string>("SelectionOfProvidersFileName");
                 settings.UpdateProvider = configuration.GetValue<bool>("UpdateProvider");
             });
         }
