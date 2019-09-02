@@ -293,7 +293,7 @@
                 "value": "[parameters('courseApiUrl')]"
               },
               {
-                "name": "CourseServiceSettings_ApiKey",
+                "name": "CourseServiceSettings__ApiKey",
                 "value": "[parameters('apimCourseDirectoryKey')]"
               },
               {
@@ -354,7 +354,7 @@
               },
               {
                 "name": "BlobStorageSettings__Container",
-                "value": "bulkuploadtemplate.csv"
+                "value": "provider-files"
               },
               {
                 "name": "BlobStorageSettings__TemplatePath",
