@@ -66,25 +66,18 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
                                  .GetContainerReference(settings.Container);
         }
 
-        public Task DownloadFileAsync(string filePath, Stream stream)
+        public async Task DownloadFileAsync(string filePath, Stream stream)
         {
             try {
                 CloudBlockBlob blockBlob = _container.GetBlockBlobReference(filePath);
 
                 if (blockBlob.ExistsAsync().Result) {
                     _log.LogInformation($"Downloading {filePath} from blob storage");
-                    return blockBlob.DownloadToStreamAsync(stream);
-                } else {
-                    return null;
+                    await blockBlob.DownloadToStreamAsync(stream);
                 }
-
-            //} catch (StorageException stex) {
-            //    _log.LogException($"Exception downloading {filePath}", stex);
-            //    return null;
 
             } catch (Exception ex) {
                 _log.LogException($"Exception downloading {filePath}", ex);
-                return null;
             }
         }
 

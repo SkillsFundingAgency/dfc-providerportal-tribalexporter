@@ -56,8 +56,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
             string errors = string.Empty;
 
             MemoryStream ms = new MemoryStream();
-            Task task = blobService.GetBulkUploadProviderListFileAsync(ms);
-            task.Wait();
+            Task.Run(async () => await blobService.GetBulkUploadProviderListFileAsync(ms)).Wait();
+            
             ms.Position = 0;
 
             using (StreamReader reader = new StreamReader(ms))
