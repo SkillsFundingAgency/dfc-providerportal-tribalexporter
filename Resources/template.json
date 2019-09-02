@@ -293,7 +293,7 @@
                 "value": "[parameters('courseApiUrl')]"
               },
               {
-                "name": "CourseServiceSettings_ApiKey",
+                "name": "CourseServiceSettings__ApiKey",
                 "value": "[parameters('apimCourseDirectoryKey')]"
               },
               {
