@@ -100,6 +100,66 @@
       "metadata": {
         "description": "api key for the Apprenticeship Service api"
       }
+    },
+    "sqlCourseDirectoryConnectionString": {
+      "type": "securestring",
+      "metadata": {
+        "description": "connection string to the sql server database"
+      }
+    },
+    "apimCourseDirectoryKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "APIM product key for the Course Directory apis"
+      }
+    },
+    "courseApiUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "URL to the course API"
+      }
+    },
+    "courseTextApiUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "URL to the course text API"
+      }
+    },
+    "venueServiceApiUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "URL to the venue API"
+      }
+    },
+    "providerApiUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "URL to the provider API"
+      }
+    },
+    "azureSearchName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the azure search instance used by queries"
+      }
+    },
+    "azureSearchKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The api key for the azure search instance"
+      }
+    },
+    "storageAccountResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "The resource group that the  shared storage account resides in"
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the shared storage account"
+      }
     }
   },
   "variables": {
@@ -223,6 +283,154 @@
               {
                 "name": "ApprenticeshipServiceSettings__ApiKey",
                 "value": "[parameters('ApprenticeshipServiceApiKey')]"
+              },
+              {
+                "name": "ConnectionStrings__DefaultConnection",
+                "value": "[parameters('sqlCourseDirectoryConnectionString')]"
+              },
+              {
+                "name": "CourseServiceSettings__ApiUrl",
+                "value": "[parameters('courseApiUrl')]"
+              },
+              {
+                "name": "CourseServiceSettings_ApiKey",
+                "value": "[parameters('apimCourseDirectoryKey')]"
+              },
+              {
+                "name": "CourseTextServiceSettings__ApiUrl",
+                "value": "[parameters('courseTextApiUrl')]"
+              },
+              {
+                "name": "CourseTextServiceSettings__ApiKey",
+                "value": "[parameters('apimCourseDirectoryKey')]"
+              },
+              {
+                "name": "VenueServiceSettings__ApiUrl",
+                "value": "[parameters('venueServiceApiUrl')]"
+              },
+              {
+                "name": "VenueServiceSettings__ApiKey",
+                "value": "[parameters('apimCourseDirectoryKey')]"
+              },
+              {
+                "name": "ProviderServiceSettings__ApiUrl",
+                "value": "[parameters('providerApiUrl')]"
+              },
+              {
+                "name": "ProviderServiceSettings__ApiKey",
+                "value": "[parameters('apimCourseDirectoryKey')]"
+              },
+              {
+                "name": "LarsSearchSettings__ApiUrl",
+                "value": "[concat('https://', parameters('azureSearchName'), '.search.windows.net/indexes/lars/docs/search')]"
+              },
+              {
+                "name": "LarsSearchSettings__ApiKey",
+                "value": "[parameters('azureSearchKey')]"
+              },
+              {
+                "name": "LarsSearchSettings__ApiVersion",
+                "value": "11/11/2017"
+              },
+              {
+                "name": "LarsSearchSettings__Indexes",
+                "value": "azuresql-index"
+              },
+              {
+                "name": "LarsSearchSettings__ItemsPerPage",
+                "value": "10"
+              },
+              {
+                "name": "LarsSearchSettings__PageParamName",
+                "value": "PageNo"
+              },
+              {
+                "name": "BlobStorageSettings__AccountName",
+                "value": "[parameters('storageAccountName')]"
+              },
+              {
+                "name": "BlobStorageSettings__AccountKey",
+                "value": "[listKeys(resourceId(parameters('storageAccountResourceGroup'), 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+              },
+              {
+                "name": "BlobStorageSettings__Container",
+                "value": "bulkuploadtemplate.csv"
+              },
+              {
+                "name": "BlobStorageSettings__TemplatePath",
+                "value": "bulkuploadtemplate.csv"
+              },
+              {
+                "name": "BlobStorageSettings__FeProviderListPath",
+                "value": "migrationtoprovider.csv"
+              },
+              {
+                "name": "BlobStorageSettings__ApprenticeshipProviderListPath",
+                "value": "apprenticeshipmigrationtoprovider.csv"
+              },
+              {
+                "name": "AppUISettings__VenueNameComponentSettings__VenueName_Label",
+                "value": "Venue name"
+              },
+              {
+                "name": "AppUISettings__CourseForComponentSettings__TextFieldMaxChars",
+                "value": "2000"
+              },
+              {
+                "name": "AppUISettings__EntryRequirementsComponentSettings__TextFieldMaxChars",
+                "value": "500"
+              },
+              {
+                "name": "AppUISettings__WhatWillLearnComponentSettings__TextFieldMaxChars",
+                "value": "1500"
+              },
+              {
+                "name": "AppUISettings__HowYouWillLearnComponentSettings__TextFieldMaxChars",
+                "value": "500"
+              },
+              {
+                "name": "AppUISettings__WhatYouNeedComponentSettings__TextFieldMaxChars",
+                "value": "500"
+              },
+              {
+                "name": "AppUISettings__HowAssessedComponentSettings__TextFieldMaxChars",
+                "value": "500"
+              },
+              {
+                "name": "AppUISettings__WhereNextComponentSettings__TextFieldMaxChars",
+                "value": "500"
+              },
+              {
+                "name": "DeploymentEnvironment",
+                "value": "3"
+              },
+              {
+                "name": "NumberOfMonthsAgo",
+                "value": "3"
+              },
+              {
+                "name": "DummyMode",
+                "value": "false"
+              },
+              {
+                "name": "DeleteCoursesByUKPRN",
+                "value": "true"
+              },
+              {
+                "name": "EnableProviderOnboarding",
+                "value": "true"
+              },
+              {
+                "name": "MigrationWindow",
+                "value": "2"
+              },
+              {
+                "name": "FeMigrationSchedule",
+                "value": "0 0 2 * * *"
+              },
+              {
+                "name": "ApprenticeshipMigrationSchedule",
+                "value": "0 0 2 * * *"
               }
             ]
           },
