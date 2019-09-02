@@ -86,7 +86,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             }
             else
             {
-                logger.LogInformation($"Migration {providerUKPRNList.Count()} provider(s)");
+                logger.LogInformation($"Migrating {providerUKPRNList.Count()} provider(s)");
                 goodToTransfer = true;
                 transferMethod = TransferMethod.CourseMigrationTool;
             }
