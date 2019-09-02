@@ -81,15 +81,17 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             providerUKPRNList = FileHelper.GetProviderUKPRNsFromBlob(blobService, out var errorMessageGetCourses, migrationWindow); //COUR-1012-blob-storage-settings
             if (!string.IsNullOrEmpty(errorMessageGetCourses))
             {
+                logger.LogError(errorMessageGetCourses);
                 adminReport += errorMessageGetCourses + Environment.NewLine;
             }
             else
             {
+                logger.LogInformation($"Migration {providerUKPRNList.Count()} provider(s)");
                 goodToTransfer = true;
                 transferMethod = TransferMethod.CourseMigrationTool;
             }
 
-
+            logger.LogInformation("Checking if Providers are good to transfer");
             if (goodToTransfer)
             {
                 string errorMessageCourseTransferAdd = string.Empty;
@@ -148,8 +150,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             foreach (var providerUKPRN in providerUKPRNList)
             {
                 CountProviders++;
-                Console.WriteLine("Doing: " + providerUKPRN.ToString());
-                Console.WriteLine("Count: " + CountProviders.ToString());
+                logger.LogInformation("Doing: " + providerUKPRN.ToString());
+                logger.LogInformation("Count: " + CountProviders.ToString());
 
 
                 int CountCourseRunsToBeMigrated = 0;
@@ -187,6 +189,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 if (EnableProviderOnboarding)
                 {
+                    logger.LogInformation($"Attempting to on board provider {providerUKPRN}");
                     // Check whether Provider is Onboarded
                     var providerCriteria = new ProviderSearchCriteria(providerUKPRN.ToString());
                     var providerResult = Task.Run(async () => await providerService.GetProviderByPRNAsync(providerCriteria)).Result;
@@ -239,6 +242,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 if (DeleteCoursesByUKPRN)
                 {
+                    logger.LogInformation($"Deleting course for provider {providerUKPRN}");
                     providerReport += $"ATTENTION - Existing Courses for Provider '{ providerName }' with UKPRN  ( { providerUKPRN } ) to be deleted." + Environment.NewLine;
 
                     // Call the service 
@@ -262,6 +266,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 var larslessCourses = new List<Course>();
 
+                logger.LogInformation($"Migrating {tribalCourses.Count()} course(s) for provider {providerUKPRN}");
                 foreach (var tribalCourse in tribalCourses)
                 {
                     string preserveCourseTitle = tribalCourse.CourseTitle;
@@ -705,10 +710,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 // For feedback to the user only
                 provStopWatch.Stop();
                 //string formatedStopWatchElapsedTime = string.Format("{0:D2}:{1:D2}:{2:D2}:{3:D2}:{4:D3}", stopWatch.Elapsed.Days, stopWatch.Elapsed.Hours, stopWatch.Elapsed.Minutes, stopWatch.Elapsed.Seconds, stopWatch.Elapsed.Milliseconds);
-                Console.WriteLine("Total time taken:" + provStopWatch.Elapsed.ToString());
+                logger.LogInformation("Total time taken:" + provStopWatch.Elapsed.ToString());
                 provStopWatch.Start();
             }
-            Console.WriteLine("Invalid Char count: " + InvalidCharCount.ToString());
+            logger.LogInformation("Invalid Char count: " + InvalidCharCount.ToString());
             // Finish Admin Report
             adminReport += "________________________________________________________________________________" + Environment.NewLine + Environment.NewLine;
             adminStopWatch.Stop();
@@ -745,11 +750,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                                 adminReportFileName,
                                                 adminReport,
                                                 out errorMessageCourseTransferUpdate);
-            if (!string.IsNullOrEmpty(errorMessageCourseTransferUpdate)) Console.WriteLine("Error on CourseTransferUpdate" + errorMessageCourseTransferUpdate);
+            if (!string.IsNullOrEmpty(errorMessageCourseTransferUpdate)) logger.LogWarning("Error on CourseTransferUpdate" + errorMessageCourseTransferUpdate);
 
-            Console.WriteLine("Migration completed.");
-            if (!blobMode) //don't do this if running as a background task to updatefrom blob
-                Console.ReadLine();
+            logger.LogInformation("Migration completed.");
         }
 
         internal static bool CheckForValidUKPRN(string ukprn)
