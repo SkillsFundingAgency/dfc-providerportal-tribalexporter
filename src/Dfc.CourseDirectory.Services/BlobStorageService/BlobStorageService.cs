@@ -151,9 +151,9 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
             return DownloadFileAsync(_templatePath, stream);
         }
 
-        public Task GetBulkUploadProviderListFileAsync(Stream stream)
+        public async Task GetBulkUploadProviderListFileAsync(Stream stream)
         {
-            return DownloadFileAsync(_providerListPath, stream);
+            await DownloadFileAsync(_providerListPath, stream);
         }
 
     }
