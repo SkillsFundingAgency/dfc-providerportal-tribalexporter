@@ -133,7 +133,9 @@ namespace Dfc.ProviderPortal.TribalExporter
             builder.Services.Configure<CourseServiceSettings>(courseServiceSettingsOptions =>
             {
                 courseServiceSettingsOptions.ApiUrl = configuration.GetValue<string>("CourseServiceSettings:ApiUrl");
-                courseServiceSettingsOptions.ApiKey = configuration.GetValue<string>("CourseServiceSettings:ApiKey");
+                courseServiceSettingsOptions.ApiKey = string.IsNullOrEmpty(configuration.GetValue<string>("CourseServiceSettings:ApiKey"))?
+                    configuration.GetValue<string>("CourseServiceSettings_ApiKey") :
+                    configuration.GetValue<string>("CourseServiceSettings:ApiKey");
             });
             builder.Services.AddScoped<ICourseService, CourseService>();
             builder.Services.Configure<CourseTextServiceSettings>(courseTextServiceSettingsOptions =>
