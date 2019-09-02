@@ -47,10 +47,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
         {
             var blobService = BlobStorageServiceResolver(nameof(FeCourseMigrationFunction));
 
-            logger.LogDebug("Starting application");
-
-
-            logger.LogDebug("Log test.");
+            logger.LogInformation("Starting application");
 
             string connectionString = configuration.GetConnectionString("DefaultConnection");
 
@@ -79,7 +76,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             string bulkUploadFileName = string.Empty;
 
 
-            Console.WriteLine("The Migration Tool is running in Blob Mode." + Environment.NewLine + "Please, do not close this window until \"Migration completed\" message is displayed." + Environment.NewLine);
+            logger.LogInformation("The Migration Tool is running in Blob Mode." + Environment.NewLine + "Please, do not close this window until \"Migration completed\" message is displayed." + Environment.NewLine);
 
             providerUKPRNList = FileHelper.GetProviderUKPRNsFromBlob(blobService, out var errorMessageGetCourses, migrationWindow); //COUR-1012-blob-storage-settings
             if (!string.IsNullOrEmpty(errorMessageGetCourses))
