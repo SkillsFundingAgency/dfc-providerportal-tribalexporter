@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using Dfc.CourseDirectory.Services.Interfaces.BlobStorageService;
+using Dfc.ProviderPortal.TribalExporter.Models.Dfc;
 
 namespace Dfc.ProviderPortal.TribalExporter.Helpers
 {
@@ -49,14 +50,16 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
             return providerUKPRNList;
         }
 
-        public static List<int> GetProviderUKPRNsFromBlob(IBlobStorageService blobService, out string errorMessageGetCourses, int migrationHours)
+        public static async Task<GetProviderUKPRNsFromBlobResult> GetProviderUKPRNsFromBlob(IBlobStorageService blobService,int migrationHours)
         {
+            
+
             var providerUKPRNList = new List<int>();
             var count = 1;
             string errors = string.Empty;
 
             MemoryStream ms = new MemoryStream();
-            Task.Run(async () => await blobService.GetBulkUploadProviderListFileAsync(ms)).Wait();
+            await blobService.GetBulkUploadProviderListFileAsync(ms);
             
             ms.Position = 0;
 
@@ -90,8 +93,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
                 }
             }
 
-            errorMessageGetCourses = errors;
-            return providerUKPRNList;
+            
+            return new GetProviderUKPRNsFromBlobResult
+            {
+                errorMessageGetCourses = errors,
+                ProviderUKPRNs = providerUKPRNList
+            };
         }
 
         private static bool DateTimeWithinSpecifiedTime(DateTime value, int hours)
