@@ -77,7 +77,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
 
             logger.LogInformation("The Migration Tool is running in Blob Mode." + Environment.NewLine + "Please, do not close this window until \"Migration completed\" message is displayed." + Environment.NewLine);
-            var getProvideresult = Task.Run(async () => await FileHelper.GetProviderUKPRNsFromBlob(blobService, migrationWindow)).Result;
+            var getProvideresult =  await FileHelper.GetProviderUKPRNsFromBlob(blobService, migrationWindow);
             providerUKPRNList = getProvideresult.ProviderUKPRNs;
             var errorMessageGetCourses = getProvideresult.errorMessageGetCourses;
             if (!string.IsNullOrEmpty(errorMessageGetCourses))
@@ -193,7 +193,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     logger.LogInformation($"Attempting to on board provider {providerUKPRN}");
                     // Check whether Provider is Onboarded
                     var providerCriteria = new ProviderSearchCriteria(providerUKPRN.ToString());
-                    var providerResult = Task.Run(async () => await providerService.GetProviderByPRNAsync(providerCriteria)).Result;
+                    var providerResult =  await providerService.GetProviderByPRNAsync(providerCriteria);
 
                     if (providerResult.IsSuccess && providerResult.HasValue)
                     {
@@ -212,7 +212,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 {
                                     // Onboard the Provider
                                     ProviderAdd providerOnboard = new ProviderAdd(provider.id, (int)Status.Onboarded, "DFC – Course Migration Tool");
-                                    var resultProviderOnboard = Task.Run(async () => await providerService.AddProviderAsync(providerOnboard)).Result;
+                                    var resultProviderOnboard = await providerService.AddProviderAsync(providerOnboard);
                                     if (resultProviderOnboard.IsSuccess && resultProviderOnboard.HasValue)
                                     {
                                         providerReport += $"We HAVE ONBOARDED the Provider" + Environment.NewLine + Environment.NewLine;
@@ -247,7 +247,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     providerReport += $"ATTENTION - Existing Courses for Provider '{ providerName }' with UKPRN  ( { providerUKPRN } ) to be deleted." + Environment.NewLine;
 
                     // Call the service 
-                    var deleteCoursesByUKPRNResult = Task.Run(async () => await courseService.DeleteCoursesByUKPRNAsync(new DeleteCoursesByUKPRNCriteria(providerUKPRN))).Result;
+                    var deleteCoursesByUKPRNResult =  await courseService.DeleteCoursesByUKPRNAsync(new DeleteCoursesByUKPRNCriteria(providerUKPRN));
 
                     if (deleteCoursesByUKPRNResult.IsSuccess && deleteCoursesByUKPRNResult.HasValue)
                     {
@@ -293,7 +293,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         //tribalCourse.LearningAimRefId = "6538787SD"; // For Testing Only
                         // Replace LearnAimRefTitle, NotionalNVQLevelv2, AwardOrgCode, QualificationType from LarsSearchService 
                         LarsSearchCriteria criteria = new LarsSearchCriteria(tribalCourse.LearningAimRefId, 10, 0, string.Empty, null);
-                        var larsResult = Task.Run(async () => await larsSearchService.SearchAsync(criteria)).Result;
+                        var larsResult =  await larsSearchService.SearchAsync(criteria);
 
                         if (larsResult.IsSuccess && larsResult.HasValue)
                         {
@@ -396,7 +396,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 if (tribalCourseRun.VenueId != null)
                                 {
                                     GetVenueByVenueIdCriteria venueId = new GetVenueByVenueIdCriteria(tribalCourseRun.VenueId ?? 0);
-                                    var venueResult = Task.Run(async () => await venueService.GetVenueByVenueIdAsync(venueId)).Result;
+                                    var venueResult = await venueService.GetVenueByVenueIdAsync(venueId);
 
                                     if (venueResult.IsSuccess && venueResult.HasValue)
                                     {
@@ -417,7 +417,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                         if (!string.IsNullOrEmpty(tribalCourseRun.VenueName))
                                         {
                                             GetVenuesByPRNAndNameCriteria venueCriteria = new GetVenuesByPRNAndNameCriteria(providerUKPRN.ToString(), tribalCourseRun.VenueName);
-                                            var venuesResult2 = Task.Run(async () => await venueService.GetVenuesByPRNAndNameAsync(venueCriteria)).Result;
+                                            var venuesResult2 = await venueService.GetVenuesByPRNAndNameAsync(venueCriteria);
                                             if (venuesResult2.IsSuccess && venuesResult2.HasValue && null != venuesResult2.Value && null != venuesResult2.Value.Value && venuesResult2.Value.Value.Count() > 0)
                                             {
                                                 tribalCourseRun.VenueGuidId = new Guid(((Venue)venuesResult2.Value.Value.FirstOrDefault()).ID);
@@ -426,7 +426,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                             {
 
                                                 //Since Venue not found lets check to see if there is only one
-                                                var venueGuid = CheckVenue(venueService, providerUKPRN.ToString());
+                                                var venueGuid = await CheckVenue(venueService, providerUKPRN.ToString());
                                                 if (null != venueGuid)
                                                 {
                                                     tribalCourseRun.VenueGuidId = venueGuid;
@@ -442,7 +442,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                         {
 
                                             //Since Venue not found lets check to see if there is only one
-                                            var venueGuid = CheckVenue(venueService, providerUKPRN.ToString());
+                                            var venueGuid = await CheckVenue(venueService, providerUKPRN.ToString());
                                             if (null != venueGuid)
                                             {
                                                 tribalCourseRun.VenueGuidId = venueGuid;
@@ -459,7 +459,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 {
                                     //Since the Course Type is AttendanceType.Location check to see if only one venue. If so then we can reasonably be expected to 
                                     //set the Venue ID for this course, to mitigate the mutliple migration issues we are getting for some provider types
-                                    var venueGuid = CheckVenue(venueService, providerUKPRN.ToString());
+                                    var venueGuid = await CheckVenue(venueService, providerUKPRN.ToString());
 
                                     //Only one venue
                                     if (null != venueGuid)
@@ -559,7 +559,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             else
                             {
                                 // Call the service
-                                var courseResult = Task.Run(async () => await courseService.AddCourseAsync(course)).Result;
+                                var courseResult = await courseService.AddCourseAsync(course);
 
                                 if (courseResult.IsSuccess && courseResult.HasValue)
                                 {
@@ -702,7 +702,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     LarslessCourses = larslessCourses
                 };
 
-                var courseMigrationReportResult = Task.Run(async () => await courseService.AddMigrationReport(courseMigrationReport)).Result;
+                var courseMigrationReportResult = await courseService.AddMigrationReport(courseMigrationReport);
 
                 if (courseMigrationReportResult.IsFailure)
                 {
@@ -779,9 +779,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             return countCourseRuns;
         }
-        private static Guid? CheckVenue(IVenueService venueService, string ukrpn)
+        private static async Task<Guid?> CheckVenue(IVenueService venueService, string ukrpn)
         {
-            var venueResult = Task.Run(async () => await venueService.SearchAsync(new VenueSearchCriteria(ukrpn, string.Empty))).Result;
+            var venueResult =  await venueService.SearchAsync(new VenueSearchCriteria(ukrpn, string.Empty));
 
             //Only one venue
             if (null != venueResult
