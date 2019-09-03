@@ -71,7 +71,7 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
             try {
                 CloudBlockBlob blockBlob = _container.GetBlockBlobReference(filePath);
 
-                if (blockBlob.ExistsAsync().Result) {
+                if (await blockBlob.ExistsAsync()) {
                     _log.LogInformation($"Downloading {filePath} from blob storage");
                     await blockBlob.DownloadToStreamAsync(stream);
                 }
