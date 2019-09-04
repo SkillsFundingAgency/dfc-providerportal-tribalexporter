@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using Dfc.CourseDirectory.Services.BlobStorageService;
 using Dfc.CourseDirectory.Services.Interfaces.BlobStorageService;
 
 namespace Dfc.ProviderPortal.ApprenticeshipMigration.Helpers
@@ -23,44 +24,6 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration.Helpers
                 Directory.CreateDirectory(ProviderSelectionsPath);
             string selectionOfProviderFile = string.Format(@"{0}\{1}", ProviderSelectionsPath, fileName);
             using (StreamReader reader = new StreamReader(selectionOfProviderFile))
-            {
-                string line = null;
-                while (null != (line = reader.ReadLine()))
-                {
-                    try {
-                        string[] linedate = line.Split(',');
-
-                        var provider = linedate[0];
-                        var migrationdate = linedate[1];
-                        DateTime migDate = DateTime.MinValue;
-                        int provID = 0;
-                        DateTime.TryParse(migrationdate, out migDate);
-                        int.TryParse(provider, out provID);
-                        if (migDate > DateTime.MinValue && migDate == DateTime.Today && provID > 0)
-                            providerUKPRNList.Add(provID);
-
-                    } catch (Exception ex) {
-                        errors = errors + "Failed textract line: " + count.ToString() + "Ex: " + ex.Message;
-                    }
-                }
-            }
-
-            errorMessageGetCourses = errors;
-            return providerUKPRNList;
-        }
-
-        public static List<int> GetProviderUKPRNsFromBlob(IBlobStorageService blobService, out string errorMessageGetCourses)
-        {
-            var providerUKPRNList = new List<int>();
-            var count = 1;
-            string errors = string.Empty;
-
-            MemoryStream ms = new MemoryStream();
-            Task task = blobService.GetBulkUploadProviderListFileAsync(ms);
-            task.Wait();
-            ms.Position = 0;
-
-            using (StreamReader reader = new StreamReader(ms))
             {
                 string line = null;
                 while (null != (line = reader.ReadLine()))

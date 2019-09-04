@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using Dfc.CourseDirectory.Services.BlobStorageService;
 using Dfc.CourseDirectory.Services.Interfaces.BlobStorageService;
 using Dfc.ProviderPortal.TribalExporter.Models.Dfc;
 using Microsoft.Extensions.Logging;
@@ -50,59 +51,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
             errorMessageGetCourses = errors;
             return providerUKPRNList;
         }
-
-        public static async Task<GetProviderUKPRNsFromBlobResult> GetProviderUKPRNsFromBlob(IBlobStorageService blobService,int migrationHours, ILogger log)
-        {
-            
-
-            var providerUKPRNList = new List<int>();
-            var count = 1;
-            string errors = string.Empty;
-
-            MemoryStream ms = new MemoryStream();
-            log.LogInformation("Getting Providers from Blob");
-            await blobService.GetBulkUploadProviderListFileAsync(ms);
-            
-            ms.Position = 0;
-
-            using (StreamReader reader = new StreamReader(ms))
-            {
-                string line = null;
-                while (null != (line = reader.ReadLine()))
-                {
-                    try
-                    {
-                        string[] linedate = line.Split(',');
-
-                        var provider = linedate[0];
-                        var migrationdate = linedate[1];
-                        var time = string.IsNullOrEmpty(linedate[2]) ? DateTime.Now.ToShortTimeString() : linedate[2];
-                        DateTime migDate = DateTime.MinValue;
-                        DateTime runTime = DateTime.MinValue;
-                        int provID = 0;
-                        DateTime.TryParse(migrationdate, out migDate);
-                        DateTime.TryParse(time, out runTime);
-                        migDate = migDate.Add(runTime.TimeOfDay);
-                        int.TryParse(provider, out provID);
-                        if (migDate > DateTime.MinValue && DateTimeWithinSpecifiedTime(migDate, migrationHours) && provID > 0)
-                            providerUKPRNList.Add(provID);
-
-                    }
-                    catch (Exception ex)
-                    {
-                        errors = errors + "Failed textract line: " + count.ToString() + "Ex: " + ex.Message;
-                    }
-                }
-            }
-
-            
-            return new GetProviderUKPRNsFromBlobResult
-            {
-                errorMessageGetCourses = errors,
-                ProviderUKPRNs = providerUKPRNList
-            };
-        }
-
         private static bool DateTimeWithinSpecifiedTime(DateTime value, int hours)
         {
             return value <= DateTime.Now && value >= DateTime.Now.AddHours(-hours);
