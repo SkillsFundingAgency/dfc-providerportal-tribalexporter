@@ -1,14 +1,10 @@
-﻿
-using System;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using System.Collections.Generic;
+using Dfc.CourseDirectory.Models.Models;
 using Microsoft.Azure.Storage.Blob;
-using Dfc.CourseDirectory.Common.Interfaces;
-using Dfc.CourseDirectory.Services.BlobStorageService;
 
-
-namespace Dfc.CourseDirectory.Services.Interfaces.BlobStorageService
+namespace Dfc.CourseDirectory.Services.BlobStorageService
 {
     public interface IBlobStorageService
     {
@@ -17,6 +13,6 @@ namespace Dfc.CourseDirectory.Services.Interfaces.BlobStorageService
         IEnumerable<BlobFileInfo> GetFileList(string filePath);
         IEnumerable<CloudBlockBlob> ArchiveFiles(string filePath);
         Task GetBulkUploadTemplateFileAsync(Stream stream);
-        Task GetBulkUploadProviderListFileAsync(Stream stream);
+        Task<GetProviderUKPRNsFromBlobResult> GetBulkUploadProviderListFileAsync(int migrationHours);
     }
 }
