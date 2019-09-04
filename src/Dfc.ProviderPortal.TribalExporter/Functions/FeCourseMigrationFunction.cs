@@ -75,7 +75,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
 
             logger.LogInformation("The Migration Tool is running in Blob Mode." + Environment.NewLine + "Please, do not close this window until \"Migration completed\" message is displayed." + Environment.NewLine);
-            var getProvideresult =  await blobService.GetBulkUploadProviderListFileAsync(migrationWindow);
+            var getProvideresult = blobService.GetBulkUploadProviderListFileAsync(migrationWindow);
 
             if (getProvideresult == null)
             {

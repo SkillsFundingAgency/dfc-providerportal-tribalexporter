@@ -70,17 +70,17 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
                 .GetContainerReference(settings.Value.Container);
         }
 
-        public async Task DownloadFileAsync(string filePath, Stream stream)
+        public Task DownloadFileAsync(string filePath, Stream stream)
         {
             try
             {
                 _log.LogInformation($"File Path {filePath}");
                 CloudBlockBlob blockBlob = _container.GetBlockBlobReference(filePath);
 
-                if (await blockBlob.ExistsAsync())
+                if (blockBlob.Exists())
                 {
                     _log.LogInformation($"Downloading {filePath} from blob storage");
-                    await blockBlob.DownloadToStreamAsync(stream);
+                    blockBlob.DownloadToStream(stream);
                 }
                 else
                 {
@@ -92,6 +92,8 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
             {
                 _log.LogException($"Exception downloading {filePath}", ex);
             }
+
+            return Task.CompletedTask;
         }
 
         public Task UploadFileAsync(string filePath, Stream stream)
@@ -172,7 +174,7 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
             return DownloadFileAsync(_templatePath, stream);
         }
 
-        public async Task<GetProviderUKPRNsFromBlobResult> GetBulkUploadProviderListFileAsync(int migrationHours)
+        public GetProviderUKPRNsFromBlobResult GetBulkUploadProviderListFileAsync(int migrationHours)
         {
             _log.LogInformation("Getting Providers from Blob");
 
@@ -181,8 +183,7 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
             string errors = string.Empty;
 
             MemoryStream ms = new MemoryStream();
-           
-            await DownloadFileAsync(_providerListPath, ms);
+            DownloadFileAsync(_providerListPath, ms);
             ms.Position = 0;
 
             using (StreamReader reader = new StreamReader(ms))
