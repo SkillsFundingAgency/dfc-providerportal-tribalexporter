@@ -43,10 +43,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             [Inject] ICourseService courseService,
             [Inject] ICourseTextService courseTextService,
             [Inject] IProviderService providerService,
-            [Inject] BlobStorageServiceResolver BlobStorageServiceResolver)
+            [Inject] IBlobStorageService blobService
+            //[Inject] BlobStorageServiceResolver BlobStorageServiceResolver
+            )
         {
-            var blobService = BlobStorageServiceResolver(nameof(FeCourseMigrationFunction));
-            logger.LogInformation($"{blobService}");
+            //var blobService = BlobStorageServiceResolver(nameof(FeCourseMigrationFunction));
+            //logger.LogInformation($"{blobService}");
             logger.LogInformation("Starting application");
 
             string connectionString = configuration.GetConnectionString("DefaultConnection");

@@ -46,7 +46,7 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
         public BlobStorageService(
             ILogger<BlobStorageService> logger,
             HttpClient httpClient,
-            BlobStorageSettings settings)
+            IOptions<BlobStorageSettings> settings)
         {
             Throw.IfNull(logger, nameof(logger));
             Throw.IfNull(httpClient, nameof(httpClient));
@@ -56,18 +56,18 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
             _httpClient = httpClient;
 
             //_getSomethingByIdUri = settings.Value.ToGetSomethingByIdUri();
-            _accountName = settings.AccountName;
-            _accountKey = settings.AccountKey;
+            _accountName = settings.Value.AccountName;
+            _accountKey = settings.Value.AccountKey;
             //_containerName = settings.Value.Container;
             //_bulkUploadPathFormat = settings.Value.BulkUploadPathFormat;
-            _templatePath = settings.TemplatePath;
-            _providerListPath = settings.ProviderListPath;
+            _templatePath = settings.Value.TemplatePath;
+            _providerListPath = settings.Value.ProviderListPath;
 
             //Set up the client
             _account = new CloudStorageAccount(new StorageCredentials(_accountName, _accountKey), true);
             //_blobClient = _account.CreateCloudBlobClient();
             _container = _account.CreateCloudBlobClient()
-                .GetContainerReference(settings.Container);
+                .GetContainerReference(settings.Value.Container);
         }
 
         public async Task DownloadFileAsync(string filePath, Stream stream)
