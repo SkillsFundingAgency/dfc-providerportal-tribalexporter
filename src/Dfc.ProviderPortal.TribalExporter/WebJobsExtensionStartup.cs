@@ -152,7 +152,7 @@ namespace Dfc.ProviderPortal.TribalExporter
                 options.AccountKey = configuration.GetValue<string>("BlobStorageSettings:AccountKey");
                 options.Container = configuration.GetValue<string>("BlobStorageSettings:Container");
                 options.TemplatePath = configuration.GetValue<string>("BlobStorageSettings:TemplatePath");
-                options.ProviderListPath = configuration.GetValue<string>("BlobSettings:ProviderListPath");
+                options.ProviderListPath = configuration.GetValue<string>("BlobStorageSettings:FeProviderListPath");
             });
             builder.Services.Configure<CourseDirectory.Services.ApprenticeshipService.ApprenticeshipServiceSettings>(
                 configuration.GetSection(nameof(CourseDirectory.Services.ApprenticeshipService
@@ -163,39 +163,40 @@ namespace Dfc.ProviderPortal.TribalExporter
             builder.Services.AddScoped<IApprenticeReferenceDataService, ApprenticeReferenceDataService>();
             builder.Services.BuildServiceProvider();
             builder.Services.AddTransient<IApprenticeshipMigration, ApprenticeshipMigration.ApprenticeshipMigration>();
-            builder.Services.AddTransient<BlobStorageServiceResolver>(serviceProvider => key =>
-            {
-                switch (key)
-                {
-                    case nameof(ApprenticeshipMigration.ApprenticeshipMigration):
+            builder.Services.AddScoped<IBlobStorageService, BlobStorageService>();
+            //builder.Services.AddTransient<BlobStorageServiceResolver>(serviceProvider => key =>
+            //{
+            //    switch (key)
+            //    {
+            //        case nameof(ApprenticeshipMigration.ApprenticeshipMigration):
                       
-                        return new BlobStorageService(
-                            serviceProvider.GetService<ILogger<BlobStorageService>>(),
-                            serviceProvider.GetService<HttpClient>(),
-                            new BlobStorageSettings
-                            {
-                                AccountName = configuration.GetValue<string>("BlobStorageSettings:AccountName"),
-                                AccountKey = configuration.GetValue<string>("BlobStorageSettings:AccountKey"),
-                                Container = configuration.GetValue<string>("BlobStorageSettings:Container"),
-                                TemplatePath = configuration.GetValue<string>("BlobStorageSettings:TemplatePath"),
-                                ProviderListPath = configuration.GetValue<string>("BlobSettings:ApprenticeshipProviderListPath")
-                            });
-                    case nameof(FeCourseMigrationFunction):
-                        return new BlobStorageService(
-                            serviceProvider.GetService<ILogger<BlobStorageService>>(),
-                            serviceProvider.GetService<HttpClient>(),
-                            new BlobStorageSettings
-                            {
-                                AccountName = configuration.GetValue<string>("BlobStorageSettings:AccountName"),
-                                AccountKey = configuration.GetValue<string>("BlobStorageSettings:AccountKey"),
-                                Container = configuration.GetValue<string>("BlobStorageSettings:Container"),
-                                TemplatePath = configuration.GetValue<string>("BlobStorageSettings:TemplatePath"),
-                                ProviderListPath = configuration.GetValue<string>("BlobStorageSettings:FeProviderListPath")
-                            });
-                    default:
-                        throw new KeyNotFoundException(); // or maybe return null, up to you
-                }
-            });
+            //            return new BlobStorageService(
+            //                serviceProvider.GetService<ILogger<BlobStorageService>>(),
+            //                serviceProvider.GetService<HttpClient>(),
+            //                new BlobStorageSettings
+            //                {
+            //                    AccountName = configuration.GetValue<string>("BlobStorageSettings:AccountName"),
+            //                    AccountKey = configuration.GetValue<string>("BlobStorageSettings:AccountKey"),
+            //                    Container = configuration.GetValue<string>("BlobStorageSettings:Container"),
+            //                    TemplatePath = configuration.GetValue<string>("BlobStorageSettings:TemplatePath"),
+            //                    ProviderListPath = configuration.GetValue<string>("BlobSettings:ApprenticeshipProviderListPath")
+            //                });
+            //        case nameof(FeCourseMigrationFunction):
+            //            return new BlobStorageService(
+            //                serviceProvider.GetService<ILogger<BlobStorageService>>(),
+            //                serviceProvider.GetService<HttpClient>(),
+            //                new BlobStorageSettings
+            //                {
+            //                    AccountName = configuration.GetValue<string>("BlobStorageSettings:AccountName"),
+            //                    AccountKey = configuration.GetValue<string>("BlobStorageSettings:AccountKey"),
+            //                    Container = configuration.GetValue<string>("BlobStorageSettings:Container"),
+            //                    TemplatePath = configuration.GetValue<string>("BlobStorageSettings:TemplatePath"),
+            //                    ProviderListPath = configuration.GetValue<string>("BlobStorageSettings:FeProviderListPath")
+            //                });
+            //        default:
+            //            throw new KeyNotFoundException(); // or maybe return null, up to you
+            //    }
+            //});
 
             builder.Services.Configure<ApprenticeshipMigrationSettings>(settings =>
             {
