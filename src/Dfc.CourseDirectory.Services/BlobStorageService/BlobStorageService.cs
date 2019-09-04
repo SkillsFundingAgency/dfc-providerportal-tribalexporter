@@ -70,17 +70,17 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
                 .GetContainerReference(settings.Value.Container);
         }
 
-        public Task DownloadFileAsync(string filePath, Stream stream)
+        public async Task DownloadFileAsync(string filePath, Stream stream)
         {
             try
             {
                 _log.LogInformation($"File Path {filePath}");
                 CloudBlockBlob blockBlob = _container.GetBlockBlobReference(filePath);
 
-                if (blockBlob.Exists())
+                if (await blockBlob.ExistsAsync())
                 {
                     _log.LogInformation($"Downloading {filePath} from blob storage");
-                    blockBlob.DownloadToStream(stream);
+                    await blockBlob.DownloadToStreamAsync(stream);
                 }
                 else
                 {
@@ -92,8 +92,6 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
             {
                 _log.LogException($"Exception downloading {filePath}", ex);
             }
-
-            return Task.CompletedTask;
         }
 
         public Task UploadFileAsync(string filePath, Stream stream)
@@ -126,7 +124,7 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
                     ?.ListBlobs()
                     ?.OfType<CloudBlockBlob>()
                     ?.Select(b => new BlobFileInfo()
-                        {Name = b.Name, Size = b.Properties.Length, DateUploaded = b.Properties.Created});
+                    { Name = b.Name, Size = b.Properties.Length, DateUploaded = b.Properties.Created });
 
                 //} catch (StorageException stex) {
                 //    _log.LogException($"Exception listing files at {filePath}", stex);
@@ -174,25 +172,26 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
             return DownloadFileAsync(_templatePath, stream);
         }
 
-        public GetProviderUKPRNsFromBlobResult GetBulkUploadProviderListFileAsync(int migrationHours)
+        public async Task<List<int>> GetBulkUploadProviderListFileAsync(int migrationHours)
         {
-            _log.LogInformation("Getting Providers from Blob");
-
             var providerUKPRNList = new List<int>();
             var count = 1;
             string errors = string.Empty;
 
-            MemoryStream ms = new MemoryStream();
-            DownloadFileAsync(_providerListPath, ms);
-            ms.Position = 0;
-
-            using (StreamReader reader = new StreamReader(ms))
+            try
             {
-                string line = null;
-                while (null != (line = reader.ReadLine()))
+                _log.LogInformation("Getting Providers from Blob");
+
+                MemoryStream ms = new MemoryStream();
+                await DownloadFileAsync(_providerListPath, ms);
+                ms.Position = 0;
+
+                using (StreamReader reader = new StreamReader(ms))
                 {
-                    try
+                    string line = null;
+                    while (null != (line = reader.ReadLine()))
                     {
+
                         string[] linedate = line.Split(',');
 
                         var provider = linedate[0];
@@ -208,20 +207,19 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
                         if (migDate > DateTime.MinValue && DateTimeWithinSpecifiedTime(migDate, migrationHours) && provID > 0)
                             providerUKPRNList.Add(provID);
 
-                    }
-                    catch (Exception ex)
-                    {
-                        errors = errors + "Failed textract line: " + count.ToString() + "Ex: " + ex.Message;
+                     
+
+
                     }
                 }
             }
-            
+            catch (Exception ex)
+            { 
+                _log.LogError("Failed textract line: " + count.ToString() + "Ex: " + ex.Message);
+                throw;
+            }
 
-            return new GetProviderUKPRNsFromBlobResult
-            {
-                errorMessageGetCourses = errors,
-                ProviderUKPRNs = providerUKPRNList
-            };
+            return providerUKPRNList;
 
         }
 
