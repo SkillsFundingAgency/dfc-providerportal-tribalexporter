@@ -46,7 +46,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             [Inject] BlobStorageServiceResolver BlobStorageServiceResolver)
         {
             var blobService = BlobStorageServiceResolver(nameof(FeCourseMigrationFunction));
-
+            logger.LogInformation($"{blobService}");
             logger.LogInformation("Starting application");
 
             string connectionString = configuration.GetConnectionString("DefaultConnection");
@@ -57,7 +57,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             bool dummyMode = configuration.GetValue<bool>("DummyMode");
             bool DeleteCoursesByUKPRN = configuration.GetValue<bool>("DeleteCoursesByUKPRN");
             bool EnableProviderOnboarding = configuration.GetValue<bool>("EnableProviderOnboarding");
-            bool blobMode = configuration.GetValue<bool>("BlobMode");
             int migrationWindow = configuration.GetValue<int>("MigrationWindow");
 
 
@@ -78,6 +77,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             logger.LogInformation("The Migration Tool is running in Blob Mode." + Environment.NewLine + "Please, do not close this window until \"Migration completed\" message is displayed." + Environment.NewLine);
             var getProvideresult =  await blobService.GetBulkUploadProviderListFileAsync(migrationWindow);
+
+            if (getProvideresult == null)
+            {
+                throw new Exception("Unable to retrieve providers via blob storage.");
+            }
+
             providerUKPRNList = getProvideresult.ProviderUKPRNs;
             var errorMessageGetCourses = getProvideresult.errorMessageGetCourses;
             if (!string.IsNullOrEmpty(errorMessageGetCourses))
