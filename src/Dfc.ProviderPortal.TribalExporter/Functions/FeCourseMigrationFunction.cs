@@ -91,7 +91,17 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             if (await blockBlob.ExistsAsync())
             {
                 logger.LogInformation($"Downloading {settings.Value.ProviderListPath} from blob storage");
-                await blockBlob.DownloadToStreamAsync(ms);
+                try
+                {
+                    blockBlob.DownloadToStream(ms);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
+                
+                logger.LogInformation("Finished downloading Document");
             }
             else
             {
@@ -101,10 +111,16 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             using (StreamReader reader = new StreamReader(ms))
             {
+                if (reader == null)
+                {
+                    logger.LogInformation("Reader is null");
+                }
+
                 string line = null;
+                int count = 1; 
                 while (null != (line = reader.ReadLine()))
                 {
-
+                    logger.LogInformation($"Processing row {count}");
                     string[] linedate = line.Split(',');
 
                     var provider = linedate[0];
@@ -113,6 +129,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     DateTime migDate = DateTime.MinValue;
                     DateTime runTime = DateTime.MinValue;
                     int provID = 0;
+
+                    logger.LogInformation($"Following Details for provider {provider}, Migration Date {migrationdate}, Migration Time {time}  Current server time {DateTime.Now}");
+
                     DateTime.TryParse(migrationdate, out migDate);
                     DateTime.TryParse(time, out runTime);
                     migDate = migDate.Add(runTime.TimeOfDay);
