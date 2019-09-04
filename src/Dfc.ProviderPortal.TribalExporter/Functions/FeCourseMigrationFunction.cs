@@ -28,6 +28,10 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Dfc.CourseDirectory.Services.BlobStorageService;
+using Microsoft.Azure.Storage;
+using Microsoft.Azure.Storage.Auth;
+using Microsoft.Azure.Storage.Blob;
+using Microsoft.Extensions.Options;
 
 namespace Dfc.ProviderPortal.TribalExporter.Functions
 {
@@ -43,7 +47,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             [Inject] ICourseService courseService,
             [Inject] ICourseTextService courseTextService,
             [Inject] IProviderService providerService,
-            [Inject] IBlobStorageService blobService
+            [Inject] IBlobStorageService blobService,
+            [Inject] IOptions<BlobStorageSettings> settings
             //[Inject] BlobStorageServiceResolver BlobStorageServiceResolver
             )
         {
@@ -75,7 +80,53 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
 
             logger.LogInformation("The Migration Tool is running in Blob Mode." + Environment.NewLine + "Please, do not close this window until \"Migration completed\" message is displayed." + Environment.NewLine);
-            providerUKPRNList = await blobService.GetBulkUploadProviderListFileAsync(migrationWindow);
+             var account = new CloudStorageAccount(new StorageCredentials(settings.Value.AccountName, settings.Value.AccountKey), true);
+            var container = account.CreateCloudBlobClient().GetContainerReference(settings.Value.Container);
+
+            logger.LogInformation("Getting Providers from Blob");
+
+            MemoryStream ms = new MemoryStream();
+            CloudBlockBlob blockBlob = container.GetBlockBlobReference(settings.Value.ProviderListPath);
+
+            if (await blockBlob.ExistsAsync())
+            {
+                logger.LogInformation($"Downloading {settings.Value.ProviderListPath} from blob storage");
+                await blockBlob.DownloadToStreamAsync(ms);
+            }
+            else
+            {
+                throw new Exception("Blockblob doesn't exist");
+            }
+            ms.Position = 0;
+
+            using (StreamReader reader = new StreamReader(ms))
+            {
+                string line = null;
+                while (null != (line = reader.ReadLine()))
+                {
+
+                    string[] linedate = line.Split(',');
+
+                    var provider = linedate[0];
+                    var migrationdate = linedate[1];
+                    var time = string.IsNullOrEmpty(linedate[2]) ? DateTime.Now.ToShortTimeString() : linedate[2];
+                    DateTime migDate = DateTime.MinValue;
+                    DateTime runTime = DateTime.MinValue;
+                    int provID = 0;
+                    DateTime.TryParse(migrationdate, out migDate);
+                    DateTime.TryParse(time, out runTime);
+                    migDate = migDate.Add(runTime.TimeOfDay);
+                    int.TryParse(provider, out provID);
+                    if (migDate > DateTime.MinValue && DateTimeWithinSpecifiedTime(migDate, migrationWindow) && provID > 0)
+                        providerUKPRNList.Add(provID);
+
+
+
+
+                }
+            }
+
+            //  providerUKPRNList = await blobService.GetBulkUploadProviderListFileAsync(migrationWindow);
 
             if (providerUKPRNList == null)
             {
@@ -790,6 +841,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             else
                 return (Guid?)null;
+        }
+        private static bool DateTimeWithinSpecifiedTime(DateTime value, int hours)
+        {
+            return value <= DateTime.Now && value >= DateTime.Now.AddHours(-hours);
         }
     }
 }
