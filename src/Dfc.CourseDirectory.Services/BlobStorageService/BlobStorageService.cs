@@ -82,6 +82,10 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
                     _log.LogInformation($"Downloading {filePath} from blob storage");
                     await blockBlob.DownloadToStreamAsync(stream);
                 }
+                else
+                {
+                    throw new Exception("Blockblob doesn't exist");
+                }
 
             }
             catch (Exception ex)
@@ -170,13 +174,14 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
 
         public async Task<GetProviderUKPRNsFromBlobResult> GetBulkUploadProviderListFileAsync(int migrationHours)
         {
+            _log.LogInformation("Getting Providers from Blob");
 
             var providerUKPRNList = new List<int>();
             var count = 1;
             string errors = string.Empty;
 
             MemoryStream ms = new MemoryStream();
-            _log.LogInformation("Getting Providers from Blob");
+           
             await DownloadFileAsync(_providerListPath, ms);
             ms.Position = 0;
 
@@ -209,7 +214,7 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
                     }
                 }
             }
-
+            
 
             return new GetProviderUKPRNsFromBlobResult
             {
