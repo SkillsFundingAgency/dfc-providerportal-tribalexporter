@@ -69,6 +69,7 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
         public async Task DownloadFileAsync(string filePath, Stream stream)
         {
             try {
+                _log.LogInformation($"File Path {filePath}");
                 CloudBlockBlob blockBlob = _container.GetBlockBlobReference(filePath);
 
                 if (await blockBlob.ExistsAsync()) {

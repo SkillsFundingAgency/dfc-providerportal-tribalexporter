@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Dfc.CourseDirectory.Services.Interfaces.BlobStorageService;
 using Dfc.ProviderPortal.TribalExporter.Models.Dfc;
+using Microsoft.Extensions.Logging;
 
 namespace Dfc.ProviderPortal.TribalExporter.Helpers
 {
@@ -50,7 +51,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
             return providerUKPRNList;
         }
 
-        public static async Task<GetProviderUKPRNsFromBlobResult> GetProviderUKPRNsFromBlob(IBlobStorageService blobService,int migrationHours)
+        public static async Task<GetProviderUKPRNsFromBlobResult> GetProviderUKPRNsFromBlob(IBlobStorageService blobService,int migrationHours, ILogger log)
         {
             
 
@@ -59,6 +60,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
             string errors = string.Empty;
 
             MemoryStream ms = new MemoryStream();
+            log.LogInformation("Getting Providers from Blob");
             await blobService.GetBulkUploadProviderListFileAsync(ms);
             
             ms.Position = 0;
