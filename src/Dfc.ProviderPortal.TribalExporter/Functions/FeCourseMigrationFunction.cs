@@ -77,7 +77,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
 
             logger.LogInformation("The Migration Tool is running in Blob Mode." + Environment.NewLine + "Please, do not close this window until \"Migration completed\" message is displayed." + Environment.NewLine);
-            var getProvideresult =  await FileHelper.GetProviderUKPRNsFromBlob(blobService, migrationWindow);
+            var getProvideresult =  await FileHelper.GetProviderUKPRNsFromBlob(blobService, migrationWindow, logger);
             providerUKPRNList = getProvideresult.ProviderUKPRNs;
             var errorMessageGetCourses = getProvideresult.errorMessageGetCourses;
             if (!string.IsNullOrEmpty(errorMessageGetCourses))
