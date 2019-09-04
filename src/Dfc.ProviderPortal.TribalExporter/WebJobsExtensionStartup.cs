@@ -35,7 +35,7 @@ using Microsoft.Build.Framework;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ApprenticeshipServiceSettings = Dfc.ProviderPortal.TribalExporter.Settings.ApprenticeshipServiceSettings;
-using ILogger = Microsoft.Build.Framework.ILogger;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 [assembly: WebJobsStartup(typeof(WebJobsExtensionStartup), "Web Jobs Extension Startup")]
 
@@ -154,7 +154,6 @@ namespace Dfc.ProviderPortal.TribalExporter
                 options.TemplatePath = configuration.GetValue<string>("BlobStorageSettings:TemplatePath");
                 options.ProviderListPath = configuration.GetValue<string>("BlobSettings:ProviderListPath");
             });
-            builder.Services.AddScoped<IBlobStorageService, BlobStorageService>();
             builder.Services.Configure<CourseDirectory.Services.ApprenticeshipService.ApprenticeshipServiceSettings>(
                 configuration.GetSection(nameof(CourseDirectory.Services.ApprenticeshipService
                     .ApprenticeshipServiceSettings)));
@@ -169,6 +168,7 @@ namespace Dfc.ProviderPortal.TribalExporter
                 switch (key)
                 {
                     case nameof(ApprenticeshipMigration.ApprenticeshipMigration):
+                      
                         return new BlobStorageService(
                             serviceProvider.GetService<ILogger<BlobStorageService>>(),
                             serviceProvider.GetService<HttpClient>(),
