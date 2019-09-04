@@ -13,6 +13,6 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
         IEnumerable<BlobFileInfo> GetFileList(string filePath);
         IEnumerable<CloudBlockBlob> ArchiveFiles(string filePath);
         Task GetBulkUploadTemplateFileAsync(Stream stream);
-        GetProviderUKPRNsFromBlobResult GetBulkUploadProviderListFileAsync(int migrationHours);
+        Task<List<int>> GetBulkUploadProviderListFileAsync(int migrationHours);
     }
 }

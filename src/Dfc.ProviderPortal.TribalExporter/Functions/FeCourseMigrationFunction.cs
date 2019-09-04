@@ -75,19 +75,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
 
             logger.LogInformation("The Migration Tool is running in Blob Mode." + Environment.NewLine + "Please, do not close this window until \"Migration completed\" message is displayed." + Environment.NewLine);
-            var getProvideresult = blobService.GetBulkUploadProviderListFileAsync(migrationWindow);
+            providerUKPRNList = await blobService.GetBulkUploadProviderListFileAsync(migrationWindow);
 
-            if (getProvideresult == null)
+            if (providerUKPRNList == null)
             {
                 throw new Exception("Unable to retrieve providers via blob storage.");
-            }
-
-            providerUKPRNList = getProvideresult.ProviderUKPRNs;
-            var errorMessageGetCourses = getProvideresult.errorMessageGetCourses;
-            if (!string.IsNullOrEmpty(errorMessageGetCourses))
-            {
-                logger.LogError(errorMessageGetCourses);
-                adminReport += errorMessageGetCourses + Environment.NewLine;
             }
             else
             {
@@ -183,7 +175,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 string providerName = string.Empty;
                 bool advancedLearnerLoan = false;
-                errorMessageGetCourses = string.Empty;
+                var errorMessageGetCourses = string.Empty;
                 var tribalCourses = DataHelper.GetCoursesByProviderUKPRN(providerUKPRN, connectionString, out providerName, out advancedLearnerLoan, out errorMessageGetCourses);
                 if (!string.IsNullOrEmpty(errorMessageGetCourses)) adminReport += errorMessageGetCourses + Environment.NewLine;
 
