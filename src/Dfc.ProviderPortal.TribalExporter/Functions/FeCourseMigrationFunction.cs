@@ -61,9 +61,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             bool EnableProviderOnboarding = configuration.GetValue<bool>("EnableProviderOnboarding");
             int migrationWindow = configuration.GetValue<int>("MigrationWindow");
 
-
-
-
             #region Get User Input and Set Variables
 
             string adminReport = "                         Admin Report " + Environment.NewLine;
