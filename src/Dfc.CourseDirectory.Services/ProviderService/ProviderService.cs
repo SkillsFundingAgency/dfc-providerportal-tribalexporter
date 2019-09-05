@@ -162,22 +162,7 @@ namespace Dfc.CourseDirectory.Services.ProviderService
 
                 _logger.LogHttpResponseMessage("Provider update service http response", response);
 
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadAsStringAsync();
-
-                    _logger.LogInformationObject("Provider update service json response", json);
-
-
-                    var providerResult = JsonConvert.DeserializeObject<Provider>(json);
-
-
-                    return Result.Ok(providerResult);
-                }
-                else
-                {
-                    return Result.Fail("Provider update service unsuccessful http response");
-                }
+                return response.IsSuccessStatusCode ? Result.Ok() : Result.Fail("Provider update service unsuccessful http response");
             }
             catch (HttpRequestException hre)
             {
