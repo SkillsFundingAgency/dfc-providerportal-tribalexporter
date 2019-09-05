@@ -1,18 +1,16 @@
 ﻿
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.IO;
-using System.Net.Http;
-using System.Threading.Tasks;
+using Dfc.CourseDirectory.Common;
 using Microsoft.Azure.Storage;
 using Microsoft.Azure.Storage.Auth;
 using Microsoft.Azure.Storage.Blob;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Dfc.CourseDirectory.Common;
-using Dfc.CourseDirectory.Models.Models;
-using Dfc.CourseDirectory.Services.Interfaces.BlobStorageService;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 
 namespace Dfc.CourseDirectory.Services.BlobStorageService
@@ -70,17 +68,17 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
                 .GetContainerReference(settings.Container);
         }
 
-        public void DownloadFile(string filePath, Stream stream)
+        public async Task DownloadFile(string filePath, Stream stream)
         {
             try
             {
                 _log.LogInformation($"File Path {filePath}");
                 CloudBlockBlob blockBlob = _container.GetBlockBlobReference(filePath);
 
-                if (blockBlob.Exists())
+                if (await blockBlob.ExistsAsync())
                 {
                     _log.LogInformation($"Downloading {filePath} from blob storage");
-                    blockBlob.DownloadToStream(stream);
+                    await blockBlob.DownloadToStreamAsync(stream);
                 }
                 else
                 {
@@ -167,12 +165,12 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
             }
         }
 
-        public void GetBulkUploadTemplateFileAsync(Stream stream)
+        public async Task GetBulkUploadTemplateFileAsync(Stream stream)
         {
-            DownloadFile(_templatePath, stream);
+           await DownloadFile(_templatePath, stream);
         }
 
-        public List<int> GetBulkUploadProviderListFile(int migrationHours)
+        public async Task<List<int>> GetBulkUploadProviderListFile(int migrationHours)
         {
             var providerUKPRNList = new List<int>();
             var count = 1;
@@ -183,7 +181,7 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
                 _log.LogInformation("Getting Providers from Blob");
 
                 MemoryStream ms = new MemoryStream();
-                DownloadFile(_providerListPath, ms);
+                await DownloadFile(_providerListPath, ms);
                 ms.Position = 0;
 
                 using (StreamReader reader = new StreamReader(ms))
@@ -200,16 +198,12 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
                         DateTime migDate = DateTime.MinValue;
                         DateTime runTime = DateTime.MinValue;
                         int provID = 0;
-                        DateTime.TryParse(migrationdate, out migDate);
+                        DateTime.TryParseExact(migrationdate, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out migDate);
                         DateTime.TryParse(time, out runTime);
                         migDate = migDate.Add(runTime.TimeOfDay);
                         int.TryParse(provider, out provID);
                         if (migDate > DateTime.MinValue && DateTimeWithinSpecifiedTime(migDate, migrationHours) && provID > 0)
                             providerUKPRNList.Add(provID);
-
-                     
-
-
                     }
                 }
             }
