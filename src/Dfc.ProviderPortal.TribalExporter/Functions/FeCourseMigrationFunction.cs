@@ -48,12 +48,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             [Inject] ICourseService courseService,
             [Inject] ICourseTextService courseTextService,
             [Inject] IProviderService providerService,
-            [Inject] IBlobStorageService blobService,
-            [Inject] IOptions<BlobStorageSettings> settings
-            //[Inject] BlobStorageServiceResolver BlobStorageServiceResolver
+            //[Inject] IBlobStorageService blobService,
+            //[Inject] IOptions<BlobStorageSettings> settings
+            [Inject] BlobStorageServiceResolver BlobStorageServiceResolver
             )
         {
-            //var blobService = BlobStorageServiceResolver(nameof(FeCourseMigrationFunction));
+            var blobService = BlobStorageServiceResolver(nameof(FeCourseMigrationFunction));
             //logger.LogInformation($"{blobService}");
             logger.LogInformation("Starting application");
 
@@ -81,72 +81,72 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
 
             logger.LogInformation("The Migration Tool is running in Blob Mode." + Environment.NewLine + "Please, do not close this window until \"Migration completed\" message is displayed." + Environment.NewLine);
-             var account = new CloudStorageAccount(new StorageCredentials(settings.Value.AccountName, settings.Value.AccountKey), true);
-            var container = account.CreateCloudBlobClient().GetContainerReference(settings.Value.Container);
+            // var account = new CloudStorageAccount(new StorageCredentials(settings.Value.AccountName, settings.Value.AccountKey), true);
+            //var container = account.CreateCloudBlobClient().GetContainerReference(settings.Value.Container);
 
-            logger.LogInformation("Getting Providers from Blob");
+            //logger.LogInformation("Getting Providers from Blob");
 
-            MemoryStream ms = new MemoryStream();
-            CloudBlockBlob blockBlob = container.GetBlockBlobReference(settings.Value.ProviderListPath);
+            //MemoryStream ms = new MemoryStream();
+            //CloudBlockBlob blockBlob = container.GetBlockBlobReference(settings.Value.ProviderListPath);
 
-            if (await blockBlob.ExistsAsync())
-            {
-                logger.LogInformation($"Downloading {settings.Value.ProviderListPath} from blob storage");
-                try
-                {
-                    blockBlob.DownloadToStream(ms);
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                    throw;
-                }
+            //if (await blockBlob.ExistsAsync())
+            //{
+            //    logger.LogInformation($"Downloading {settings.Value.ProviderListPath} from blob storage");
+            //    try
+            //    {
+            //        blockBlob.DownloadToStream(ms);
+            //    }
+            //    catch (Exception e)
+            //    {
+            //        Console.WriteLine(e);
+            //        throw;
+            //    }
                 
-                logger.LogInformation("Finished downloading Document");
-            }
-            else
-            {
-                throw new Exception("Blockblob doesn't exist");
-            }
-            ms.Position = 0;
+            //    logger.LogInformation("Finished downloading Document");
+            //}
+            //else
+            //{
+            //    throw new Exception("Blockblob doesn't exist");
+            //}
+            //ms.Position = 0;
 
-            using (StreamReader reader = new StreamReader(ms))
-            {
-                if (reader == null)
-                {
-                    logger.LogInformation("Reader is null");
-                }
+            //using (StreamReader reader = new StreamReader(ms))
+            //{
+            //    if (reader == null)
+            //    {
+            //        logger.LogInformation("Reader is null");
+            //    }
 
-                string line = null;
-                int count = 1; 
-                while (null != (line = reader.ReadLine()))
-                {
-                    logger.LogInformation($"Processing row {count}");
-                    string[] linedate = line.Split(',');
+            //    string line = null;
+            //    int count = 1; 
+            //    while (null != (line = reader.ReadLine()))
+            //    {
+            //        logger.LogInformation($"Processing row {count}");
+            //        string[] linedate = line.Split(',');
 
-                    var provider = linedate[0];
-                    var migrationdate = linedate[1];
-                    var time = string.IsNullOrEmpty(linedate[2]) ? DateTime.Now.ToShortTimeString() : linedate[2];
-                    DateTime migDate = DateTime.MinValue;
-                    DateTime runTime = DateTime.MinValue;
-                    int provID = 0;
+            //        var provider = linedate[0];
+            //        var migrationdate = linedate[1];
+            //        var time = string.IsNullOrEmpty(linedate[2]) ? DateTime.Now.ToShortTimeString() : linedate[2];
+            //        DateTime migDate = DateTime.MinValue;
+            //        DateTime runTime = DateTime.MinValue;
+            //        int provID = 0;
 
-                    DateTime.TryParseExact(migrationdate, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out migDate);
-                    DateTime.TryParse(time, out runTime);
-                    migDate = migDate.Add(runTime.TimeOfDay);
-                    int.TryParse(provider, out provID);
-                    logger.LogInformation($"MigDateUTC: {migDate.ToUniversalTime()}, runTime: {runTime}, current time: {DateTime.UtcNow}");
-                    if (migDate > DateTime.MinValue && DateTimeWithinSpecifiedTime(migDate, migrationWindow) &&
-                        provID > 0)
-                    {
-                        logger.LogInformation($"Adding Provider {provider}");
-                        providerUKPRNList.Add(provID);
-                    }
+            //        DateTime.TryParseExact(migrationdate, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out migDate);
+            //        DateTime.TryParse(time, out runTime);
+            //        migDate = migDate.Add(runTime.TimeOfDay);
+            //        int.TryParse(provider, out provID);
+            //        logger.LogInformation($"MigDateUTC: {migDate.ToUniversalTime()}, runTime: {runTime}, current time: {DateTime.UtcNow}");
+            //        if (migDate > DateTime.MinValue && DateTimeWithinSpecifiedTime(migDate, migrationWindow) &&
+            //            provID > 0)
+            //        {
+            //            logger.LogInformation($"Adding Provider {provider}");
+            //            providerUKPRNList.Add(provID);
+            //        }
 
-                }
-            }
+            //    }
+            //}
 
-            //  providerUKPRNList = await blobService.GetBulkUploadProviderListFileAsync(migrationWindow);
+            providerUKPRNList = await blobService.GetBulkUploadProviderListFileAsync(migrationWindow);
 
             if (providerUKPRNList == null)
             {
