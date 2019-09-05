@@ -8,11 +8,11 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
 {
     public interface IBlobStorageService
     {
-        void DownloadFile(string filePath, Stream stream);
+        Task DownloadFile(string filePath, Stream stream);
         Task UploadFileAsync(string filePath, Stream stream);
         IEnumerable<BlobFileInfo> GetFileList(string filePath);
         IEnumerable<CloudBlockBlob> ArchiveFiles(string filePath);
-        void GetBulkUploadTemplateFileAsync(Stream stream);
-        List<int> GetBulkUploadProviderListFile(int migrationHours);
+        Task GetBulkUploadTemplateFileAsync(Stream stream);
+        Task<List<int>> GetBulkUploadProviderListFile(int migrationHours);
     }
 }

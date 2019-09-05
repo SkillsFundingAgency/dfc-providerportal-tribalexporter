@@ -76,7 +76,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
             Console.WriteLine("The Migration Tool is running in Blob Mode." + Environment.NewLine + "Please, do not close this window until \"Migration completed\" message is displayed." + Environment.NewLine);
 
             string errorMessageGetCourses = string.Empty;
-            providerUKPRNList =  _blobService.GetBulkUploadProviderListFile(2);
+            providerUKPRNList =  await _blobService.GetBulkUploadProviderListFile(2);
             if (!string.IsNullOrEmpty(errorMessageGetCourses))
             {
                 adminReport += errorMessageGetCourses + Environment.NewLine;
