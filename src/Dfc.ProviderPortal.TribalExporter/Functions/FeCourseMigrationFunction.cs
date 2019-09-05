@@ -23,6 +23,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -130,17 +131,17 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     DateTime runTime = DateTime.MinValue;
                     int provID = 0;
 
-                    logger.LogInformation($"Following Details for provider {provider}, Migration Date {migrationdate}, Migration Time {time}  Current server time {DateTime.Now}");
-
-                    DateTime.TryParse(migrationdate, out migDate);
+                    DateTime.TryParseExact(migrationdate, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out migDate);
                     DateTime.TryParse(time, out runTime);
                     migDate = migDate.Add(runTime.TimeOfDay);
                     int.TryParse(provider, out provID);
-                    if (migDate > DateTime.MinValue && DateTimeWithinSpecifiedTime(migDate, migrationWindow) && provID > 0)
+                    logger.LogInformation($"MigDateUTC: {migDate.ToUniversalTime()}, runTime: {runTime}, current time: {DateTime.UtcNow}");
+                    if (migDate > DateTime.MinValue && DateTimeWithinSpecifiedTime(migDate, migrationWindow) &&
+                        provID > 0)
+                    {
+                        logger.LogInformation($"Adding Provider {provider}");
                         providerUKPRNList.Add(provID);
-
-
-
+                    }
 
                 }
             }
