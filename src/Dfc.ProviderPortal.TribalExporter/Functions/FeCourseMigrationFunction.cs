@@ -3,10 +3,10 @@ using Dfc.CourseDirectory.Models.Models.Courses;
 using Dfc.CourseDirectory.Models.Models.Providers;
 using Dfc.CourseDirectory.Models.Models.Venues;
 using Dfc.CourseDirectory.Services;
+using Dfc.CourseDirectory.Services.BlobStorageService;
 using Dfc.CourseDirectory.Services.CourseService;
 using Dfc.CourseDirectory.Services.CourseTextService;
 using Dfc.CourseDirectory.Services.Interfaces;
-using Dfc.CourseDirectory.Services.Interfaces.BlobStorageService;
 using Dfc.CourseDirectory.Services.Interfaces.CourseService;
 using Dfc.CourseDirectory.Services.Interfaces.CourseTextService;
 using Dfc.CourseDirectory.Services.Interfaces.ProviderService;
@@ -23,16 +23,11 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Dfc.CourseDirectory.Services.BlobStorageService;
-using Microsoft.Azure.Storage;
-using Microsoft.Azure.Storage.Auth;
-using Microsoft.Azure.Storage.Blob;
-using Microsoft.Extensions.Options;
+using Dfc.CourseDirectory.Common;
+using Dfc.CourseDirectory.Common.Interfaces;
 
 namespace Dfc.ProviderPortal.TribalExporter.Functions
 {
@@ -101,7 +96,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             //        Console.WriteLine(e);
             //        throw;
             //    }
-                
+
             //    logger.LogInformation("Finished downloading Document");
             //}
             //else
@@ -146,7 +141,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             //    }
             //}
 
-            providerUKPRNList = await blobService.GetBulkUploadProviderListFileAsync(migrationWindow);
+            providerUKPRNList = blobService.GetBulkUploadProviderListFile(migrationWindow);
 
             if (providerUKPRNList == null)
             {
@@ -255,58 +250,53 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 providerReport += "________________________________________________________________________________" + Environment.NewLine + Environment.NewLine;
 
 
+                var provider = await GetProvider(providerService, providerUKPRN);
+
+                if (provider == null)
+                {
+                    providerReport += $"ERROR on GETTING the Provider - { provider }" + Environment.NewLine + Environment.NewLine;
+                    continue;
+                }
+
+                var updateResult = await UpdateProviderType(providerService, provider);
+
+                if (updateResult != null && updateResult.IsFailure)
+                {
+                    providerReport += $"ERROR unable to update the provider type for provider - { provider }" + Environment.NewLine + Environment.NewLine;
+                    continue;
+                }
+
                 if (EnableProviderOnboarding)
                 {
                     logger.LogInformation($"Attempting to on board provider {providerUKPRN}");
                     // Check whether Provider is Onboarded
-                    var providerCriteria = new ProviderSearchCriteria(providerUKPRN.ToString());
-                    var providerResult =  await providerService.GetProviderByPRNAsync(providerCriteria);
-
-                    if (providerResult.IsSuccess && providerResult.HasValue)
+                    if (provider.Status.Equals(Status.Onboarded))
                     {
-                        var providers = providerResult.Value.Value;
-                        if (providers.Count().Equals(1))
+                        providerReport += $"Provider WAS already ONBOARDED" + Environment.NewLine + Environment.NewLine;
+                    }
+                    else
+                    {
+                        if (provider.ProviderStatus.Equals("Active", StringComparison.InvariantCultureIgnoreCase)
+                            || provider.ProviderStatus.Equals("Verified", StringComparison.InvariantCultureIgnoreCase))
                         {
-                            var provider = providers.FirstOrDefault();
-                            if (provider.Status.Equals(Status.Onboarded))
+                            // Onboard the Provider
+                            ProviderAdd providerOnboard = new ProviderAdd(provider.id, (int)Status.Onboarded, "DFC – Course Migration Tool");
+                            var resultProviderOnboard = await providerService.AddProviderAsync(providerOnboard);
+                            if (resultProviderOnboard.IsSuccess && resultProviderOnboard.HasValue)
                             {
-                                providerReport += $"Provider WAS already ONBOARDED" + Environment.NewLine + Environment.NewLine;
+                                providerReport += $"We HAVE ONBOARDED the Provider" + Environment.NewLine + Environment.NewLine;
                             }
                             else
                             {
-                                if (provider.ProviderStatus.Equals("Active", StringComparison.InvariantCultureIgnoreCase)
-                                    || provider.ProviderStatus.Equals("Verified", StringComparison.InvariantCultureIgnoreCase))
-                                {
-                                    // Onboard the Provider
-                                    ProviderAdd providerOnboard = new ProviderAdd(provider.id, (int)Status.Onboarded, "DFC – Course Migration Tool");
-                                    var resultProviderOnboard = await providerService.AddProviderAsync(providerOnboard);
-                                    if (resultProviderOnboard.IsSuccess && resultProviderOnboard.HasValue)
-                                    {
-                                        providerReport += $"We HAVE ONBOARDED the Provider" + Environment.NewLine + Environment.NewLine;
-                                    }
-                                    else
-                                    {
-                                        providerReport += $"ERROR on ONBOARDING the Provider - { resultProviderOnboard.Error }" + Environment.NewLine + Environment.NewLine;
-                                    }
-                                }
-                                else
-                                {
-                                    providerReport += $"Provider CANNOT be ONBOARDED" + Environment.NewLine + Environment.NewLine;
-                                }
+                                providerReport += $"ERROR on ONBOARDING the Provider - { resultProviderOnboard.Error }" + Environment.NewLine + Environment.NewLine;
                             }
                         }
                         else
                         {
-                            providerReport += $"We CANNOT IDENTIFY the Provider - " + Environment.NewLine + Environment.NewLine;
+                            providerReport += $"Provider CANNOT be ONBOARDED" + Environment.NewLine + Environment.NewLine;
                         }
-
-                    }
-                    else
-                    {
-                        providerReport += $"ERROR on GETTING the Provider - { providerResult.Error }" + Environment.NewLine + Environment.NewLine;
                     }
                 }
-
 
                 if (DeleteCoursesByUKPRN)
                 {
@@ -314,7 +304,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     providerReport += $"ATTENTION - Existing Courses for Provider '{ providerName }' with UKPRN  ( { providerUKPRN } ) to be deleted." + Environment.NewLine;
 
                     // Call the service 
-                    var deleteCoursesByUKPRNResult =  await courseService.DeleteCoursesByUKPRNAsync(new DeleteCoursesByUKPRNCriteria(providerUKPRN));
+                    var deleteCoursesByUKPRNResult = await courseService.DeleteCoursesByUKPRNAsync(new DeleteCoursesByUKPRNCriteria(providerUKPRN));
 
                     if (deleteCoursesByUKPRNResult.IsSuccess && deleteCoursesByUKPRNResult.HasValue)
                     {
@@ -360,7 +350,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         //tribalCourse.LearningAimRefId = "6538787SD"; // For Testing Only
                         // Replace LearnAimRefTitle, NotionalNVQLevelv2, AwardOrgCode, QualificationType from LarsSearchService 
                         LarsSearchCriteria criteria = new LarsSearchCriteria(tribalCourse.LearningAimRefId, 10, 0, string.Empty, null);
-                        var larsResult =  await larsSearchService.SearchAsync(criteria);
+                        var larsResult = await larsSearchService.SearchAsync(criteria);
 
                         if (larsResult.IsSuccess && larsResult.HasValue)
                         {
@@ -716,7 +706,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 providerReport += $"Courses Migration Successes ( { CountProviderCourseMigrationSuccess } ) and Failures ( { CountProviderCourseMigrationFailure } )" + Environment.NewLine;
 
                 string providerReportFileName = string.Empty;
-                
+
                 providerStopWatch.Stop();
                 adminReport += $">>> Report { reportForProvider } - { providerReportFileName } - Time taken: { providerStopWatch.Elapsed } " + Environment.NewLine;
                 adminReport += coursesToBeMigrated + Environment.NewLine;
@@ -848,7 +838,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
         }
         private static async Task<Guid?> CheckVenue(IVenueService venueService, string ukrpn)
         {
-            var venueResult =  await venueService.SearchAsync(new VenueSearchCriteria(ukrpn, string.Empty));
+            var venueResult = await venueService.SearchAsync(new VenueSearchCriteria(ukrpn, string.Empty));
 
             //Only one venue
             if (null != venueResult
@@ -865,6 +855,41 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
         private static bool DateTimeWithinSpecifiedTime(DateTime value, int hours)
         {
             return value <= DateTime.Now && value >= DateTime.Now.AddHours(-hours);
+        }
+
+        private static async Task<Provider> GetProvider(IProviderService providerService, int providerUKPRN)
+        {
+            var providerCriteria = new ProviderSearchCriteria(providerUKPRN.ToString());
+            var providerResult = await providerService.GetProviderByPRNAsync(providerCriteria);
+
+            if (providerResult.IsSuccess && providerResult.HasValue)
+            {
+                var providers = providerResult.Value.Value.ToList();
+                if (providers.Count().Equals(1))
+                {
+                    return providers.FirstOrDefault();
+                }
+            }
+
+            return null;
+        }
+
+        private static async Task<IResult> UpdateProviderType(IProviderService providerService, Provider provider)
+        {
+            switch (provider.ProviderType)
+            {
+                case ProviderType.Both:
+                case ProviderType.FE:
+                    return null;
+                case ProviderType.Apprenticeship:
+                    provider.ProviderType = ProviderType.Both;
+                    break;
+                default:
+                    provider.ProviderType = ProviderType.FE;
+                    break;
+            }
+
+            return await providerService.UpdateProviderDetails(provider);
         }
     }
 }

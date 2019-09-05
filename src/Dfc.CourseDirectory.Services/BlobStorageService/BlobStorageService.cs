@@ -70,17 +70,17 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
                 .GetContainerReference(settings.Container);
         }
 
-        public async Task DownloadFileAsync(string filePath, Stream stream)
+        public void DownloadFile(string filePath, Stream stream)
         {
             try
             {
                 _log.LogInformation($"File Path {filePath}");
                 CloudBlockBlob blockBlob = _container.GetBlockBlobReference(filePath);
 
-                if (await blockBlob.ExistsAsync())
+                if (blockBlob.Exists())
                 {
                     _log.LogInformation($"Downloading {filePath} from blob storage");
-                    await blockBlob.DownloadToStreamAsync(stream);
+                    blockBlob.DownloadToStream(stream);
                 }
                 else
                 {
@@ -167,12 +167,12 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
             }
         }
 
-        public Task GetBulkUploadTemplateFileAsync(Stream stream)
+        public void GetBulkUploadTemplateFileAsync(Stream stream)
         {
-            return DownloadFileAsync(_templatePath, stream);
+            DownloadFile(_templatePath, stream);
         }
 
-        public async Task<List<int>> GetBulkUploadProviderListFileAsync(int migrationHours)
+        public List<int> GetBulkUploadProviderListFile(int migrationHours)
         {
             var providerUKPRNList = new List<int>();
             var count = 1;
@@ -183,7 +183,7 @@ namespace Dfc.CourseDirectory.Services.BlobStorageService
                 _log.LogInformation("Getting Providers from Blob");
 
                 MemoryStream ms = new MemoryStream();
-                await DownloadFileAsync(_providerListPath, ms);
+                DownloadFile(_providerListPath, ms);
                 ms.Position = 0;
 
                 using (StreamReader reader = new StreamReader(ms))

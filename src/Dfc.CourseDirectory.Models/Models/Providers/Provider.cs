@@ -28,6 +28,8 @@ namespace Dfc.CourseDirectory.Models.Models.Providers
         public string MarketingInformation { get; set; }
         public string Alias { get; set; }
 
+        public ProviderType ProviderType { get; set; }
+
 
         public Provider(Providercontact[] providercontact, Provideralias[] provideraliases, Verificationdetail[] verificationdetails)
         {
@@ -36,6 +38,14 @@ namespace Dfc.CourseDirectory.Models.Models.Providers
             VerificationDetails = verificationdetails;
 
         }
+    }
+
+    public enum ProviderType
+    {
+        Undefined = 0,
+        FE = 1,
+        Apprenticeship = 2,
+        Both = FE | Apprenticeship
     }
 
     public enum Status
