@@ -163,10 +163,8 @@ namespace Dfc.CourseDirectory.Services.VenueService
             {
                 _logger.LogInformationObject("Get Venue By VenueId criteria.", criteria);
                 _logger.LogInformationObject("Get Venue By VenueId URI", _getVenueByVenueIdUri);
-
-                var content = new StringContent(criteria.ToJson(), Encoding.UTF8, "application/json");
-
-                var response = await _httpClient.PostAsync(_getVenueByVenueIdUri, content);
+                
+                var response = await _httpClient.GetAsync(_getVenueByVenueIdUri + criteria.venueId.ToString());
 
                 _logger.LogHttpResponseMessage("Get Venue By VenueId service http response", response);
 
@@ -279,8 +277,7 @@ namespace Dfc.CourseDirectory.Services.VenueService
                 _logger.LogInformationObject("Venue search criteria.", criteria);
                 _logger.LogInformationObject("Venue search URI", _searchVenueUri);
 
-                var content = new StringContent(criteria.ToJson(), Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync(_searchVenueUri, content);
+                var response = await _httpClient.GetAsync(_searchVenueUri + criteria.Search );
 
                 _logger.LogHttpResponseMessage("Venue search service http response", response);
 
@@ -402,7 +399,7 @@ namespace Dfc.CourseDirectory.Services.VenueService
 
         internal static Uri ToGetVenueByVenueIdUri(this VenueServiceSettings extendee)
         {
-            return new Uri(extendee.ApiUrl + "GetVenueByVenueId");
+            return new Uri(extendee.ApiUrl + "GetVenueByVenueId?venueId=");
         }
 
         internal static Uri ToGetVenuesByPRNAndNameUri(this VenueServiceSettings extendee)
@@ -412,7 +409,7 @@ namespace Dfc.CourseDirectory.Services.VenueService
 
         internal static Uri ToSearchVenueUri(this VenueServiceSettings extendee)
         {
-            return new Uri(extendee.ApiUrl + "GetVenuesByPRN");
+            return new Uri(extendee.ApiUrl + "GetVenuesByPRN?prn=");
         }
 
         internal static Uri ToAddVenueUri(this VenueServiceSettings extendee)
