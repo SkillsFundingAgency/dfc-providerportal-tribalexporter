@@ -185,7 +185,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 if (provider == null)
                 {
-                    providerReport += $"ERROR on GETTING the Provider - { provider }" + Environment.NewLine + Environment.NewLine;
+                    logger.LogError($"ERROR on GETTING the Provider - {provider}" + Environment.NewLine +
+                                    Environment.NewLine);
                     continue;
                 }
 
@@ -193,7 +194,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 if (updateResult != null && updateResult.IsFailure)
                 {
-                    providerReport += $"ERROR unable to update the provider type for provider - { provider }" + Environment.NewLine + Environment.NewLine;
+                    logger.LogError($"ERROR unable to update the provider type" +
+                                    $" for provider - { provider }" + Environment.NewLine + Environment.NewLine);
                     continue;
                 }
 
@@ -219,7 +221,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             }
                             else
                             {
-                                providerReport += $"ERROR on ONBOARDING the Provider - { resultProviderOnboard.Error }" + Environment.NewLine + Environment.NewLine;
+                                var errorMessage = $"ERROR on ONBOARDING the Provider - { resultProviderOnboard.Error }" + Environment.NewLine + Environment.NewLine;
+                                providerReport += errorMessage;
+                                logger.LogError(errorMessage);
                             }
                         }
                         else
@@ -248,7 +252,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     }
                     else
                     {
-                        Console.Write("ERROR: Failed to delete provider current courses for: " + providerUKPRN);
+                        logger.LogError("ERROR: Failed to delete provider current courses for: " + providerUKPRN);
                         providerReport += $"Error on deleteing courses -  { deleteCoursesByUKPRNResult.Error }  " + Environment.NewLine;
                     }
                 }
@@ -664,7 +668,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                                            providerStopWatch.Elapsed.ToString(),
                                                            providerReport,
                                                            out errorMessageProviderAuditAdd);
-                if (!string.IsNullOrEmpty(errorMessageProviderAuditAdd)) adminReport += "Error on CourseTransferProviderAuditAdd:" + errorMessageProviderAuditAdd + Environment.NewLine;
+                if (!string.IsNullOrEmpty(errorMessageProviderAuditAdd))
+                {
+                    var errorMessage = "Error on CourseTransferProviderAuditAdd:" + errorMessageProviderAuditAdd + Environment.NewLine;
+                    adminReport += errorMessage;
+                    logger.LogError(errorMessage);
+                }
 
 
                 CountAllCourses = CountAllCourses + tribalCourses.Count;
@@ -739,7 +748,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                                 adminReportFileName,
                                                 adminReport,
                                                 out errorMessageCourseTransferUpdate);
-            if (!string.IsNullOrEmpty(errorMessageCourseTransferUpdate)) logger.LogWarning("Error on CourseTransferUpdate" + errorMessageCourseTransferUpdate);
+            if (!string.IsNullOrEmpty(errorMessageCourseTransferUpdate))
+            {
+                var errorMessage = "Error on CourseTransferUpdate" + errorMessageCourseTransferUpdate;
+                adminReport += errorMessage;
+                logger.LogError(errorMessage);
+            }
 
             logger.LogInformation("Migration completed.");
         }
