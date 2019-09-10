@@ -1,4 +1,6 @@
-﻿using Dfc.ProviderPortal.Packages;
+﻿using Dfc.CourseDirectory.Services.BlobStorageService;
+using Dfc.CourseDirectory.Services.Interfaces.BlobStorageService;
+using Dfc.ProviderPortal.Packages;
 using Dfc.ProviderPortal.TribalExporter.Interfaces;
 using Dfc.ProviderPortal.TribalExporter.Settings;
 using Microsoft.Extensions.Options;
@@ -13,18 +15,18 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
 {
     public class BlobStorageHelper : IBlobStorageHelper
     {
-        private readonly IBlobStorageDirectConnectionSettings _directConnectionSettings;
+        private readonly IBlobStorageSettings _blobStorageSettings;
 
-        public BlobStorageHelper(IOptions<BlobStorageDirectConnectionSettings> settings)
+        public BlobStorageHelper(IOptions<BlobStorageSettings> settings)
         {
             Throw.IfNull(settings, nameof(settings));
 
-            _directConnectionSettings = settings.Value;
+            _blobStorageSettings = settings.Value;
         }
 
         public CloudBlobContainer GetBlobContainer(string containerName)
         {
-            if (CloudStorageAccount.TryParse(_directConnectionSettings.ConnectionString, out CloudStorageAccount storageAccount))
+            if (CloudStorageAccount.TryParse(_blobStorageSettings.ConnectionString, out CloudStorageAccount storageAccount))
             {
                 var client = storageAccount.CreateCloudBlobClient();
                 var container = client.GetContainerReference(containerName);

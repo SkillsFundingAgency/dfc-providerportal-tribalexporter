@@ -6,7 +6,7 @@ namespace Dfc.CourseDirectory.Services.Interfaces.BlobStorageService
         string AccountName { get; }
         string AccountKey { get; }
         string Container { get; }
-        //string BulkUploadPathFormat { get; }
+        string ConnectionString { get; }
         string TemplatePath { get; }
         string ProviderListPath { get; }
 
