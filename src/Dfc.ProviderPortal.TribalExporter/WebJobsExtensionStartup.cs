@@ -146,14 +146,14 @@ namespace Dfc.ProviderPortal.TribalExporter
                     configuration.GetValue<string>("CourseTextServiceSettings:ApiKey");
             });
             builder.Services.AddScoped<ICourseTextService, CourseTextService>();
-            //builder.Services.Configure<BlobStorageSettings>(options =>
-            //{
-            //    options.AccountName = configuration.GetValue<string>("BlobStorageSettings:AccountName");
-            //    options.AccountKey = configuration.GetValue<string>("BlobStorageSettings:AccountKey");
-            //    options.Container = configuration.GetValue<string>("BlobStorageSettings:Container");
-            //    options.TemplatePath = configuration.GetValue<string>("BlobStorageSettings:TemplatePath");
-            //    options.ProviderListPath = configuration.GetValue<string>("BlobStorageSettings:FeProviderListPath");
-            //});
+            builder.Services.Configure<BlobStorageSettings>(options =>
+            {
+                options.AccountName = configuration.GetValue<string>("BlobStorageSettings:AccountName");
+                options.AccountKey = configuration.GetValue<string>("BlobStorageSettings:AccountKey");
+                options.Container = configuration.GetValue<string>("BlobStorageSettings:Container");
+                options.TemplatePath = configuration.GetValue<string>("BlobStorageSettings:TemplatePath");
+                options.ConnectionString = configuration.GetValue<string>("BlobStorageSettings:ConnectionString");
+            });
             builder.Services.Configure<CourseDirectory.Services.ApprenticeshipService.ApprenticeshipServiceSettings>(
                 configuration.GetSection(nameof(CourseDirectory.Services.ApprenticeshipService
                     .ApprenticeshipServiceSettings)));
