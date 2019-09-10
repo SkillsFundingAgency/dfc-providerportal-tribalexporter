@@ -1,11 +1,15 @@
 ﻿using Dfc.CourseDirectory.Models.Interfaces.Courses;
-using System;
 using System.Collections.Generic;
 
 namespace Dfc.CourseDirectory.Models.Models.Courses
 {
     public class TribalCourse : ITribalCourse 
     {
+        public TribalCourse()
+        {
+            TribalCourseRuns = new List<TribalCourseRun>();
+        }
+
         public int CourseId { get; set; } // Used to get TribalCourseRuns
         public string CourseTitle  { get; set; } // QualificationCourseTitle
         public string LearningAimRefId  { get; set; } // LearnAimRef => LARS => check 54007 = NULL empty ??? (Cleansing for duplicate course - for location
