@@ -277,6 +277,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     if (string.IsNullOrEmpty(tribalCourse.LearningAimRefId))
                     {
                         LARSlessCourse = true;
+                        course.LarlessReason = LarlessReason.NoLars;
                         courseReport += $"ATTENTION - LARSless Course - Course does NOT have LARS - ATTENTION" + Environment.NewLine;
                         //CountCourseNotGoodToMigrate++;
                     }
@@ -306,6 +307,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             if (qualifications.Count.Equals(0))
                             {
                                 LARSlessCourse = true;
+                                course.LarlessReason = LarlessReason.UnknownLars;
                                 //CountCourseNotGoodToMigrate++;
                                 courseReport += $"ATTENTION - LARSless Course - We couldn't obtain LARS Data for LARS: { tribalCourse.LearningAimRefId }. LARS Service returns nothing." + Environment.NewLine;
                             }
@@ -315,6 +317,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 {
                                     // Expired LARS
                                     LARSlessCourse = true;
+                                    course.LarlessReason = LarlessReason.ExpiredLars;
                                     //CountCourseNotGoodToMigrate++;
                                     courseReport += $"ATTENTION - LARSless Course - LARS has expired for LARS: { tribalCourse.LearningAimRefId }. The CertificationEndDate is { qualifications[0].CertificationEndDate }" + Environment.NewLine;
                                 }
@@ -336,13 +339,15 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 {
                                     logMoreQualifications += "( '" + qualification.LearnAimRefTitle + "' with Level " + qualification.NotionalNVQLevelv2 + " and AwardOrgCode " + qualification.AwardOrgCode + " ) ";
                                 }
+
+                                course.LarlessReason = LarlessReason.MultipleMatchingLars;
                                 courseReport += $"ATTENTION - LARSless Course - We retrieve multiple qualifications ( { qualifications.Count.ToString() } ) for the LARS { tribalCourse.LearningAimRefId }, which are { logMoreQualifications } " + Environment.NewLine;
                             }
                         }
                         else
                         {
                             LARSlessCourse = true;
-                            //CountCourseNotGoodToMigrate++;
+                            course.LarlessReason = LarlessReason.UnknownLars;
                             courseReport += $"ATTENTION - LARSless Course - We couldn't retreive LARS data for LARS { tribalCourse.LearningAimRefId }, because of technical reason, Error: " + larsResult?.Error;
                         }
                     }
@@ -703,7 +708,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 if (courseMigrationReportResult.IsFailure)
                 {
-                    throw new Exception(courseMigrationReportResult.Error);
+                    logger.LogError(courseMigrationReportResult.Error);
+                    continue;
                 }
                 // For feedback to the user only
                 provStopWatch.Stop();

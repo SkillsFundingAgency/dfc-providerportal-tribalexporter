@@ -31,7 +31,7 @@ namespace Dfc.CourseDirectory.Models.Models.Courses
         public string CreatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
         public string UpdatedBy { get; set; }
-
+        public LarlessReason? LarlessReason { get; set; }
         public bool IsValid { get; set; }
         public RecordStatus CourseStatus
         {
@@ -63,6 +63,15 @@ namespace Dfc.CourseDirectory.Models.Models.Courses
 
             return courseStatus;
         }
+    }
+
+    public enum LarlessReason
+    {
+        Undefined,
+        NoLars,
+        UnknownLars,
+        ExpiredLars,
+        MultipleMatchingLars
     }
     
 }

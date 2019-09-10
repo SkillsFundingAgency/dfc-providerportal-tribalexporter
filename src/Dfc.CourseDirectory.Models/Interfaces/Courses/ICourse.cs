@@ -31,7 +31,7 @@ namespace Dfc.CourseDirectory.Models.Interfaces.Courses
         string CreatedBy { get; set; }
         DateTime? UpdatedDate { get; set; }
         string UpdatedBy { get; set; }
-
+        LarlessReason? LarlessReason { get; set; }
         bool IsValid { get; set; }
     }
 }
