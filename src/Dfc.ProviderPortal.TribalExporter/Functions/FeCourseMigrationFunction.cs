@@ -56,6 +56,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             bool DeleteCoursesByUKPRN = configuration.GetValue<bool>("DeleteCoursesByUKPRN");
             bool EnableProviderOnboarding = configuration.GetValue<bool>("EnableProviderOnboarding");
             int migrationWindow = configuration.GetValue<int>("MigrationWindow");
+            var successfulMigratedProviders = new List<int>();
 
             #region Get User Input and Set Variables
 
@@ -713,6 +714,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 }
                 // For feedback to the user only
                 provStopWatch.Stop();
+                successfulMigratedProviders.Add(providerUKPRN);
                 //string formatedStopWatchElapsedTime = string.Format("{0:D2}:{1:D2}:{2:D2}:{3:D2}:{4:D3}", stopWatch.Elapsed.Days, stopWatch.Elapsed.Hours, stopWatch.Elapsed.Minutes, stopWatch.Elapsed.Seconds, stopWatch.Elapsed.Milliseconds);
                 logger.LogInformation("Total time taken:" + provStopWatch.Elapsed.ToString());
                 provStopWatch.Start();
@@ -760,6 +762,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 adminReport += errorMessage;
                 logger.LogError(errorMessage);
             }
+
+            logger.LogInformation($"The following providers were migrated: {string.Join(",", successfulMigratedProviders)}");
 
             logger.LogInformation("Migration completed.");
         }
