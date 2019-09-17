@@ -70,6 +70,9 @@
     },
     "storageAccountName": {
       "value": "not-a-real-storage-account"
+    },
+    "referenceDataApiUrl": {
+      "value": "https://not-a-real-api/referencedata"      
     }
   }
 }
