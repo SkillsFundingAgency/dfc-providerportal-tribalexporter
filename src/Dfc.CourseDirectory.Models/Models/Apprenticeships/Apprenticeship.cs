@@ -3,6 +3,7 @@ using Dfc.CourseDirectory.Models.Interfaces.Apprenticeships;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Text;
 
 namespace Dfc.CourseDirectory.Models.Models.Apprenticeships
@@ -60,12 +61,34 @@ namespace Dfc.CourseDirectory.Models.Models.Apprenticeships
         public IEnumerable<ApprenticeshipLocation> ApprenticeshipLocations { get; set; }
 
         // Standard auditing properties 
-        public RecordStatus RecordStatus { get; set; }
+        public RecordStatus RecordStatus => GetBitMaskState(ApprenticeshipLocations);
+
         public DateTime CreatedDate { get; set; }
         public string CreatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
         public string UpdatedBy { get; set; }
 
         public string NotionalNVQLevelv2 { get; set; }
+
+        internal static RecordStatus GetBitMaskState(IEnumerable<ApprenticeshipLocation> apprenticeshipLocations)
+        {
+            RecordStatus apprenticeshipStatus = RecordStatus.Undefined; // Default BitMaskState (handles undefined and no CourseRuns)
+
+            if (apprenticeshipLocations != null)
+            {
+                foreach (RecordStatus recordStatus in Enum.GetValues(typeof(RecordStatus)))
+                {
+                    if (apprenticeshipLocations.Any(c => c.RecordStatus == recordStatus))
+                    {
+                        Helpers.BitmaskHelper.Set<RecordStatus>(ref apprenticeshipStatus, recordStatus);
+
+                    }
+                }
+
+
+            }
+
+            return apprenticeshipStatus;
+        }
     }
 }

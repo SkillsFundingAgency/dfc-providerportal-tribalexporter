@@ -22,7 +22,7 @@ namespace Dfc.CourseDirectory.Models.Models.Venues
     {
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string ID { get; }
-        public int UKPRN { get; }
+        public int UKPRN { get; set; }
         [JsonProperty("PROVIDER_ID", Required = Required.AllowNull)]
         [JsonIgnore]
         public int ProviderID { get; }

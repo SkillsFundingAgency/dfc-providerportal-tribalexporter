@@ -63,7 +63,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             string adminReport = "                         Admin Report " + Environment.NewLine;
             adminReport += "________________________________________________________________________________" + Environment.NewLine + Environment.NewLine;
 
-            var providerUKPRNList = new List<int>();
+            
             int courseTransferId = 0;
             bool goodToTransfer = false;
             TransferMethod transferMethod = TransferMethod.Undefined;
@@ -73,7 +73,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             logger.LogInformation("The Migration Tool is running in Blob Mode." + Environment.NewLine + "Please, do not close this window until \"Migration completed\" message is displayed." + Environment.NewLine);
            
-            providerUKPRNList = await blobService.GetBulkUploadProviderListFile(migrationWindow);
+            var providerUKPRNList = await blobService.GetBulkUploadProviderListFile(migrationWindow);
 
             if (providerUKPRNList == null)
             {

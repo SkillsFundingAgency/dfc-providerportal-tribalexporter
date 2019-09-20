@@ -191,7 +191,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration.Helpers
                 using (var command = sqlConnection.CreateCommand())
                 {
                     command.CommandType = CommandType.StoredProcedure;
-                    command.CommandText = "dfc_GetApprenticeshipLocationsByApprenticeshipId";
+                    command.CommandText = "dfc_GetApprenticeshipLocationsDetailsByApprenticeshipId";
 
                     command.Parameters.Add(new SqlParameter("@ApprenticeshipId", SqlDbType.Int));
                     command.Parameters["@ApprenticeshipId"].Value = ApprenticeshipId;
@@ -234,6 +234,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration.Helpers
             apprenticeshipLocation.ApprenticeshipLocationId = (int)CheckForDbNull(reader["ApprenticeshipLocationId"], 0);
             apprenticeshipLocation.LocationId = (int)CheckForDbNull(reader["LocationId"], 0);
             apprenticeshipLocation.Radius = (int)CheckForDbNull(reader["Radius"], 0);
+            apprenticeshipLocation.Name = (string)CheckForDbNull(reader["LocationName"], "");
 
             return apprenticeshipLocation;
         }
@@ -290,6 +291,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration.Helpers
         public static Location GetLocationByLocationIdPerProvider(long LocationId, int ProviderId, string connectionString, out string errorMessageGetTribalLocation)
         {
             var location = new Location();
+            bool hasData = false;
             errorMessageGetTribalLocation = string.Empty;
 
             using (var sqlConnection = new SqlConnection(connectionString))
@@ -314,6 +316,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration.Helpers
                         {
                             while (dataReader.Read())
                             {
+                                hasData = true;
                                 location = ExtractTribalLocationFromDbReader(dataReader);
                             }
                             // Close the SqlDataReader.
@@ -331,7 +334,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration.Helpers
                 }
             }
 
-            return location;
+            return hasData ? location : null;
         }
 
         public static Location ExtractTribalLocationFromDbReader(SqlDataReader reader)

@@ -9,7 +9,7 @@ namespace Dfc.CourseDirectory.Models.Interfaces.Venues
     public interface IVenue
     {
         string ID { get; }
-        int UKPRN { get; }
+        int UKPRN { get; set; }
         int ProviderID { get; }
         int VenueID { get; }
         string VenueName { get; }

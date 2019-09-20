@@ -38,7 +38,7 @@ namespace Dfc.CourseDirectory.Models.Interfaces.Apprenticeships
         IEnumerable<ApprenticeshipLocation> ApprenticeshipLocations { get; set; }
 
         // Standard auditing properties 
-        RecordStatus RecordStatus { get; set; }
+        RecordStatus RecordStatus { get; }
         DateTime CreatedDate { get; set; }
         string CreatedBy { get; set; }
         DateTime? UpdatedDate { get; set; }
