@@ -1,6 +1,8 @@
-﻿using Dfc.CourseDirectory.Models.Enums;
+﻿using Dfc.CourseDirectory.Common.Interfaces;
+using Dfc.CourseDirectory.Models.Enums;
 using Dfc.CourseDirectory.Models.Interfaces.Providers;
 using Dfc.CourseDirectory.Models.Models.Apprenticeships;
+using Dfc.CourseDirectory.Models.Models.Providers;
 using Dfc.CourseDirectory.Models.Models.Regions;
 using Dfc.CourseDirectory.Models.Models.Venues;
 using Dfc.CourseDirectory.Services.ApprenticeshipService;
@@ -13,7 +15,6 @@ using Dfc.CourseDirectory.Services.VenueService;
 using Dfc.ProviderPortal.ApprenticeshipMigration.Helpers;
 using Dfc.ProviderPortal.ApprenticeshipMigration.Interfaces;
 using Dfc.ProviderPortal.ApprenticeshipMigration.Models;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -25,8 +26,6 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Dfc.CourseDirectory.Common.Interfaces;
-using Dfc.CourseDirectory.Models.Models.Providers;
 using Providercontact = Dfc.ProviderPortal.ApprenticeshipMigration.Models.Providercontact;
 
 namespace Dfc.ProviderPortal.ApprenticeshipMigration
@@ -695,91 +694,37 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                                     }
                                                     else
                                                     {
-                                                        if (apprenticeshipLocation.Radius >
-                                                            _settings.RegionSubRegionRangeRadius)
-                                                        {// todo look up postcode region
-                                                            // It's Region
-                                                            var selectedRegion = allRegionsWithSubRegions.RegionItems
-                                                                .Where(x => x.RegionName == onspdRegionSubregion.Region)
-                                                                .SingleOrDefault();
-                                                            if (selectedRegion == null)
-                                                            {
-                                                                // Problem - No selectedRegion match => Undefined 
+                                                        // It's SubRegion, but if SubRegion does not much get Region
+                                                        var selectedSubRegion = allRegionsWithSubRegions.RegionItems
+                                                            .SingleOrDefault(x => x.SubRegion.Any(sr =>
+                                                            sr.SubRegionName == onspdRegionSubregion.SubRegion))?
+                                                            .SubRegion.SingleOrDefault(sr => sr.SubRegionName == onspdRegionSubregion.SubRegion);
+
+                                                        if (selectedSubRegion == null)
+                                                        {
+                                                                // Problem - No selectedRegion and NO selectedSubRegion match => Undefined 
                                                                 adminReport +=
-                                                                    $"* ATTENTION * We couldn't identify a Region for ( {onspdRegionSubregion.Region} ) and Postcode ( {location.Postcode} ). " +
+                                                                    $"* ATTENTION * After NOT be able to identify SubRegion, we couldn't identify a Region for ( {onspdRegionSubregion.Region} ) and Postcode ( {location.Postcode} ). " +
                                                                     Environment.NewLine;
                                                                 apprenticeshipLocation.RecordStatus =
                                                                     RecordStatus.MigrationPending;
-                                                            }
-                                                            else
-                                                            {
-                                                                apprenticeshipLocation.LocationId =
-                                                                    selectedRegion.ApiLocationId;
-                                                                apprenticeshipLocation.LocationType =
-                                                                    LocationType.Region;
-                                                                apprenticeshipLocation.Radius =
-                                                                    _settings.RegionBasedRadius;
-                                                                apprenticeshipLocation.Regions =
-                                                                    selectedRegion.SubRegion.Select(x => x.Id)
-                                                                        .ToArray();
-                                                                adminReport +=
-                                                                    $" We've identified a Region ( {onspdRegionSubregion.Region} ) with ID ( {selectedRegion.ApiLocationId} ) " +
-                                                                    Environment.NewLine;
-                                                            }
+                                                                continue;
                                                         }
                                                         else
                                                         {
-                                                            // It's SubRegion, but if SubRegion does not much get Region
-                                                            var selectedSubRegion = allRegionsWithSubRegions.RegionItems
-                                                                .Where(x => x.SubRegion.Any(sr =>
-                                                                    sr.SubRegionName == onspdRegionSubregion.SubRegion))
-                                                                .SingleOrDefault();
-                                                            if (selectedSubRegion == null)
-                                                            {
-                                                                // Do Region
-                                                                var selectedRegion = allRegionsWithSubRegions
-                                                                    .RegionItems.Where(x =>
-                                                                        x.RegionName == onspdRegionSubregion.Region)
-                                                                    .SingleOrDefault();
-                                                                if (selectedRegion == null)
-                                                                {
-                                                                    // Problem - No selectedRegion and NO selectedSubRegion match => Undefined 
-                                                                    adminReport +=
-                                                                        $"* ATTENTION * After NOT be able to identify SubRegion, we couldn't identify a Region for ( {onspdRegionSubregion.Region} ) and Postcode ( {location.Postcode} ). " +
-                                                                        Environment.NewLine;
-                                                                    apprenticeshipLocation.RecordStatus =
-                                                                        RecordStatus.MigrationPending;
-                                                                }
-                                                                else
-                                                                {
-                                                                    apprenticeshipLocation.LocationId =
-                                                                        selectedRegion.ApiLocationId;
-                                                                    apprenticeshipLocation.LocationType =
-                                                                        LocationType.Region;
-                                                                    apprenticeshipLocation.Radius =
-                                                                        _settings.RegionBasedRadius;
-                                                                    adminReport +=
-                                                                        $"After NOT be able to identify SubRegion, we've identified a Region ( {onspdRegionSubregion.Region} ) with ID ( {selectedRegion.ApiLocationId} ) " +
-                                                                        Environment.NewLine;
-                                                                }
-                                                            }
-                                                            else
-                                                            {
-                                                                apprenticeshipLocation.LocationId =
-                                                                    selectedSubRegion.SubRegion
-                                                                        .Where(x =>
-                                                                            x.SubRegionName ==
-                                                                            onspdRegionSubregion.SubRegion)
-                                                                        .SingleOrDefault().ApiLocationId;
-                                                                apprenticeshipLocation.LocationType =
-                                                                    LocationType.SubRegion;
-                                                                apprenticeshipLocation.Radius =
-                                                                    _settings.SubRegionBasedRadius;
-                                                                adminReport +=
-                                                                    $" We've identified a SubRegion ( {onspdRegionSubregion.SubRegion} ) with ID ( {selectedSubRegion.ApiLocationId} ) " +
-                                                                    Environment.NewLine;
-                                                            }
+                                                            apprenticeshipLocation.LocationId =
+                                                                selectedSubRegion.ApiLocationId;
+                                                            apprenticeshipLocation.LocationType =
+                                                                LocationType.SubRegion;
+                                                            apprenticeshipLocation.Radius =
+                                                                _settings.SubRegionBasedRadius;
+                                                            apprenticeshipLocation.Regions =
+                                                                new[] { selectedSubRegion.Id };
+                                                            adminReport +=
+                                                                $" We've identified a SubRegion ( {onspdRegionSubregion.SubRegion} ) with ID ( {selectedSubRegion.ApiLocationId} ) " +
+                                                                Environment.NewLine;
                                                         }
+
                                                     }
 
                                                     regionBasedApprenticeshipLocation.Add(apprenticeshipLocation);
@@ -799,7 +744,6 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                     adminReport += $"ApprenticeshipLocation Status ( { apprenticeshipLocation.RecordStatus } )." + Environment.NewLine;
                                 }
 
-
                                 if (regionBasedApprenticeshipLocation.Any(x =>
                                     x.RecordStatus == RecordStatus.Live))
                                 {
@@ -808,7 +752,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                             x.RecordStatus == RecordStatus.Live);
                                     regionLocation.Regions = regionBasedApprenticeshipLocation
                                         .Where(x => x.Regions != null)
-                                        .SelectMany(x => x.Regions).ToArray();
+                                        .SelectMany(x => x.Regions).Distinct().ToArray();
                                     locationBasedApprenticeshipLocation.Add(
                                         regionLocation
                                         );
@@ -828,7 +772,6 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                 CountApprenticeshipLocationsPending = CountApprenticeshipLocationsPending + CountApprenticeshipLocationsPendingPerAppr;
                                 CountApprenticeshipLocationsLive = CountApprenticeshipLocationsLive + CountApprenticeshipLocationsLivePerAppr;
                             }
-
 
                             if (isValidApprenticeship)
                             {
