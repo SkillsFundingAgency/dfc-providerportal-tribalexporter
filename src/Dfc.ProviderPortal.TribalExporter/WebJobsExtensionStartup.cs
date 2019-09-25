@@ -1,16 +1,4 @@
-﻿using Dfc.ProviderPortal.Packages.AzureFunctions.DependencyInjection;
-using Dfc.ProviderPortal.TribalExporter;
-using Dfc.ProviderPortal.TribalExporter.Helpers;
-using Dfc.ProviderPortal.TribalExporter.Interfaces;
-using Dfc.ProviderPortal.TribalExporter.Settings;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Net.Http;
-using Dfc.CourseDirectory.Common.Settings;
+﻿using Dfc.CourseDirectory.Common.Settings;
 using Dfc.CourseDirectory.Models.Enums;
 using Dfc.CourseDirectory.Services;
 using Dfc.CourseDirectory.Services.ApprenticeshipService;
@@ -19,23 +7,31 @@ using Dfc.CourseDirectory.Services.CourseService;
 using Dfc.CourseDirectory.Services.CourseTextService;
 using Dfc.CourseDirectory.Services.Interfaces;
 using Dfc.CourseDirectory.Services.Interfaces.ApprenticeshipService;
-using Dfc.CourseDirectory.Services.Interfaces.BlobStorageService;
 using Dfc.CourseDirectory.Services.Interfaces.CourseService;
 using Dfc.CourseDirectory.Services.Interfaces.CourseTextService;
 using Dfc.CourseDirectory.Services.Interfaces.ProviderService;
 using Dfc.CourseDirectory.Services.Interfaces.VenueService;
 using Dfc.CourseDirectory.Services.ProviderService;
 using Dfc.CourseDirectory.Services.VenueService;
-using Dfc.ProviderPortal.ApprenticeshipMigration;
 using Dfc.ProviderPortal.ApprenticeshipMigration.Interfaces;
 using Dfc.ProviderPortal.ApprenticeshipMigration.Models;
+using Dfc.ProviderPortal.Packages.AzureFunctions.DependencyInjection;
+using Dfc.ProviderPortal.TribalExporter;
 using Dfc.ProviderPortal.TribalExporter.Functions;
+using Dfc.ProviderPortal.TribalExporter.Helpers;
+using Dfc.ProviderPortal.TribalExporter.Interfaces;
 using Dfc.ProviderPortal.TribalExporter.Services;
-using Microsoft.Build.Framework;
+using Dfc.ProviderPortal.TribalExporter.Settings;
+using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
+using Microsoft.Extensions.Logging.Configuration;
 using ApprenticeshipServiceSettings = Dfc.ProviderPortal.TribalExporter.Settings.ApprenticeshipServiceSettings;
-using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 [assembly: WebJobsStartup(typeof(WebJobsExtensionStartup), "Web Jobs Extension Startup")]
 
@@ -43,6 +39,7 @@ namespace Dfc.ProviderPortal.TribalExporter
 {
     public class WebJobsExtensionStartup : IWebJobsStartup
     {
+
         public void Configure(IWebJobsBuilder builder)
         {
             builder.AddDependencyInjection();
@@ -52,6 +49,8 @@ namespace Dfc.ProviderPortal.TribalExporter
                 .AddJsonFile("local.settings.json", optional: true, reloadOnChange: true)
                 .AddEnvironmentVariables()
                 .Build();
+
+            
 
             builder.Services.AddSingleton<IConfigurationRoot>(configuration);
             builder.Services.Configure<CosmosDbSettings>(configuration.GetSection(nameof(CosmosDbSettings)));
@@ -66,7 +65,9 @@ namespace Dfc.ProviderPortal.TribalExporter
             builder.Services.AddScoped<IVenueCollectionService, VenueCollectionService>();
             builder.Services.AddScoped<IApprenticeshipServiceWrapper, ApprenticeshipServiceWrapper>();
 
-            builder.Services.AddLogging();
+
+
+            builder.Services.AddLogging(log => log.SetMinimumLevel(LogLevel.Trace));
             builder.Services.AddTransient((provider) => new HttpClient());
             builder.Services.Configure<VenueServiceSettings>(venueServiceSettingsOptions =>
             {
@@ -163,7 +164,6 @@ namespace Dfc.ProviderPortal.TribalExporter
             builder.Services.AddScoped<IApprenticeReferenceDataService, ApprenticeReferenceDataService>();
             builder.Services.BuildServiceProvider();
             builder.Services.AddTransient<IApprenticeshipMigration, ApprenticeshipMigration.ApprenticeshipMigration>();
-            //builder.Services.AddScoped<IBlobStorageService, BlobStorageService>();
             builder.Services.AddTransient<BlobStorageServiceResolver>(serviceProvider => key =>
             {
                 switch (key)
@@ -179,7 +179,7 @@ namespace Dfc.ProviderPortal.TribalExporter
                                 AccountKey = configuration.GetValue<string>("BlobStorageSettings:AccountKey"),
                                 Container = configuration.GetValue<string>("BlobStorageSettings:Container"),
                                 TemplatePath = configuration.GetValue<string>("BlobStorageSettings:TemplatePath"),
-                                ProviderListPath = configuration.GetValue<string>("BlobSettings:ApprenticeshipProviderListPath")
+                                ProviderListPath = configuration.GetValue<string>("BlobStorageSettings:ApprenticeshipProviderListPath")
                             });
                     case nameof(FeCourseMigrationFunction):
                         return new BlobStorageService(
@@ -198,6 +198,13 @@ namespace Dfc.ProviderPortal.TribalExporter
                 }
             });
 
+            AddApprenticeshipMigration(builder, configuration);
+           
+
+        }
+
+        private void AddApprenticeshipMigration(IWebJobsBuilder builder, IConfigurationRoot configuration)
+        {
             builder.Services.Configure<ApprenticeshipMigrationSettings>(settings =>
             {
                 settings.ConnectionString = configuration.GetConnectionString("DefaultConnection");
@@ -212,6 +219,8 @@ namespace Dfc.ProviderPortal.TribalExporter
                 settings.RegionSubRegionRangeRadius = configuration.GetValue<int>("RegionSubRegionRangeRadius");
                 settings.UpdateProvider = configuration.GetValue<bool>("UpdateProvider");
             });
+
+            builder.Services.AddScoped<IApprenticeshipMigration, ApprenticeshipMigration.ApprenticeshipMigration>();
         }
     }
 }

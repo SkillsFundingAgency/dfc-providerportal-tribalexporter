@@ -1,17 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
-using Dfc.CourseDirectory.Common;
+﻿using Dfc.CourseDirectory.Common;
 using Dfc.CourseDirectory.Common.Interfaces;
 using Dfc.CourseDirectory.Models.Models.ApprenticeshipReferenceData;
-using Dfc.CourseDirectory.Models.Models.Providers;
-using Dfc.CourseDirectory.Services.Interfaces.ProviderService;
-using Dfc.CourseDirectory.Services.ProviderService;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using System;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace Dfc.CourseDirectory.Services.ApprenticeshipService
 {
