@@ -445,6 +445,14 @@
               {
                 "name": "ApprenticeReferenceDataSettings__ApiKey",
                 "value": "[parameters('apimCourseDirectoryKey')]"
+              },
+              {
+                "name": "RegionSubRegionRangeRadius",
+                "value": "100"
+              },
+              {
+                "name": "SubRegionBasedRadius",
+                "value": "10"
               }
             ]
           },
