@@ -160,6 +160,12 @@
       "metadata": {
         "description": "The name of the shared storage account"
       }
+    },
+    "referenceDataApiUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "URL to the reference data API"
+      }
     }
   },
   "variables": {
@@ -431,6 +437,14 @@
               {
                 "name": "ApprenticeshipMigrationSchedule",
                 "value": "0 0 2 * * *"
+              },
+              {
+                "name": "ApprenticeReferenceDataSettings__ApiUrl",
+                "value": "[parameters('referenceDataApiUrl')]"
+              },
+              {
+                "name": "ApprenticeReferenceDataSettings__ApiKey",
+                "value": "[parameters('apimCourseDirectoryKey')]"
               }
             ]
           },
