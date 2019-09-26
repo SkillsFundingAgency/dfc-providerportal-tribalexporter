@@ -453,6 +453,18 @@
               {
                 "name": "SubRegionBasedRadius",
                 "value": "10"
+              },
+              {
+                "name": "OnspdSearchSettings__SearchServiceName",
+                "value": "[parameters('azureSearchName')]"
+              },
+              {
+                "name": "OnspdSearchSettings__SearchServiceQueryApiKey",
+                "value": "[parameters('azureSearchKey')]"
+              },
+              {
+                "name": "OnspdSearchSettings__IndexName",
+                "value": "onspd"
               }
             ]
           },
