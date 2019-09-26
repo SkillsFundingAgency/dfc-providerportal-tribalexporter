@@ -15,5 +15,6 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration.Models
         public int RegionBasedRadius { get; set; }
         public int SubRegionBasedRadius { get; set; }
         public int RegionSubRegionRangeRadius { get; set; }
+        public int MigrationWindow { get; set; }
     }
 }
