@@ -301,6 +301,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                     apprenticeship.ApprenticeshipType = ApprenticeshipType.StandardCode;
                                     apprenticeship.ApprenticeshipTitle = standard.Value.Value.StandardName;
                                     apprenticeship.StandardId = standard.Value.Value.id;
+                                    apprenticeship.NotionalNVQLevelv2 = standard.Value.Value.NotionalEndLevel;
                                     adminReport += $"> Standard Apprenticeship - StandardCode ( { apprenticeship.StandardCode } ), Version ( { apprenticeship.Version } )" + Environment.NewLine;
 
                                 }
