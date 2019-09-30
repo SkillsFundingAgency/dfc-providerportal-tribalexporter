@@ -30,6 +30,8 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using Dfc.CourseDirectory.Services.Interfaces.OnspdService;
+using Dfc.CourseDirectory.Services.OnspdService;
 using Microsoft.Extensions.Logging.Configuration;
 using ApprenticeshipServiceSettings = Dfc.ProviderPortal.TribalExporter.Settings.ApprenticeshipServiceSettings;
 
@@ -164,6 +166,8 @@ namespace Dfc.ProviderPortal.TribalExporter
             builder.Services.AddScoped<IApprenticeReferenceDataService, ApprenticeReferenceDataService>();
             builder.Services.BuildServiceProvider();
             builder.Services.AddTransient<IApprenticeshipMigration, ApprenticeshipMigration.ApprenticeshipMigration>();
+            builder.Services.Configure<OnspdSearchSettings>(configuration.GetSection(nameof(OnspdSearchSettings)));
+            builder.Services.AddScoped<IOnspdService, OnspdService>();
             builder.Services.AddTransient<BlobStorageServiceResolver>(serviceProvider => key =>
             {
                 switch (key)
@@ -218,6 +222,7 @@ namespace Dfc.ProviderPortal.TribalExporter
                 settings.SubRegionBasedRadius = configuration.GetValue<int>("SubRegionBasedRadius");
                 settings.RegionSubRegionRangeRadius = configuration.GetValue<int>("RegionSubRegionRangeRadius");
                 settings.UpdateProvider = configuration.GetValue<bool>("UpdateProvider");
+                settings.MigrationWindow = configuration.GetValue<int>("MigrationWindow");
             });
 
             builder.Services.AddScoped<IApprenticeshipMigration, ApprenticeshipMigration.ApprenticeshipMigration>();

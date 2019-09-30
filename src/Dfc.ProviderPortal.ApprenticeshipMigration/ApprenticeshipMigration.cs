@@ -26,6 +26,8 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Dfc.CourseDirectory.Services.Interfaces.OnspdService;
+using Dfc.CourseDirectory.Services.OnspdService;
 using Providercontact = Dfc.ProviderPortal.ApprenticeshipMigration.Models.Providercontact;
 
 namespace Dfc.ProviderPortal.ApprenticeshipMigration
@@ -39,18 +41,20 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
         private readonly IBlobStorageService _blobService;
         private readonly ILogger logger;
         private readonly ApprenticeshipMigrationSettings _settings;
+        private readonly IOnspdService _onspdService;
 
 
         public ApprenticeshipMigration(BlobStorageServiceResolver blobStorageServiceResolver,
             IOptions<ApprenticeshipMigrationSettings> settings,
             IVenueService venueService, IProviderService providerService,
             IApprenticeReferenceDataService apprenticeReferenceDataService,
-            IApprenticeshipService apprenticeshipService)
+            IApprenticeshipService apprenticeshipService, IOnspdService onspdService)
         {
             _venueService = venueService;
             _providerService = providerService;
             _apprenticeReferenceDataService = apprenticeReferenceDataService;
             _apprenticeshipService = apprenticeshipService;
+            _onspdService = onspdService;
             _settings = settings.Value;
             _blobService = blobStorageServiceResolver(nameof(ApprenticeshipMigration));
         }
@@ -58,7 +62,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
         {
             logger.LogInformation("Starting the Apprenticeship Migration Process");
 
-            #region Get User Input and Set Variables
+            
 
             string adminReport = "                         Admin Report " + Environment.NewLine;
             adminReport += "________________________________________________________________________________" + Environment.NewLine + Environment.NewLine;
@@ -75,7 +79,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
             logger.LogInformation("The Migration Tool is running in Blob Mode." + Environment.NewLine + "Please, do not close this window until \"Migration completed\" message is displayed." + Environment.NewLine);
 
             string errorMessageGetCourses = string.Empty;
-            var providerUKPRNList =  await _blobService.GetBulkUploadProviderListFile(2);
+            var providerUKPRNList =  await _blobService.GetBulkUploadProviderListFile(_settings.MigrationWindow);
             if (providerUKPRNList == null)
             {
                 throw new Exception("Unable to retrieve providers via blob storage.");
@@ -101,8 +105,6 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
             int CountAllApprenticeshipLocationsPending = 0;
             int CountAllApprenticeshipLocationsLive = 0;
             int CountAllUnknownStandardsOrFrameworks = 0;
-
-            #endregion
 
             logger.LogInformation($"Migrating {providerUKPRNList.Count()} Provider's Apprenticeships");
             foreach (var providerUKPRN in providerUKPRNList)
@@ -299,6 +301,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                     apprenticeship.ApprenticeshipType = ApprenticeshipType.StandardCode;
                                     apprenticeship.ApprenticeshipTitle = standard.Value.Value.StandardName;
                                     apprenticeship.StandardId = standard.Value.Value.id;
+                                    apprenticeship.NotionalNVQLevelv2 = standard.Value.Value.NotionalEndLevel;
                                     adminReport += $"> Standard Apprenticeship - StandardCode ( { apprenticeship.StandardCode } ), Version ( { apprenticeship.Version } )" + Environment.NewLine;
 
                                 }
@@ -681,30 +684,38 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
 
                                                     var allRegionsWithSubRegions = new SelectRegionModel();
 
-                                                    string errorMessageGetRegionSubRegion = string.Empty;
-                                                    var onspdRegionSubregion =
-                                                        DataHelper.GetRegionSubRegionByPostcode(location.Postcode,
-                                                            _settings.ConnectionString,
-                                                            out errorMessageGetRegionSubRegion);
-                                                    if (!string.IsNullOrEmpty(errorMessageGetRegionSubRegion))
+                                                    var onspdRegionSubregion = _onspdService.GetOnspdData(
+                                                        new OnspdSearchCriteria(location.Postcode));
+
+                                                    if (onspdRegionSubregion.IsFailure)
                                                     {
                                                         adminReport +=
-                                                            $"* ATTENTION * {errorMessageGetRegionSubRegion}" +
+                                                            $"* ATTENTION * {onspdRegionSubregion.Error}" +
+                                                            Environment.NewLine;
+                                                    }else if(!onspdRegionSubregion.HasValue)
+
+                                                    {
+                                                        adminReport +=
+                                                            $"* ATTENTION * unable to find address details for location {location.Postcode}" +
                                                             Environment.NewLine;
                                                     }
                                                     else
                                                     {
                                                         // It's SubRegion, but if SubRegion does not much get Region
-                                                        var selectedSubRegion = allRegionsWithSubRegions.RegionItems
-                                                            .SingleOrDefault(x => x.SubRegion.Any(sr =>
-                                                            sr.SubRegionName == onspdRegionSubregion.SubRegion))?
-                                                            .SubRegion.SingleOrDefault(sr => sr.SubRegionName == onspdRegionSubregion.SubRegion);
+                                                        var selectedSubRegion = allRegionsWithSubRegions.RegionItems.SelectMany(sr =>
+                                                            sr.SubRegion.Where(sb =>
+                                                            sb.SubRegionName == onspdRegionSubregion.Value.Value.LocalAuthority    
+                                                            || sb.SubRegionName == onspdRegionSubregion.Value.Value.County
+                                                            ||    onspdRegionSubregion.Value.Value.LocalAuthority.Contains(sb.SubRegionName)
+                                                            ))
+                                                            .FirstOrDefault();
 
                                                         if (selectedSubRegion == null)
                                                         {
                                                                 // Problem - No selectedRegion and NO selectedSubRegion match => Undefined 
                                                                 adminReport +=
-                                                                    $"* ATTENTION * After NOT be able to identify SubRegion, we couldn't identify a Region for ( {onspdRegionSubregion.Region} ) and Postcode ( {location.Postcode} ). " +
+                                                                    $"* ATTENTION * After NOT be able to identify SubRegion, we couldn't identify a Region for " +
+                                                                    $"( {onspdRegionSubregion.Value.Value.Region} ) and Postcode ( {location.Postcode} ). " +
                                                                     Environment.NewLine;
                                                                 apprenticeshipLocation.RecordStatus =
                                                                     RecordStatus.MigrationPending;
@@ -721,7 +732,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                                             apprenticeshipLocation.Regions =
                                                                 new[] { selectedSubRegion.Id };
                                                             adminReport +=
-                                                                $" We've identified a SubRegion ( {onspdRegionSubregion.SubRegion} ) with ID ( {selectedSubRegion.ApiLocationId} ) " +
+                                                                $" We've identified a SubRegion ( {onspdRegionSubregion.Value.Value.Region} ) with ID ( {selectedSubRegion.ApiLocationId} ) " +
                                                                 Environment.NewLine;
                                                         }
 
