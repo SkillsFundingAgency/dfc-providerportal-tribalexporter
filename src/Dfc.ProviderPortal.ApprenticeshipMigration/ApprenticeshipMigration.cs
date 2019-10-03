@@ -249,13 +249,12 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                     {
                         CountApprenticeships = apprenticeships.Count;
 
-                        logger.LogInformation($"Migrating {apprenticeships.Count} for provider {providerUKPRN}");
+                        logger.LogInformation($"Migrating {apprenticeships.Count} apprenticeship(s) for provider {providerUKPRN}");
 
 
                         foreach (var apprenticeship in apprenticeships)
                         {
                             logger.LogInformation($"app : {apprenticeship.ApprenticeshipId}");
-                            logger.Log(LogLevel.Information, "test");
                             int CountApprenticeshipLocationsPerAppr = 0;
                             int CountApprenticeshipLocationsPendingPerAppr = 0;
                             int CountApprenticeshipLocationsLivePerAppr = 0;
@@ -326,7 +325,9 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                             var apprenticeshipLocations = DataHelper.GetApprenticeshipLocationsByApprenticeshipId(apprenticeship.ApprenticeshipId ?? 0, _settings.ConnectionString, out errorMessageGetApprenticeshipLocations);
                             if (!string.IsNullOrEmpty(errorMessageGetApprenticeshipLocations))
                             {
-                                adminReport += $"* ATTENTION * { errorMessageGetApprenticeshipLocations }" + Environment.NewLine;
+                                var error = $"* ATTENTION * {errorMessageGetApprenticeshipLocations}";
+                                adminReport += error + Environment.NewLine;
+                                logger.LogError(error);
                             }
                             else
                             {
@@ -350,7 +351,9 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                     var deliveryModes = DataHelper.GetDeliveryModesByApprenticeshipLocationId(apprenticeshipLocation.ApprenticeshipLocationId, _settings.ConnectionString, out errorMessageGetDeliveryModes);
                                     if (!string.IsNullOrEmpty(errorMessageGetDeliveryModes))
                                     {
-                                        adminReport += Environment.NewLine + $"* ATTENTION * { errorMessageGetDeliveryModes }" + Environment.NewLine;
+                                        var error = $"* ATTENTION * {errorMessageGetDeliveryModes}";
+                                        adminReport += Environment.NewLine + error + Environment.NewLine;
+                                        logger.LogError(error);
                                     }
                                     else
                                     {
