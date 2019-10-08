@@ -40,17 +40,19 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             var documents = new List<Document>();
             var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.ProvidersCollectionId);
             var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
-            var client = _cosmosDbHelper.GetClient();
 
-            if (ukprns.Any())
+            using (var client = _cosmosDbHelper.GetClient())
             {
-                var commaDelimList = $"'{string.Join("','", ukprns)}'";
-                var sql = $"SELECT * FROM c WHERE c.Status = 1 AND c.UnitedKingdomProviderReferenceNumber IN ({commaDelimList})";
-                using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+                if (ukprns.Any())
                 {
-                    while (query.HasMoreResults)
+                    var commaDelimList = $"'{string.Join("','", ukprns)}'";
+                    var sql = $"SELECT * FROM c WHERE c.Status = 1 AND c.UnitedKingdomProviderReferenceNumber IN ({commaDelimList})";
+                    using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
                     {
-                        foreach (var document in await query.ExecuteNextAsync<Document>()) documents.Add(document);
+                        while (query.HasMoreResults)
+                        {
+                            foreach (var document in await query.ExecuteNextAsync<Document>()) documents.Add(document);
+                        }
                     }
                 }
             }
