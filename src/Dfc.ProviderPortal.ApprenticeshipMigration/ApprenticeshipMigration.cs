@@ -320,6 +320,13 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                 adminReport += $"> * ATTENTION * Apprenticeship NOT Defined - FrameworkCode ( { apprenticeship.FrameworkCode } ), ProgType ( { apprenticeship.ProgType } ), PathwayCode ( { apprenticeship.PathwayCode } ), StandardCode ( { apprenticeship.StandardCode } ), Version ( { apprenticeship.Version } )" + Environment.NewLine;
                             }
 
+                            //Get ApprenticeshipQa details
+
+                            apprenticeship.ApprenticeshipQaCompliance = DataHelper.GetApprenticeshipQaCompliance(logger, apprenticeship.ApprenticeshipId ?? 0, _settings.ConnectionString);
+                            apprenticeship.ApprenticeshipQaStyles = DataHelper.GetApprenticeshipQaStyle(logger, apprenticeship.ApprenticeshipId?? 0,
+                                _settings.ConnectionString);
+                            //var qaStyle = DataHelper.GetApprenticeshipQaStyle(logger);
+
                             // Get ApprenticeshipLocations                          
                             string errorMessageGetApprenticeshipLocations = string.Empty;
                             var apprenticeshipLocations = DataHelper.GetApprenticeshipLocationsByApprenticeshipId(apprenticeship.ApprenticeshipId ?? 0, _settings.ConnectionString, out errorMessageGetApprenticeshipLocations);
@@ -366,7 +373,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                         {
                                             apprenticeshipLocation.ApprenticeshipLocationType = ApprenticeshipLocationType.ClassroomBasedAndEmployerBased;
                                             apprenticeshipLocation.LocationType = LocationType.Venue;
-                                            apprenticeshipLocation.Radius = _settings.VenueBasedRadius; // Leave it as it is. COUR-419
+                                            apprenticeshipLocation.Radius = apprenticeshipLocation.Radius; // Leave it as it is. COUR-419
                                             adminReport += $" - ApprenticeshipLocationType ( { apprenticeshipLocation.ApprenticeshipLocationType } )" + Environment.NewLine;
                                         }
                                         else if ((!deliveryModes.Contains(1) && !deliveryModes.Contains(2) && deliveryModes.Contains(3)) ||
@@ -453,7 +460,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                                             var venue = venues.FirstOrDefault();
 
                                                             bool UpdateVenue = false;
-                                                            if (venue.LocationId == null || venue.LocationId.Equals(0))
+                                                            if (venue.LocationId.Equals(0))
                                                             {
                                                                 // We don't have valid LocationId assigned by our VenueService API
                                                                 apprenticeshipLocation.RecordStatus =
@@ -464,7 +471,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                                             }
                                                             else
                                                             {
-                                                                apprenticeshipLocation.LocationId = venue.LocationId;
+                                                                apprenticeshipLocation.LocationId = venue.LocationId ?? location.LocationId;
                                                                 apprenticeshipLocation.LocationGuidId =
                                                                     new Guid(venue.ID);
                                                                 apprenticeshipLocation.Address = new Address()

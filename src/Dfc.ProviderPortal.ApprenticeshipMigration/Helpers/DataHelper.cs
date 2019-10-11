@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
 using Dfc.CourseDirectory.Models.Models.Apprenticeships;
 using Dfc.CourseDirectory.Models.Models.Courses;
 using Dfc.ProviderPortal.ApprenticeshipMigration.Models;
+using Microsoft.Extensions.Logging;
 
 namespace Dfc.ProviderPortal.ApprenticeshipMigration.Helpers
 {
@@ -334,6 +336,8 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration.Helpers
                 }
             }
 
+            location.LocationId = (int) LocationId;
+
             return hasData ? location : null;
         }
 
@@ -423,6 +427,161 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration.Helpers
             onspdRegionSubregion.SubRegion = (string)CheckForDbNull(reader["SubRegion"], string.Empty);
 
             return onspdRegionSubregion;
+        }
+
+        public static List<ApprenticeshipQaCompliance> GetApprenticeshipQaCompliance(ILogger logger,
+            int apprenticeshipId, string connectionString)
+        {
+            bool hasData = false;
+            DataSet ds = new DataSet();
+            using (var sqlConnection = new SqlConnection(connectionString))
+            {
+                using (var command = sqlConnection.CreateCommand())
+                {
+                    SqlConnection con = new SqlConnection(connectionString);
+                    command.CommandType = CommandType.StoredProcedure;
+                    command.CommandText = "dfc_GetApprenticeshipQaDetailslViaApprenticeshipId";
+
+                    command.Parameters.Add(new SqlParameter("@apprenticeshipId", SqlDbType.Int));
+                    command.Parameters["@apprenticeshipId"].Value = apprenticeshipId;
+                    
+
+                    try
+                    {
+                        SqlDataAdapter da = new SqlDataAdapter();
+                        da = new SqlDataAdapter(command);
+                        da.Fill(ds);
+                        con.Close();
+                        hasData = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(string.Format("Error Message: {0}" + Environment.NewLine + "Stack Trace: {1}", ex.Message, ex.StackTrace));
+                    }
+                    finally
+                    {
+                        sqlConnection.Close();
+                    }
+                }
+            }
+
+            return hasData ? ExtractApprenticeshipQaComplianceFromDataSet(ds) : null;
+        }
+
+        public static List<ApprenticeshipQaStyle> GetApprenticeshipQaStyle(ILogger logger,
+            int apprenticeshipId, string connectionString)
+        {
+            bool hasData = false;
+            DataSet ds = new DataSet();
+            using (var sqlConnection = new SqlConnection(connectionString))
+            {
+                using (var command = sqlConnection.CreateCommand())
+                {
+                    SqlConnection con = new SqlConnection(connectionString);
+                    command.CommandType = CommandType.StoredProcedure;
+                    command.CommandText = "dfc_GetApprenticeshipQaStyleDetails";
+
+                    command.Parameters.Add(new SqlParameter("@apprenticeshipId", SqlDbType.Int));
+                    command.Parameters["@apprenticeshipId"].Value = apprenticeshipId;
+
+
+                    try
+                    {
+                        SqlDataAdapter da = new SqlDataAdapter();
+                        da = new SqlDataAdapter(command);
+                        da.Fill(ds);
+                        con.Close();
+                        hasData = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(string.Format("Error Message: {0}" + Environment.NewLine + "Stack Trace: {1}", ex.Message, ex.StackTrace));
+                    }
+                    finally
+                    {
+                        sqlConnection.Close();
+                    }
+                }
+            }
+
+            return hasData ? ExtractApprenticeshipQaStyleFromDataSet(ds) : null;
+        }
+
+        private static List<ApprenticeshipQaCompliance> ExtractApprenticeshipQaComplianceFromDataSet(DataSet dataSet)
+        {
+            var qaComplianceList = new List<ApprenticeshipQaCompliance>();
+
+            var qaComplianceRows = dataSet.Tables[0]?.Rows;
+
+            foreach (DataRow dataRow in qaComplianceRows)
+            {
+                var qaCompliance = new ApprenticeshipQaCompliance
+                {
+                    ApprenticeshipId = (int)dataRow["ApprenticeshipId"],
+                    ApprenticeshipQaComplianceId = (int)dataRow["ApprenticeshipQAComplianceId"],
+                    CreatedByUserEmail = (string)CheckForDbNull(dataRow["CreatedByUserEmail"],
+                        string.Empty),
+                    CreatedDateTimeUtc = dataRow["CreatedDateTimeUtc"].ToString(),
+                    DetailsOfComplianceFailure = (string)CheckForDbNull(dataRow["DetailsOfComplianceFailure"],
+                        string.Empty),
+                    DetailsOfUnverifiableClaim = (string)CheckForDbNull(dataRow["DetailsOfUnverifiableClaim"],
+                        string.Empty),
+                    Passed = (bool)CheckForDbNull(dataRow["Passed"],
+                        false),
+                    TextQAd = (string)CheckForDbNull(dataRow["TextQAd"],
+                        string.Empty),
+                    FailureReasons = ExtractFailureReason(dataSet.Tables[1]?.Rows,
+                        "ApprenticeshipQAComplianceId", "QAComplianceFailureReason", 
+                        (int)dataRow["ApprenticeshipQAComplianceId"])
+                };
+                qaComplianceList.Add(qaCompliance);
+            }
+
+            return qaComplianceList;
+        }
+
+        private static List<ApprenticeshipQaStyle> ExtractApprenticeshipQaStyleFromDataSet(DataSet dataSet)
+        {
+            var qaComplianceList = new List<ApprenticeshipQaStyle>();
+
+            var qaComplianceRows = dataSet.Tables[0]?.Rows;
+
+            foreach (DataRow dataRow in qaComplianceRows)
+            {
+                var qaCompliance = new ApprenticeshipQaStyle
+                {
+                    ApprenticeshipId = (int)dataRow["ApprenticeshipId"],
+                    ApprenticeshipQaStyleId = (int)dataRow["ApprenticeshipQAStyleId"],
+                    CreatedByUserEmail = (string)CheckForDbNull(dataRow["CreatedByUserEmail"],
+                        string.Empty),
+                    Passed = (bool)CheckForDbNull(dataRow["Passed"],
+                        false),
+                    TextQAd = (string)CheckForDbNull(dataRow["TextQAd"],
+                        string.Empty),
+                    CreatedDateTimeUtc = dataRow["CreatedDateTimeUtc"].ToString(),
+                    DetailsOfQa = (string)CheckForDbNull(dataRow["DetailsOfQA"], string.Empty),
+                    FailureReasons = ExtractFailureReason(dataSet.Tables[1]?.Rows,
+                        "ApprenticeshipQAStyleId", "QAStyleFailureReason",
+                        (int)dataRow["ApprenticeshipQAStyleId"])
+                };
+                qaComplianceList.Add(qaCompliance);
+            }
+
+            return qaComplianceList;
+        }
+
+
+        private static List<string> ExtractFailureReason(DataRowCollection rows, string columnId, string columnData, int id)
+        {
+            var failures = new List<string>();
+            foreach (DataRow dataRow in rows)
+            {
+                if ((int)dataRow[columnId] == id)
+                {
+                    failures.Add((string)CheckForDbNull(dataRow[columnData], ""));
+                }
+            }
+            return failures;
         }
 
         // Auditing NOT USED yet
