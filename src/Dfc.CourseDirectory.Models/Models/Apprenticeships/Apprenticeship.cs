@@ -70,6 +70,9 @@ namespace Dfc.CourseDirectory.Models.Models.Apprenticeships
 
         public string NotionalNVQLevelv2 { get; set; }
 
+        public List<ApprenticeshipQaCompliance> ApprenticeshipQaCompliance { get; set; }
+        public List<ApprenticeshipQaStyle> ApprenticeshipQaStyles { get; set; }
+
         internal static RecordStatus GetBitMaskState(IEnumerable<ApprenticeshipLocation> apprenticeshipLocations)
         {
             RecordStatus apprenticeshipStatus = RecordStatus.Undefined; // Default BitMaskState (handles undefined and no CourseRuns)
