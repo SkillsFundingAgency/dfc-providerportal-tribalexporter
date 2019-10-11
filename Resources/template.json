@@ -440,7 +440,7 @@
               },
               {
                 "name": "ApprenticeReferenceDataSettings__ApiUrl",
-                "value": "[parameters('referenceDataApiUrl')]"
+                "value": "[concat(parameters('referenceDataApiUrl'), '/')]"
               },
               {
                 "name": "ApprenticeReferenceDataSettings__ApiKey",

@@ -42,8 +42,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
                 var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.VenuesCollectionId);
                 var sql = $"SELECT * FROM c WHERE c.UKPRN = {ukprn} AND c.Status = 1";
                 var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
-                var client = _cosmosDbHelper.GetClient();
 
+                using (var client = _cosmosDbHelper.GetClient())
                 using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
                 {
                     while (query.HasMoreResults)
@@ -66,8 +66,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
                 var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.VenuesCollectionId);
                 var sql = $"SELECT * FROM c WHERE c.UKPRN = {ukprn} AND c.DateUpdated > '{date.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}'";
                 var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
-                var client = _cosmosDbHelper.GetClient();
 
+                using (var client = _cosmosDbHelper.GetClient())
                 using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
                 {
                     while (query.HasMoreResults)
