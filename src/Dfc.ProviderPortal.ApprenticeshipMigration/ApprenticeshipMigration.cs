@@ -382,7 +382,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                         {
                                             apprenticeshipLocation.ApprenticeshipLocationType = ApprenticeshipLocationType.ClassroomBased;
                                             apprenticeshipLocation.LocationType = LocationType.Venue;
-                                            apprenticeshipLocation.Radius = _settings.VenueBasedRadius;
+                                            apprenticeshipLocation.Radius = apprenticeshipLocation.Radius;
                                             adminReport += $" -  ApprenticeshipLocationType ( { apprenticeshipLocation.ApprenticeshipLocationType } )" + Environment.NewLine;
                                         }
                                         else if (deliveryModes.Contains(1) && !deliveryModes.Contains(2) && !deliveryModes.Contains(3))

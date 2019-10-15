@@ -12,6 +12,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 using Dfc.CourseDirectory.Models.Interfaces.Venues;
 using Dfc.CourseDirectory.Services.Interfaces.VenueService;
 
@@ -218,7 +219,7 @@ namespace Dfc.CourseDirectory.Services.VenueService
                 _logger.LogInformationObject("Get Venue By PRN & Name URI", _getVenueByPRNAndNameUri);
 
                 var content = new StringContent(criteria.ToJson(), Encoding.UTF8, "application/json");
-                var response = await _httpClient.GetAsync(_getVenueByPRNAndNameUri + $"?PRN={criteria.PRN}&NAME={criteria.Name}");
+                var response = await _httpClient.GetAsync(_getVenueByPRNAndNameUri + $"?PRN={criteria.PRN}&NAME={HttpUtility.UrlEncode(criteria.Name)}");
 
                 _logger.LogHttpResponseMessage("Get Venue By PRN and Name service http response", response);
                 if (response.IsSuccessStatusCode)
