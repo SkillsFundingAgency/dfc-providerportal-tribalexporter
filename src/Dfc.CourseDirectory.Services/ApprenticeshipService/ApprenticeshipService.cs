@@ -13,6 +13,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Dfc.CourseDirectory.Services.Interfaces.ApprenticeshipService;
+using Dfc.ProviderPortal.Apprenticeships.Models;
 
 namespace Dfc.CourseDirectory.Services.ApprenticeshipService
 {
@@ -22,8 +23,8 @@ namespace Dfc.CourseDirectory.Services.ApprenticeshipService
         private readonly ILogger<CourseService.CourseService> _logger;
         private readonly HttpClient _httpClient;
         private readonly Uri _addCourseUri;
+        private readonly Uri _addReportUri;
         private readonly Uri _deleteApprenticeshipsByUKPRNUri;
-        private readonly Uri _addApprenticeshipMigrationReportsUri;
 
         public ApprenticeshipService(ILogger<CourseService.CourseService> logger,
             HttpClient httpClient,
@@ -33,8 +34,8 @@ namespace Dfc.CourseDirectory.Services.ApprenticeshipService
             _httpClient = httpClient;
             httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", settings.Value.ApiKey);
             _addCourseUri = settings.Value.ToAddApprenticeshipUri();
+            _addReportUri = settings.Value.ToAddApprenticeshipReportUri();
             _deleteApprenticeshipsByUKPRNUri = settings.Value.ToDeleteApprenticeshipsByUKPRNUri();
-            _addApprenticeshipMigrationReportsUri = settings.Value.ToAddApprenticeshipMigrationReport();
         }
 
         public async Task<IResult<IApprenticeship>> AddApprenticeshipAsync(IApprenticeship apprenticeship)
@@ -88,6 +89,59 @@ namespace Dfc.CourseDirectory.Services.ApprenticeshipService
                 _logger.LogException("Apprenticeship add service unknown error.", e);
 
                 return Result.Fail<IApprenticeship>("Apprenticeship add service unknown error.");
+            }
+            finally
+            {
+                _logger.LogMethodExit();
+            }
+        }
+
+        public async Task<IResult> AddApprenticeshipMigrationReportAsync(ApprenticeshipMigrationReport report)
+        {
+            _logger.LogMethodEnter();
+            Throw.IfNull(report, nameof(ApprenticeshipMigrationReport));
+
+            try
+            {
+                _logger.LogInformationObject("ApprenticeshipReport add object.", report);
+                _logger.LogInformationObject("ApprenticeshipReport add URI", _addCourseUri);
+
+                var reportJson = JsonConvert.SerializeObject(report);
+
+                var content = new StringContent(reportJson, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync(_addReportUri, content);
+
+                _logger.LogHttpResponseMessage("ApprenticeshipReport add service http response", response);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+
+                    _logger.LogInformationObject("ApprenticeshipReport add service json response", json);
+                    return Result.Ok();
+                }
+                else if ((int)response.StatusCode == 429)
+                {
+                    return Result.Fail<ApprenticeshipMigrationReport>(
+                        "ApprenticeshipReport add service unsuccessful http response - TooManyRequests");
+                }
+                else
+                {
+                    return Result.Fail<ApprenticeshipMigrationReport>(
+                        "ApprenticeshipReport add service unsuccessful http response - ResponseStatusCode: " +
+                        response.StatusCode);
+                }
+            }
+            catch (HttpRequestException hre)
+            {
+                _logger.LogException("ApprenticeshipReport add service http request error", hre);
+                return Result.Fail<ApprenticeshipMigrationReport>("Apprenticeship add service http request error.");
+            }
+            catch (Exception e)
+            {
+                _logger.LogException("ApprenticeshipReport add service unknown error.", e);
+
+                return Result.Fail<ApprenticeshipMigrationReport>("ApprenticeshipReport add service unknown error.");
             }
             finally
             {
@@ -157,14 +211,14 @@ namespace Dfc.CourseDirectory.Services.ApprenticeshipService
             return new Uri(extendee.ApiUrl + "AddApprenticeship");
         }
 
+        internal static Uri ToAddApprenticeshipReportUri(this ApprenticeshipServiceSettings extendee)
+        {
+            return new Uri(extendee.ApiUrl + "AddApprenticeshipMigrationReport");
+        }
+
         internal static Uri ToDeleteApprenticeshipsByUKPRNUri(this ApprenticeshipServiceSettings extendee)
         {
             return new Uri(extendee.ApiUrl + "DeleteApprenticeshipsByUKPRN");
-        }
-
-        internal static Uri ToAddApprenticeshipMigrationReport(this ApprenticeshipServiceSettings extendee)
-        {
-            return new Uri(extendee.ApiUrl + "UpdateCourseMigrationReport");
         }
     }
 }

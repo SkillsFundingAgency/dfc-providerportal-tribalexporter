@@ -28,6 +28,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Dfc.CourseDirectory.Services.Interfaces.OnspdService;
 using Dfc.CourseDirectory.Services.OnspdService;
+using Dfc.ProviderPortal.Apprenticeships.Models;
 using Providercontact = Dfc.ProviderPortal.ApprenticeshipMigration.Models.Providercontact;
 
 namespace Dfc.ProviderPortal.ApprenticeshipMigration
@@ -842,6 +843,15 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                 //CountApprenticeships = appre
                 var appResultMessage =
                     $"UKPRN:{providerUKPRN} Number of Apprenticeships migrated ( {CountApprenticeships} ) with Pending ( {CountApprenticeshipPending} ) and Live ( {CountApprenticeshipLive} ) Status";
+                await _apprenticeshipService.AddApprenticeshipMigrationReportAsync(new ApprenticeshipMigrationReport
+                {
+                    ApprenticeshipsMigrated = CountApprenticeships,
+                    MigrationDate = DateTime.UtcNow,
+                    MigrationsPending = CountApprenticeshipPending,
+                    NotTransferred = 0,
+                    ProviderUKPRN = providerUKPRN,
+                    Live = CountApprenticeshipLive
+                });
                 logger.LogInformation(appResultMessage);
                 adminReport += appResultMessage + Environment.NewLine;
                 CountAllApprenticeships = CountAllApprenticeships + CountApprenticeships;
