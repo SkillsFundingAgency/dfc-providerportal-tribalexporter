@@ -259,6 +259,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                             int CountApprenticeshipLocationsPendingPerAppr = 0;
                             int CountApprenticeshipLocationsLivePerAppr = 0;
                             var isValidApprenticeship = true;
+                            var IgnoredLocations = new List<ApprenticeshipLocation>();
 
                             // // Mapp Apprenticeships
                             apprenticeship.id = Guid.NewGuid();
@@ -729,6 +730,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                                                     Environment.NewLine;
                                                                 apprenticeshipLocation.RecordStatus =
                                                                     RecordStatus.MigrationPending;
+                                                                IgnoredLocations.Add(apprenticeshipLocation);
                                                                 continue;
                                                         }
                                                         else
@@ -778,6 +780,11 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                         regionLocation
                                         );
 
+                                }
+
+                                if (IgnoredLocations.Any())
+                                {
+                                    logger.LogInformation(string.Join(",", IgnoredLocations.Select(x => $"location Name : {x.Name}")));
                                 }
 
                                 apprenticeship.ApprenticeshipLocations = locationBasedApprenticeshipLocation;
@@ -833,7 +840,10 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                 providerStopWatch.Stop();
 
                 //CountApprenticeships = appre
-                adminReport += $"Number of Apprenticeships migrated ( { CountApprenticeships  } ) with Pending ( { CountApprenticeshipPending } ) and Live ( { CountApprenticeshipLive} ) Status" + Environment.NewLine;
+                var appResultMessage =
+                    $"UKPRN:{providerUKPRN} Number of Apprenticeships migrated ( {CountApprenticeships} ) with Pending ( {CountApprenticeshipPending} ) and Live ( {CountApprenticeshipLive} ) Status";
+                logger.LogInformation(appResultMessage);
+                adminReport += appResultMessage + Environment.NewLine;
                 CountAllApprenticeships = CountAllApprenticeships + CountApprenticeships;
                 CountAllApprenticeshipPending = CountAllApprenticeshipPending + CountApprenticeshipPending;
                 CountAllApprenticeshipLive = CountAllApprenticeshipLive + CountApprenticeshipLive;
