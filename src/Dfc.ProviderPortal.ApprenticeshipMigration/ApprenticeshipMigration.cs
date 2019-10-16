@@ -80,8 +80,8 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
             logger.LogInformation("The Migration Tool is running in Blob Mode." + Environment.NewLine + "Please, do not close this window until \"Migration completed\" message is displayed." + Environment.NewLine);
 
             string errorMessageGetCourses = string.Empty;
-            var providerUKPRNList =  await _blobService.GetBulkUploadProviderListFile(_settings.MigrationWindow);
-            if (providerUKPRNList == null)
+             var providerUKPRNList =  await _blobService.GetBulkUploadProviderListFile(_settings.MigrationWindow);
+             if (providerUKPRNList == null)
             {
                 throw new Exception("Unable to retrieve providers via blob storage.");
             }
@@ -413,10 +413,10 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                         {
                                             if (location == null)
                                             {
-                                                apprenticeshipLocation.RecordStatus = RecordStatus.MigrationPending;
                                                 adminReport +=
                                                     $"We couldn't get location for LocationId ({apprenticeshipLocation.LocationId}) " +
                                                     Environment.NewLine;
+                                                continue;
                                             }
                                             else
                                             {
