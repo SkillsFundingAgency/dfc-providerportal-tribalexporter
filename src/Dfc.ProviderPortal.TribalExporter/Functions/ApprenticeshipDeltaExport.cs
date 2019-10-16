@@ -27,7 +27,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             var fileNames = new List<string>();
             var last24HoursAgo = DateTime.Today.AddDays(-1);
-            var providersFileName = $"{DateTime.Today.ToString("yyyyMMdd")}\\Apprenticeships\\Apprenticeships_For_Providers_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
+            var providersFileName = $"{DateTime.Today.ToString("yyyyMMdd")}\\Apprenticeships\\Apprenticeships_for_Providers_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
 
             logFile.AppendLine($"24 Hours ago: {last24HoursAgo}");
             logFile.AppendLine($"Apprenticeship Delta filename: {providersFileName}");
