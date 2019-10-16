@@ -28,6 +28,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Dfc.CourseDirectory.Services.Interfaces.OnspdService;
 using Dfc.CourseDirectory.Services.OnspdService;
+using Dfc.ProviderPortal.Apprenticeships.Models;
 using Providercontact = Dfc.ProviderPortal.ApprenticeshipMigration.Models.Providercontact;
 
 namespace Dfc.ProviderPortal.ApprenticeshipMigration
@@ -259,6 +260,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                             int CountApprenticeshipLocationsPendingPerAppr = 0;
                             int CountApprenticeshipLocationsLivePerAppr = 0;
                             var isValidApprenticeship = true;
+                            var IgnoredLocations = new List<ApprenticeshipLocation>();
 
                             // // Mapp Apprenticeships
                             apprenticeship.id = Guid.NewGuid();
@@ -729,6 +731,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                                                     Environment.NewLine;
                                                                 apprenticeshipLocation.RecordStatus =
                                                                     RecordStatus.MigrationPending;
+                                                                IgnoredLocations.Add(apprenticeshipLocation);
                                                                 continue;
                                                         }
                                                         else
@@ -778,6 +781,11 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                         regionLocation
                                         );
 
+                                }
+
+                                if (IgnoredLocations.Any())
+                                {
+                                    logger.LogInformation(string.Join(",", IgnoredLocations.Select(x => $"location Name : {x.Name}")));
                                 }
 
                                 apprenticeship.ApprenticeshipLocations = locationBasedApprenticeshipLocation;
@@ -833,7 +841,19 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                 providerStopWatch.Stop();
 
                 //CountApprenticeships = appre
-                adminReport += $"Number of Apprenticeships migrated ( { CountApprenticeships  } ) with Pending ( { CountApprenticeshipPending } ) and Live ( { CountApprenticeshipLive} ) Status" + Environment.NewLine;
+                var appResultMessage =
+                    $"UKPRN:{providerUKPRN} Number of Apprenticeships migrated ( {CountApprenticeships} ) with Pending ( {CountApprenticeshipPending} ) and Live ( {CountApprenticeshipLive} ) Status";
+                await _apprenticeshipService.AddApprenticeshipMigrationReportAsync(new ApprenticeshipMigrationReport
+                {
+                    ApprenticeshipsMigrated = CountApprenticeships,
+                    MigrationDate = DateTime.UtcNow,
+                    MigrationsPending = CountApprenticeshipPending,
+                    NotTransferred = 0,
+                    ProviderUKPRN = providerUKPRN,
+                    Live = CountApprenticeshipLive
+                });
+                logger.LogInformation(appResultMessage);
+                adminReport += appResultMessage + Environment.NewLine;
                 CountAllApprenticeships = CountAllApprenticeships + CountApprenticeships;
                 CountAllApprenticeshipPending = CountAllApprenticeshipPending + CountApprenticeshipPending;
                 CountAllApprenticeshipLive = CountAllApprenticeshipLive + CountApprenticeshipLive;
