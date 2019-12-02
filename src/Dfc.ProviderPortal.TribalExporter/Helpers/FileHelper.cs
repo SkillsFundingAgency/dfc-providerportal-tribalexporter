@@ -1,15 +1,39 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using Dfc.CourseDirectory.Services.BlobStorageService;
 using Dfc.CourseDirectory.Services.Interfaces.BlobStorageService;
 using Dfc.ProviderPortal.TribalExporter.Models.Dfc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Dfc.ProviderPortal.TribalExporter.Helpers
 {
+    public static class DateHelper
+    {
+        public static DateTime ParseUkDateOrDefault(this string input, DateTime defaultDate)
+        {
+            var timeFormat = new CultureInfo("en-GB");
+            try
+            {
+                return Convert.ToDateTime(input, timeFormat);
+            }
+            catch
+            {
+                return defaultDate;
+            }
+        }
+
+        public static double DaysBetween(this DateTime startDate, DateTime endDate)
+        {
+            var days = (endDate - startDate).TotalDays;
+            return Math.Ceiling(days);
+        }
+    }
+
     public static class FileHelper
     {
 
