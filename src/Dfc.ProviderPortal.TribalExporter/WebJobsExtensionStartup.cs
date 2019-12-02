@@ -29,6 +29,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Net.Http;
 using Dfc.CourseDirectory.Services.Interfaces.OnspdService;
 using Dfc.CourseDirectory.Services.OnspdService;
@@ -203,7 +204,7 @@ namespace Dfc.ProviderPortal.TribalExporter
             });
 
             AddApprenticeshipMigration(builder, configuration);
-           
+            ConfigureExporter(builder, configuration);
 
         }
 
@@ -226,6 +227,24 @@ namespace Dfc.ProviderPortal.TribalExporter
             });
 
             builder.Services.AddScoped<IApprenticeshipMigration, ApprenticeshipMigration.ApprenticeshipMigration>();
+        }
+
+        private void ConfigureExporter(IWebJobsBuilder builder, IConfigurationRoot configuration)
+        {
+            DateTime startdate = DateTime.UtcNow.AddDays(-1);
+            DateTime endDate = DateTime.UtcNow;
+            
+            DateTime.TryParse(configuration.GetValue<string>("ExporterStartDate"), out startdate);
+            DateTime.TryParse(configuration.GetValue<string>("ExporterEndDate"), out endDate);
+
+            builder.Services.Configure<ExporterSettings>(options =>
+            {
+                options.MigrationProviderCsv = configuration.GetValue<string>("MigrationProviderCsv");
+                options.ContainerNameExporter = configuration.GetValue<string>("ContainerNameExporter");
+                options.ContainerNameProviderFiles = configuration.GetValue<string>("ContainerNameProviderFiles");
+                options.ExporterStartDate = configuration.GetValue<string>("ExporterStartDate").ParseUkDateOrDefault(DateTime.UtcNow.AddDays(-1));
+                options.ExporterEndDate = configuration.GetValue<string>("ExporterEndDate").ParseUkDateOrDefault(DateTime.UtcNow);
+            });
         }
     }
 }
