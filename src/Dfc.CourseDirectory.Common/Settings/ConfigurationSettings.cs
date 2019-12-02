@@ -4,6 +4,15 @@ using System.Text;
 
 namespace Dfc.CourseDirectory.Common.Settings
 {
+    public class ExporterSettings
+    {
+        public DateTime ExporterStartDate { get; set; }
+        public DateTime ExporterEndDate { get; set; }
+        public string ContainerNameExporter { get; set; }
+        public string ContainerNameProviderFiles { get; set; }
+        public string MigrationProviderCsv { get; set; }
+    }
+
     public class VenueNameComponentSettings
     {
         public string VenueName_Label { get; set; }
