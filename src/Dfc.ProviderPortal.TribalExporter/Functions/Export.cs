@@ -10,6 +10,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Dfc.CourseDirectory.Common.Settings;
+using Microsoft.Extensions.Options;
+using Microsoft.WindowsAzure.Storage.Blob;
+using Newtonsoft.Json.Serialization;
 
 namespace Dfc.ProviderPortal.TribalExporter.Functions
 {
@@ -19,25 +23,30 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
         public static async Task Run(
             [TimerTrigger("%schedule%")]TimerInfo myTimer,
             ILogger log,
-            [Inject] IConfigurationRoot configuration,
+            [Inject] IOptions<ExporterSettings> exporterSettings,
             [Inject] IBlobStorageHelper blobStorageHelper,
             [Inject] IProviderCollectionService providerCollectionService,
             [Inject] ICourseCollectionService courseCollectionService,
             [Inject] IVenueCollectionService venueCollectionService)
         {
+            var configuration = exporterSettings.Value;
+
             //TODO: add more logging after you get this working ...
             var logFile = new StringBuilder();
             logFile.AppendLine($"Starting {nameof(Export)} at {DateTime.Now}");
 
             var fileNames = new List<string>();
             var startDate = DateTime.Today.AddDays(-1);
+            var startDate = configuration.ExporterStartDate;
+
             var providersFileName = $"{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\Providers_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
 
             logFile.AppendLine($"Start date: {startDate:dd/MM/yyyy hh:mm}");
             logFile.AppendLine($"Provider filename: {providersFileName}");
 
-            var containerNameExporter = configuration["ContainerNameExporter"];
-            var containerNameProviderFiles = configuration["ContainerNameProviderFiles"];
+            var containerNameExporter = configuration.ContainerNameExporter;
+            var containerNameProviderFiles = configuration.ContainerNameExporter;
+            var migrationProviderCsv = configuration.MigrationProviderCsv;
 
             logFile.AppendLine($"Attempting to get reference to blob containers: {containerNameExporter}, {containerNameProviderFiles}");
 
@@ -48,8 +57,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             try
             {
-                var migrationProviderCsv = configuration["MigrationProviderCsv"];
-
                 var providersForExport = await GetProvidersFromCsv(migrationProviderCsv, blobStorageHelper, logFile, containerProviderFiles);
 
                 await GenerateProvidersExport(providerCollectionService, providersForExport, logFile, providersFileName, containerExporter, containerNameExporter, fileNames);
