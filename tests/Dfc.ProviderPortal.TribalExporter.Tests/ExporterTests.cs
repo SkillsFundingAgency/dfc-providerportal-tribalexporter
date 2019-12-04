@@ -88,9 +88,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Tests
                 [InlineData(null)]
                 public void ReturnsDefaultIfDateCannotBeParsed(string input)
                 {
+                    // Arrange
+                    DateTime defaultDate = new DateTime(1999, 01, 01);
+
                     // Act
-                    DateTime actual = input.ParseUkDateOrDefault(DateTime.Today);
-                    var expected = DateTime.Today;
+                    DateTime actual = input.ParseUkDateOrDefault(defaultDate);
+                    var expected = defaultDate;
 
                     // Assert
                     Assert.Equal(expected, actual);
