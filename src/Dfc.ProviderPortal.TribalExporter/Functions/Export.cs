@@ -44,7 +44,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             logFile.AppendLine($"Provider filename: {providersFileName}");
 
             var containerNameExporter = configuration.ContainerNameExporter;
-            var containerNameProviderFiles = configuration.ContainerNameExporter;
+            var containerNameProviderFiles = configuration.ContainerNameProviderFiles;
             var migrationProviderCsv = configuration.MigrationProviderCsv;
 
             logFile.AppendLine($"Attempting to get reference to blob containers: {containerNameExporter}, {containerNameProviderFiles}");
