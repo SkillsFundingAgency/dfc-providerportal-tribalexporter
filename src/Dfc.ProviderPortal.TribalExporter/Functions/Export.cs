@@ -36,7 +36,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             logFile.AppendLine($"Starting {nameof(Export)} at {DateTime.Now}");
 
             var fileNames = new List<string>();
-            var startDate = DateTime.Today.AddDays(-1);
             var startDate = configuration.ExporterStartDate;
 
             var providersFileName = $"{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\Providers_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
