@@ -465,6 +465,10 @@
               {
                 "name": "OnspdSearchSettings__IndexName",
                 "value": "onspd"
+              },
+              {
+                "name": "ExporterStartDate",
+                "value": "26/11/2019"
               }
             ]
           },
