@@ -31,6 +31,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
         {
             var configuration = exporterSettings.Value;
 
+            log.LogInformation("[Export] waiting for trigger...");
+
             //TODO: add more logging after you get this working ...
             var logFile = new StringBuilder();
             logFile.AppendLine($"Starting {nameof(Export)} at {DateTime.Now}");
@@ -56,14 +58,28 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             try
             {
+                log.LogInformation("[Export] grabbing providers");
                 var providersForExport = await GetProvidersFromCsv(migrationProviderCsv, blobStorageHelper, logFile, containerProviderFiles);
 
-                await GenerateProvidersExport(providerCollectionService, providersForExport, logFile, providersFileName, containerExporter, containerNameExporter, fileNames);
+                var providerFileName = await GenerateProvidersExport(providerCollectionService, providersForExport, logFile, providersFileName, containerExporter, containerNameExporter);
+                fileNames.Add(providerFileName);
 
-                foreach (var provider in providersForExport)
+                var count = 0;
+                var total = providersForExport.Count();
+
+                Parallel.ForEach(providersForExport, async (provider) =>
                 {
-                    await CheckForProviderUpdates(courseCollectionService, venueCollectionService, logFile, provider, startDate, containerExporter, containerNameExporter, fileNames);
-                }
+                    count++;
+
+                    log.LogInformation($"[Export] checking {provider.Ukprn} [{count} of {total}]" );
+
+                    var export = await CheckForProviderUpdates(log, courseCollectionService,
+                            venueCollectionService, logFile, provider, startDate, containerExporter,
+                            containerNameExporter)
+                        .ConfigureAwait(false);
+
+                    fileNames.AddRange(export);
+                });
 
                 var fileNamesFileName = $"{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\FileNames.json";
                 var fileNamesBlob = containerExporter.GetBlockBlobReference(fileNamesFileName);
@@ -78,8 +94,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             {
                 logFile.AppendLine($"Ending {nameof(Export)} at {DateTime.Now}");
                 var logFileName = $"{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\Log_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.txt";
-                var logFileNameBolb = containerExporter.GetBlockBlobReference(logFileName);
-                await logFileNameBolb.UploadTextAsync(logFile.ToString());
+                var logFileNameBlob = containerExporter.GetBlockBlobReference(logFileName);
+                await logFileNameBlob.UploadTextAsync(logFile.ToString());
             }
         }
 
@@ -116,14 +132,13 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             return mpItems;
         }
 
-        private static async Task GenerateProvidersExport(
+        private static async Task<string> GenerateProvidersExport(
             IProviderCollectionService providerCollectionService,
             IEnumerable<IMiragtionProviderItem> mpItems, 
             StringBuilder logFile, 
             string providersFileName, 
             CloudBlobContainer containerExporter,
-            string containerNameExporter, 
-            List<string> fileNames)
+            string containerNameExporter)
         {
             var ukprns = mpItems.AsUkprns();
 
@@ -135,11 +150,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 logFile.AppendLine($"Got all the providers' data.");
 
-                logFile.AppendLine($"Attempting to get reference to block bolb containers for file: {providersFileName}");
+                logFile.AppendLine($"Attempting to get reference to block blob containers for file: {providersFileName}");
 
                 var providersBlob = containerExporter.GetBlockBlobReference(providersFileName);
 
-                logFile.AppendLine($"Got reference to block bolb containers for file: {providersFileName}");
+                logFile.AppendLine($"Got reference to block blob containers for file: {providersFileName}");
 
                 logFile.AppendLine($"Attempting to upload file {providersFileName} to blob container {containerNameExporter}");
 
@@ -147,20 +162,24 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 logFile.AppendLine($"Uploaded file {providersFileName} to blob container {containerNameExporter}");
 
-                fileNames.Add(providersFileName);
+                return providersFileName;
             }
+
+            return null;
         }
 
-        private static async Task CheckForProviderUpdates(
+        private static async Task<IEnumerable<string>> CheckForProviderUpdates(
+            ILogger log,
             ICourseCollectionService courseCollectionService,
             IVenueCollectionService venueCollectionService, 
             StringBuilder logFile, 
             IMiragtionProviderItem mpItem,
             DateTime fromDate, 
             CloudBlobContainer containerExporter, 
-            string containerNameExporter, 
-            List<string> fileNames)
+            string containerNameExporter)
         {
+            var fileNames = new List<string>();
+
             logFile.AppendLine($"Attempting to get conditional data for: {mpItem}");
 
             var hasTodaysDate = mpItem.DateMigrated.Date == DateTime.Today;
@@ -192,31 +211,44 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             logFile.AppendLine($"\tHas updated Venues: {hasUpdatedVenues}");
             logFile.AppendLine($"End of conditional data for: {mpItem}");
 
-            if (hasTodaysDate
-                || (dateMigratedIsInThePast
-                    && (hasCreatedCourses || hasCreatedCourseRuns || hasUpdatedCourses || hasUpdatedCourseRuns ||
-                        hasDeletedCourses || hasDeletedCourseRuns ||
-                        hasUpdatedVenues)))
+            if (hasTodaysDate || (dateMigratedIsInThePast))
             {
-                await GenerateCoursesExportForProvider(courseCollectionService, logFile, mpItem, containerExporter,
-                    containerNameExporter, fileNames);
+                if (hasCreatedCourses || hasCreatedCourseRuns || hasUpdatedCourses || hasUpdatedCourseRuns ||
+                    hasDeletedCourses || hasDeletedCourseRuns)
+                {
+                    log.LogInformation($"updating courses for {mpItem.Ukprn}");
 
-                await GenerateVenuesExportForProvider(venueCollectionService, logFile, mpItem, containerExporter,
-                    containerNameExporter, fileNames);
+                    var courseFilename = await GenerateCoursesExportForProvider(log, courseCollectionService, logFile, mpItem, containerExporter,
+                        containerNameExporter).ConfigureAwait(false);
+
+                    fileNames.Add(courseFilename);
+                }
+
+                if (hasUpdatedVenues)
+                {
+                    log.LogInformation($"updating venues for {mpItem.Ukprn}");
+
+                    var venueFilename = await GenerateVenuesExportForProvider(log, venueCollectionService, logFile, mpItem, containerExporter,
+                        containerNameExporter).ConfigureAwait(false);
+
+                    fileNames.Add(venueFilename);
+                }
             }
             else
             {
                 logFile.AppendLine($"Conditional logic for {mpItem} is False.");
             }
+
+            return fileNames;
         }
 
-        private static async Task GenerateVenuesExportForProvider(
+        private static async Task<string> GenerateVenuesExportForProvider(
+            ILogger log,
             IVenueCollectionService venueCollectionService,
             StringBuilder logFile, 
             IMiragtionProviderItem mpItem, 
             CloudBlobContainer containerExporter,
-            string containerNameExporter, 
-            List<string> fileNames)
+            string containerNameExporter)
         {
             logFile.AppendLine($"\tAttempting to get venues' data for: {mpItem}");
 
@@ -231,33 +263,34 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 var venuesFileName =
                     $"{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\Venues_for_Provider_{mpItem.Ukprn}_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
 
-                logFile.AppendLine($"\t\tGot reference to block bolb containers for file: {venuesFileName}");
+                logFile.AppendLine($"\t\tGot reference to block blob containers for file: {venuesFileName}");
 
                 var venuesBlob = containerExporter.GetBlockBlobReference(venuesFileName);
-
-                logFile.AppendLine($"\t\tGot reference to block bolb containers for file: {venuesFileName}");
 
                 logFile.AppendLine($"\t\tAttempting to upload file {venuesFileName} to blob container {containerNameExporter}");
 
                 await venuesBlob.UploadTextAsync(venues);
 
+                log.LogInformation($"uploaded {venuesFileName}");
+
                 logFile.AppendLine($"\t\tUploaded file {venuesFileName} to blob container {containerNameExporter}");
 
-                fileNames.Add(venuesFileName);
+                return venuesFileName;
             }
             else
             {
                 logFile.AppendLine($"\t\tHas no venues' data for: {mpItem}");
+                return null;
             }
         }
 
-        private static async Task GenerateCoursesExportForProvider(
+        private static async Task<string> GenerateCoursesExportForProvider(
+            ILogger log,
             ICourseCollectionService courseCollectionService,
             StringBuilder logFile, 
             IMiragtionProviderItem mpItem, 
             CloudBlobContainer containerExporter,
-            string containerNameExporter, 
-            List<string> fileNames)
+            string containerNameExporter)
         {
             logFile.AppendLine($"Conditional logic for {mpItem} is True.");
 
@@ -274,24 +307,25 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 var coursesFileName =
                     $"{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\Courses_for_Provider_{mpItem.Ukprn}_{DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss")}.json";
 
-                logFile.AppendLine($"\t\tGot reference to block bolb containers for file: {coursesFileName}");
+                logFile.AppendLine($"\t\tGot reference to block blob containers for file: {coursesFileName}");
 
                 var coursesBlob = containerExporter.GetBlockBlobReference(coursesFileName);
-
-                logFile.AppendLine($"\t\tGot reference to block bolb containers for file: {coursesFileName}");
 
                 logFile.AppendLine(
                     $"\t\tAttempting to upload file {coursesFileName} to blob container {containerNameExporter}");
 
                 await coursesBlob.UploadTextAsync(courses);
 
+                log.LogInformation($"uploaded {coursesFileName}");
+
                 logFile.AppendLine($"\t\tUploaded file {coursesFileName} to blob container {containerNameExporter}");
 
-                fileNames.Add(coursesFileName);
+                return coursesFileName;
             }
             else
             {
                 logFile.AppendLine($"\t\tHas no courses' data for: {mpItem}");
+                return null;
             }
         }
 
