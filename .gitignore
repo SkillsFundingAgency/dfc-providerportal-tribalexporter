@@ -265,3 +265,5 @@ __pycache__/
 *.pyc
 
 /src/Dfc.ProviderPortal.TribalExporter/Properties/PublishProfiles/DfcProviderPortalTribalExporter - Web Deploy.pubxml
+
+Dfc.ProviderPortal.TribalExporter.v3.ncrunchsolution
