@@ -29,7 +29,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             [Inject] ICourseCollectionService courseCollectionService,
             [Inject] IVenueCollectionService venueCollectionService)
         {
-            var configuration = exporterSettings.Value;
+                        var configuration = exporterSettings.Value;
 
             log.LogInformation("[Export] waiting for trigger...");
 
@@ -67,7 +67,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 var count = 0;
                 var total = providersForExport.Count();
 
-                Parallel.ForEach(providersForExport, async (provider) =>
+                await Task.WhenAll(providersForExport.Select(async provider =>
                 {
                     count++;
 
@@ -79,7 +79,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         .ConfigureAwait(false);
 
                     fileNames.AddRange(export);
-                });
+                }));
 
                 var fileNamesFileName = $"{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\FileNames.json";
                 var fileNamesBlob = containerExporter.GetBlockBlobReference(fileNamesFileName);
