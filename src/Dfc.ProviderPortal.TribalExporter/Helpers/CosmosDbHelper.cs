@@ -74,7 +74,15 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
 
         public DocumentClient GetClient()
         {
-            return new DocumentClient(new Uri(_settings.EndpointUri), _settings.PrimaryKey);
+            return new DocumentClient(
+                new Uri(_settings.EndpointUri)
+                , _settings.PrimaryKey,
+                new ConnectionPolicy()
+                    {
+                        ConnectionMode = ConnectionMode.Direct,
+                        ConnectionProtocol = Protocol.Tcp
+                    }
+                );
         }
 
         public Document GetDocumentById<T>(DocumentClient client, string collectionId, T id)

@@ -66,14 +66,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Tests
                 }
 
                 [Theory]
-                [InlineData("31/03/1982", "31/03/1982")]
-                [InlineData("1982-03-31", "31/03/1982")]
+                [InlineData("31/03/1982", "31/03/1982 12:00")]
+                [InlineData("1982-03-31", "31/03/1982 12:00")]
+                [InlineData("2019-12-01", "01/12/2019 12:00")]
                 public void ReturnsCorrectDateIfDateCanBeParsed(string input, string expected)
                 {
                     // Act
                     DateTime date = input.ParseUkDateOrDefault(DateTime.Today);
-                    var actual = date.ToString("dd/MM/yyyy");
-
+                    var actual = $"{date:dd/MM/yyyy hh:mm}";
 
                     // Assert
                     Assert.Equal(expected, actual);
