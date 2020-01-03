@@ -1,0 +1,78 @@
+# dotnet core build
+
+pool:
+  name: NCS - CI and CD
+
+variables:
+  BuildPlatform: 'any cpu'
+  BuildConfiguration: 'release'
+  SolutionBaseName: 'Dfc.ProviderPortal.TribalExporter'
+
+resources:
+  repositories:
+  - repository: self
+  - repository: dfc-devops
+    type: github
+    name: SkillsFundingAgency/dfc-devops
+    endpoint: 'GitHub (ESFA)'
+    ref: refs/tags/v1.9.1
+
+trigger:
+  batch: true
+  branches:
+    include:
+    - master
+
+pr:
+  branches:
+    include:
+    - master
+
+steps:
+
+# ARM template
+- template: AzureDevOpsTemplates/Build/StepTemplates/dfc-arm-build.yml@dfc-devops
+  parameters:
+    ArmTemplateRoot: '$(System.DefaultWorkingDirectory)\Resources\ArmTemplates'
+
+# restore
+- task: DotNetCoreCLI@2
+  displayName: dotnet restore
+  inputs:
+    command: restore
+    projects: '**/*.csproj'
+
+# build
+- task: DotNetCoreCLI@2
+  displayName: dotnet build
+  inputs:
+    command: build
+    projects: |
+      src/**/*.csproj
+      tests/**/*.csproj
+    arguments: '--configuration ${{ variables.buildConfiguration }}'
+
+# test
+- task: DotNetCoreCLI@2
+  displayName: dotnet test
+  continueOnError: true
+  inputs:
+    command: test
+    projects: 'tests/**/*.csproj'
+    arguments: '--configuration ${{ variables.buildConfiguration }}'
+
+# publish
+- task: DotNetCoreCLI@2
+  displayName: dotnet publish
+  inputs:
+    command: publish
+    projects: 'src/${{ variables.SolutionBaseName }}/${{ variables.SolutionBaseName }}.csproj'
+    arguments: '--output $(Build.ArtifactStagingDirectory) --configuration ${{ variables.buildConfiguration }}'
+    publishWebProjects: false
+    zipAfterPublish: true
+
+- task: PublishBuildArtifacts@1
+  displayName: Publish Artifact
+  inputs:
+     pathtoPublish: $(Build.ArtifactStagingDirectory)
+     artifactName: '${{ variables.SolutionBaseName }}'

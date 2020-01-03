@@ -1,0 +1,492 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "functionAppPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Prefix for the function app resources, in the form dfc-env-proj-fnapp"
+      }
+    },
+    "appServicePlanName": {
+      "type": "string",
+      "metadata": {
+        "description": "App service plan to run the function app under"
+      }
+    },
+    "appServicePlanResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource group the app service plan is in"
+      }
+    },
+    "storageConnectionString": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Connection string for the shared storage account"
+      }
+    },
+    "cosmosDBfqdn": {
+      "type": "string",
+      "metadata": {
+        "description": "Cosmos DB account name in the format https://dfc-xxx-xxx-cdb.documents.azure.com/ for app settings"
+      }
+    },
+    "cosmosDBkey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Cosmos DB access key for app settings"
+      }
+    },
+    "cosmosDBdatabase": {
+      "type": "string",
+      "metadata": {
+        "description": "Cosmos DB database name for app settings"
+      }
+    },
+    "cosmosDBcollectionCourses": {
+      "type": "string",
+      "metadata": {
+        "description": "Cosmos DB Courses collection name for app settings"
+      }
+    },
+    "cosmosDBcollectionProviders": {
+      "type": "string",
+      "metadata": {
+        "description": "Cosmos DB Providers collection name for app settings"
+      }
+    },
+    "cosmosDBcollectionVenues": {
+      "type": "string",
+      "metadata": {
+        "description": "Cosmos DB Venues collection name for app settings"
+      }
+    },
+    "schedule": {
+      "type": "string",
+      "metadata": {
+        "description": "Schedule of when the function app should run"
+      }
+    },
+    "containerExporter": {
+      "type": "string",
+      "defaultValue": "tribalexporter",
+      "metadata": {
+        "description": "Storage Account Container name to store exported data"
+      }
+    },
+    "containerProviderFiles": {
+      "type": "string",
+      "defaultValue": "provider-files",
+      "metadata": {
+        "description": "Storage Account Container name to store provider files"
+      }
+    },
+    "csvFilename": {
+      "type": "string",
+      "defaultValue": "migrationtoprovider.csv",
+      "metadata": {
+        "description": "Storage Account Container name to store provider files"
+      }
+    },
+    "ApprenticeshipServiceApiUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "Url for the Apprenticeship Service api"
+      }
+    },
+    "ApprenticeshipServiceApiKey": {
+      "type": "string",
+      "metadata": {
+        "description": "api key for the Apprenticeship Service api"
+      }
+    },
+    "sqlCourseDirectoryConnectionString": {
+      "type": "securestring",
+      "metadata": {
+        "description": "connection string to the sql server database"
+      }
+    },
+    "apimCourseDirectoryKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "APIM product key for the Course Directory apis"
+      }
+    },
+    "courseApiUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "URL to the course API"
+      }
+    },
+    "courseTextApiUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "URL to the course text API"
+      }
+    },
+    "venueServiceApiUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "URL to the venue API"
+      }
+    },
+    "providerApiUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "URL to the provider API"
+      }
+    },
+    "azureSearchName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the azure search instance used by queries"
+      }
+    },
+    "azureSearchKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The api key for the azure search instance"
+      }
+    },
+    "storageAccountResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "The resource group that the  shared storage account resides in"
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the shared storage account"
+      }
+    },
+    "referenceDataApiUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "URL to the reference data API"
+      }
+    }
+  },
+  "variables": {
+    "deploymentUrlBase": "https://raw.githubusercontent.com/SkillsFundingAgency/dfc-devops/master/ArmTemplates/",
+    "functionAppName": "[concat(parameters('functionAppPrefix'),'-fa')]",
+    "appInsightName": "[concat(parameters('functionAppPrefix'),'-ai')]"
+  },
+  "resources": [
+    {
+      "apiVersion": "2017-05-10",
+      "name": "tribexpAppInsights",
+      "type": "Microsoft.Resources/deployments",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('deploymentUrlBase'),'application-insights.json')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "appInsightsName": {
+            "value": "[variables('appInsightName')]"
+          },
+          "attachedService": {
+            "value": "[variables('functionAppName')]"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "2017-05-10",
+      "name": "tribexpAppService",
+      "type": "Microsoft.Resources/deployments",
+      "dependsOn": [
+        "tribexpAppInsights"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('deploymentUrlBase'),'app-service.json')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "appServiceName": {
+            "value": "[variables('functionAppName')]"
+          },
+          "appServicePlanName": {
+            "value": "[parameters('appServicePlanName')]"
+          },
+          "appServicePlanResourceGroup": {
+            "value": "[parameters('appServicePlanResourceGroup')]"
+          },
+          "appServiceType": {
+            "value": "functionapp"
+          },
+          "appServiceAppSettings": {
+            "value": [
+              {
+                "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+                "value": "[reference('tribexpAppInsights').outputs.InstrumentationKey.value]"
+              },
+              {
+                "name": "FUNCTIONS_EXTENSION_VERSION",
+                "value": "~2"
+              },
+              {
+                "name": "AzureWebJobsStorage",
+                "value": "[parameters('storageConnectionString')]"
+              },
+              {
+                "name": "schedule",
+                "value": "[parameters('schedule')]"
+              },
+              {
+                "name": "AllowedHosts",
+                "value": "*"
+              },
+              {
+                "name": "ContainerNameExporter",
+                "value": "[parameters('containerExporter')]"
+              },
+              {
+                "name": "ContainerNameProviderFiles",
+                "value": "[parameters('containerProviderFiles')]"
+              },
+              {
+                "name": "MigrationProviderCsv",
+                "value": "[parameters('csvFilename')]"
+              },
+              {
+                "name": "BlobStorageSettings__ConnectionString",
+                "value": "[parameters('storageConnectionString')]"
+              },
+              {
+                "name": "CosmosDbSettings__EndpointUri",
+                "value": "[parameters('cosmosDBfqdn')]"
+              },
+              {
+                "name": "CosmosDbSettings__PrimaryKey",
+                "value": "[parameters('cosmosDBkey')]"
+              },
+              {
+                "name": "CosmosDbSettings__DatabaseId",
+                "value": "[parameters('cosmosDBdatabase')]"
+              },
+              {
+                "name": "CosmosDbCollectionSettings__CoursesCollectionId",
+                "value": "[parameters('cosmosDBcollectionCourses')]"
+              },
+              {
+                "name": "CosmosDbCollectionSettings__ProvidersCollectionId",
+                "value": "[parameters('cosmosDBcollectionProviders')]"
+              },
+              {
+                "name": "CosmosDbCollectionSettings__VenuesCollectionId",
+                "value": "[parameters('cosmosDBcollectionVenues')]"
+              },
+              {
+                "name": "ApprenticeshipServiceSettings__ApiUrl",
+                "value": "[parameters('ApprenticeshipServiceApiUrl')]"
+              },
+              {
+                "name": "ApprenticeshipServiceSettings__ApiKey",
+                "value": "[parameters('ApprenticeshipServiceApiKey')]"
+              },
+              {
+                "name": "ConnectionStrings__DefaultConnection",
+                "value": "[parameters('sqlCourseDirectoryConnectionString')]"
+              },
+              {
+                "name": "CourseServiceSettings__ApiUrl",
+                "value": "[parameters('courseApiUrl')]"
+              },
+              {
+                "name": "CourseServiceSettings__ApiKey",
+                "value": "[parameters('apimCourseDirectoryKey')]"
+              },
+              {
+                "name": "CourseTextServiceSettings__ApiUrl",
+                "value": "[parameters('courseTextApiUrl')]"
+              },
+              {
+                "name": "CourseTextServiceSettings__ApiKey",
+                "value": "[parameters('apimCourseDirectoryKey')]"
+              },
+              {
+                "name": "VenueServiceSettings__ApiUrl",
+                "value": "[parameters('venueServiceApiUrl')]"
+              },
+              {
+                "name": "VenueServiceSettings__ApiKey",
+                "value": "[parameters('apimCourseDirectoryKey')]"
+              },
+              {
+                "name": "ProviderServiceSettings__ApiUrl",
+                "value": "[parameters('providerApiUrl')]"
+              },
+              {
+                "name": "ProviderServiceSettings__ApiKey",
+                "value": "[parameters('apimCourseDirectoryKey')]"
+              },
+              {
+                "name": "LarsSearchSettings__ApiUrl",
+                "value": "[concat('https://', parameters('azureSearchName'), '.search.windows.net/indexes/lars/docs/search')]"
+              },
+              {
+                "name": "LarsSearchSettings__ApiKey",
+                "value": "[parameters('azureSearchKey')]"
+              },
+              {
+                "name": "LarsSearchSettings__ApiVersion",
+                "value": "2017-11-11"
+              },
+              {
+                "name": "LarsSearchSettings__Indexes",
+                "value": "azuresql-index"
+              },
+              {
+                "name": "LarsSearchSettings__ItemsPerPage",
+                "value": "10"
+              },
+              {
+                "name": "LarsSearchSettings__PageParamName",
+                "value": "PageNo"
+              },
+              {
+                "name": "BlobStorageSettings__AccountName",
+                "value": "[parameters('storageAccountName')]"
+              },
+              {
+                "name": "BlobStorageSettings__AccountKey",
+                "value": "[listKeys(resourceId(parameters('storageAccountResourceGroup'), 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+              },
+              {
+                "name": "BlobStorageSettings__Container",
+                "value": "provider-files"
+              },
+              {
+                "name": "BlobStorageSettings__TemplatePath",
+                "value": "bulkuploadtemplate.csv"
+              },
+              {
+                "name": "BlobStorageSettings__FeProviderListPath",
+                "value": "migrationtoprovider.csv"
+              },
+              {
+                "name": "BlobStorageSettings__ApprenticeshipProviderListPath",
+                "value": "apprenticeshipmigrationtoprovider.csv"
+              },
+              {
+                "name": "AppUISettings__VenueNameComponentSettings__VenueName_Label",
+                "value": "Venue name"
+              },
+              {
+                "name": "AppUISettings__CourseForComponentSettings__TextFieldMaxChars",
+                "value": "2000"
+              },
+              {
+                "name": "AppUISettings__EntryRequirementsComponentSettings__TextFieldMaxChars",
+                "value": "500"
+              },
+              {
+                "name": "AppUISettings__WhatWillLearnComponentSettings__TextFieldMaxChars",
+                "value": "1500"
+              },
+              {
+                "name": "AppUISettings__HowYouWillLearnComponentSettings__TextFieldMaxChars",
+                "value": "500"
+              },
+              {
+                "name": "AppUISettings__WhatYouNeedComponentSettings__TextFieldMaxChars",
+                "value": "500"
+              },
+              {
+                "name": "AppUISettings__HowAssessedComponentSettings__TextFieldMaxChars",
+                "value": "500"
+              },
+              {
+                "name": "AppUISettings__WhereNextComponentSettings__TextFieldMaxChars",
+                "value": "500"
+              },
+              {
+                "name": "DeploymentEnvironment",
+                "value": "3"
+              },
+              {
+                "name": "NumberOfMonthsAgo",
+                "value": "3"
+              },
+              {
+                "name": "DummyMode",
+                "value": "false"
+              },
+              {
+                "name": "DeleteCoursesByUKPRN",
+                "value": "true"
+              },
+              {
+                "name": "EnableProviderOnboarding",
+                "value": "true"
+              },
+              {
+                "name": "MigrationWindow",
+                "value": "2"
+              },
+              {
+                "name": "FeMigrationSchedule",
+                "value": "0 0 2 * * *"
+              },
+              {
+                "name": "ApprenticeshipMigrationSchedule",
+                "value": "0 0 2 * * *"
+              },
+              {
+                "name": "ApprenticeReferenceDataSettings__ApiUrl",
+                "value": "[concat(parameters('referenceDataApiUrl'), '/')]"
+              },
+              {
+                "name": "ApprenticeReferenceDataSettings__ApiKey",
+                "value": "[parameters('apimCourseDirectoryKey')]"
+              },
+              {
+                "name": "RegionSubRegionRangeRadius",
+                "value": "100"
+              },
+              {
+                "name": "SubRegionBasedRadius",
+                "value": "10"
+              },
+              {
+                "name": "OnspdSearchSettings__SearchServiceName",
+                "value": "[parameters('azureSearchName')]"
+              },
+              {
+                "name": "OnspdSearchSettings__SearchServiceQueryApiKey",
+                "value": "[parameters('azureSearchKey')]"
+              },
+              {
+                "name": "OnspdSearchSettings__IndexName",
+                "value": "onspd"
+              }
+            ]
+          },
+          "deployStagingSlot": {
+            "value": false
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "functionAppName": {
+      "type": "string",
+      "value": "[variables('functionAppName')]"
+    },
+    "appInsightName": {
+      "type": "string",
+      "value": "[variables('appInsightName')]"
+    },
+    "appInsightInstrumentationKey": {
+      "type": "string",
+      "value": "[reference('tribexpAppInsights').outputs.InstrumentationKey.value]"
+    }
+  }
+}
