@@ -1,0 +1,87 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "functionAppPrefix": {
+      "value": "__functionAppPrefix__"
+    },
+    "appServicePlanName": {
+      "value": "__providerPortalAppServicePlan__"
+    },
+    "appServicePlanResourceGroup": {
+      "value": "__providerPortalResourceGroup__"
+    },
+    "storageConnectionString": {
+      "value": "__providerPortalStorageConnectionStr__"
+    },
+    "cosmosDBfqdn": {
+      "value": "__cosmosDBConnectionStr__"
+    },
+    "cosmosDBkey": {
+      "value": "__providerPortalCosmosDBPrimaryKey__"
+    },
+    "cosmosDBdatabase": {
+      "value": "__cosmosDatabase__"
+    },
+    "cosmosDBcollectionCourses": {
+      "value": "__collectionCourses__"
+    },
+    "cosmosDBcollectionProviders": {
+      "value": "__collectionProviders__"
+    },
+    "cosmosDBcollectionVenues": {
+      "value": "__collectionVenues__"
+    },
+    "schedule": {
+      "value": "__schedule__"
+    },
+    "containerExporter": {
+      "value": "__containerExporter__"
+    },
+    "containerProviderFiles": {
+      "value": "__containerProviderFiles__"
+    },
+    "csvFilename": {
+      "value": "__csvFilename__"
+    },
+    "ApprenticeshipServiceApiUrl": {
+      "value": "__ApprenticeshipServiceApiUrl__"
+    },
+    "ApprenticeshipServiceApiKey": {
+      "value": "__ApprenticeshipServiceApiKey__"
+    },
+    "sqlCourseDirectoryConnectionString": {
+      "value": "__sqlCourseDirectoryConnectionString__"
+    },
+    "apimCourseDirectoryKey": {
+      "value": "__apimKey__"
+    },
+    "courseApiUrl": {
+      "value": "__courseApiUrl__"
+    },
+    "courseTextApiUrl": {
+      "value": "__courseTextApiUrl__"
+    },
+    "venueServiceApiUrl": {
+      "value": "__venueServiceApiUrl__"
+    },
+    "providerApiUrl": {
+      "value": "__providerApiUrl__"
+    },
+    "azureSearchName": {
+      "value": "__azureSearchName__"
+    },
+    "azureSearchKey": {
+      "value": "__azureSearchAdminKey__"
+    },
+    "storageAccountResourceGroup": {
+      "value": "__providerPortalResourceGroup__"
+    },
+    "storageAccountName": {
+      "value": "__providerPortalStorgeAccName__"
+    },
+    "referenceDataApiUrl": {
+      "value": "__referenceDataApiUrl__"
+    }
+  }
+}

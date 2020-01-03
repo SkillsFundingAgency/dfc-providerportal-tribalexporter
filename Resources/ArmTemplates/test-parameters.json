@@ -1,0 +1,78 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "functionAppPrefix": {
+      "value": "dfc-foo-prov-te"
+    },
+    "appServicePlanName": {
+      "value": "dfc-dev-prov-asp"
+    },
+    "appServicePlanResourceGroup": {
+      "value": "dfc-dev-prov-rg"
+    },
+    "storageConnectionString": {
+      "value": "DefaultEndpointsProtocol=https;AccountName=dfcfooprovstr;AccountKey=this_is_not_a_real_account==;EndpointSuffix=core.windows.net"
+    },
+    "cosmosDBfqdn": {
+      "value": "https://dfc-foo-bar-cdb.documents.azure.com:443/"
+    },
+    "cosmosDBkey": {
+      "value": "this-is-not-a-real-key"
+    },
+    "cosmosDBdatabase": {
+      "value": "providerportal"
+    },
+    "cosmosDBcollectionCourses": {
+      "value": "courses"
+    },
+    "cosmosDBcollectionProviders": {
+      "value": "providers"
+    },
+    "cosmosDBcollectionVenues": {
+      "value": "providerportal"
+    },
+    "schedule": {
+      "value": "0 0 23 * * *"
+    },
+    "ApprenticeshipServiceApiUrl": { 
+      "value": "https://not-a-real-api/a/path"
+    },
+    "ApprenticeshipServiceApiKey": {
+      "value": "not-a-real-api-key"
+    },
+    "sqlCourseDirectoryConnectionString": {
+      "value": "not-a-real-database-connection-string"
+    },
+    "apimCourseDirectoryKey": {
+      "value": "not-a-real-api-key"
+    },
+    "courseApiUrl": {
+      "value": "https://not-a-real-api/courses"
+    },
+    "courseTextApiUrl": {
+      "value": "https://not-a-real-api/coursestext"
+    },
+    "venueServiceApiUrl": {
+      "value": "https://not-a-real-api/venues"
+    },
+    "providerApiUrl": {
+      "value": "https://not-a-real-api/providers"
+    },
+    "azureSearchName": {
+      "value": "not-a-real-search-instance"
+    },
+    "azureSearchKey": {
+      "value": "not-a-real-search-key"
+    },
+    "storageAccountResourceGroup": {
+      "value": "not-a-real-resource-group"
+    },
+    "storageAccountName": {
+      "value": "not-a-real-storage-account"
+    },
+    "referenceDataApiUrl": {
+      "value": "https://not-a-real-api/referencedata"
+    }
+  }
+}
