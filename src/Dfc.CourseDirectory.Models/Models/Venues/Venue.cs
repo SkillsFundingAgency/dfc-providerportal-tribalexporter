@@ -13,8 +13,9 @@ namespace Dfc.CourseDirectory.Models.Models.Venues
     {
         Undefined = 0,
         Live = 1,
-        Deleted = 2,
-        Pending = 3,
+        Pending = 2,
+        Archived = 4,
+        Deleted = 8,
         Uknown = 99
     }
 
@@ -24,21 +25,18 @@ namespace Dfc.CourseDirectory.Models.Models.Venues
         public string ID { get; }
         public int UKPRN { get; set; }
         [JsonProperty("PROVIDER_ID", Required = Required.AllowNull)]
-        [JsonIgnore]
         public int ProviderID { get; }
         [JsonProperty("VENUE_ID", Required = Required.AllowNull)]
-        [JsonIgnore]
         public int VenueID { get; }
         [JsonProperty("VENUE_NAME")]
         public string VenueName { get; }
         [JsonProperty("PROV_VENUE_ID", Required = Required.AllowNull)]
-        [JsonIgnore]
         public string ProvVenueID { get; }
         [JsonProperty("ADDRESS_1")]
         public string Address1 { get; }
         [JsonProperty("ADDRESS_2")]
         public string Address2 { get; }
-        [JsonProperty("ADDRESS_3")]
+        [JsonProperty("ADDRESS_3" , Required = Required.AllowNull, NullValueHandling = NullValueHandling.Ignore)]
         public string Address3 { get; }
         [JsonProperty("TOWN")]
         public string Town { get; }
@@ -47,11 +45,12 @@ namespace Dfc.CourseDirectory.Models.Models.Venues
         [JsonProperty("POSTCODE")]
         public string PostCode { get; }
         [JsonProperty("LATITUDE")]
-        public decimal Latitude { get; set; }
+        public decimal? Latitude { get; set; }
         [JsonProperty("LONGITUDE")]
-        public decimal Longitude { get; set; }
+        public decimal? Longitude { get; set; }
         public VenueStatus Status { get; set; }
-        public DateTime DateAdded { get; }
+        [JsonProperty("DateAdded", Required = Required.AllowNull, NullValueHandling = NullValueHandling.Ignore)]
+        public DateTime? DateAdded { get; }
         public DateTime DateUpdated { get; }
         public string UpdatedBy { get; }
 
@@ -76,8 +75,8 @@ namespace Dfc.CourseDirectory.Models.Models.Venues
             string town,
             string county,
             string postcode,
-            decimal latitude,
-            decimal longitude,
+            decimal? latitude,
+            decimal? longitude,
             VenueStatus status,
             string updatedBy,
             DateTime dateAdded,
@@ -123,8 +122,8 @@ namespace Dfc.CourseDirectory.Models.Models.Venues
             string town,
             string county,
             string postcode,
-            decimal latitude,
-            decimal longitude,
+            decimal? latitude,
+            decimal? longitude,
             VenueStatus status,
             string updatedBy,
             DateTime dateAdded,
@@ -173,11 +172,12 @@ namespace Dfc.CourseDirectory.Models.Models.Venues
             string town,
             string county,
             string postcode,
-            decimal latitude,
-            decimal longitude,
+            decimal ?latitude,
+            decimal? longitude,
             VenueStatus status,
             string updatedBy,
-            DateTime dateUpdated)
+            DateTime dateUpdated
+            )
         {
             Throw.IfNullOrWhiteSpace(id, nameof(id));
             Throw.IfLessThan(0, ukPrn, nameof(ukPrn));
@@ -207,7 +207,47 @@ namespace Dfc.CourseDirectory.Models.Models.Venues
             Status = status;
             UpdatedBy = updatedBy;
             DateUpdated = dateUpdated;
+        }
 
+
+        public Venue(
+    string id,
+    int ukPrn,
+    string venueName,
+    string address1,
+    string address2,
+    string address3,
+    string town,
+    string county,
+    string postcode,
+    double? latitude,
+    double? longitude,
+    VenueStatus status,
+    string updatedBy,
+    DateTime dateUpdated,
+    int venueId,
+    int providerId,
+    string providerOwnRef)
+        {
+            Throw.IfNullOrWhiteSpace(id, nameof(id));
+            Throw.IfLessThan(0, ukPrn, nameof(ukPrn));
+            ID = id;
+            UKPRN = ukPrn;
+            VenueName = venueName;
+            Address1 = address1;
+            Address2 = address2;
+            Address3 = address3;
+            Town = town;
+            County = county;
+            PostCode = postcode;
+            Latitude = latitude.HasValue ?  Convert.ToDecimal(latitude.Value) : default(decimal?);
+            Longitude = longitude.HasValue ? Convert.ToDecimal(longitude.Value) : default(decimal?); ;
+            Status = status;
+            UpdatedBy = updatedBy;
+            DateUpdated = dateUpdated;
+            VenueID = venueId;
+            ProviderID = providerId;
+            ProvVenueID = providerOwnRef;
         }
 
 

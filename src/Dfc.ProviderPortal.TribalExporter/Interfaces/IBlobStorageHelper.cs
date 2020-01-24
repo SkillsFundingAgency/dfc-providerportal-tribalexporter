@@ -7,5 +7,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Interfaces
     {
         CloudBlobContainer GetBlobContainer(string containerName);
         Task<string> ReadFileAsync(CloudBlobContainer container, string fileName);
+        Task UploadFile(CloudBlobContainer container, string fileName, byte[] data);
     }
 }

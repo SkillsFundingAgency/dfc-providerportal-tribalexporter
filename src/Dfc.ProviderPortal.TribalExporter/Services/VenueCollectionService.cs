@@ -79,5 +79,24 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
 
             return documents.Count() > 0;
         }
+
+        public async Task<bool> VenueExists(int venueId)
+        {
+            var documents = new List<Document>();
+
+            var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.VenuesCollectionId);
+            var sql = $"SELECT * FROM c WHERE c.VENUE_ID = {venueId}";
+                var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
+
+            using (var client = _cosmosDbHelper.GetClient())
+            using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+            {
+                while (query.HasMoreResults)
+                {
+                    foreach (var document in await query.ExecuteNextAsync<Document>()) documents.Add(document);
+                }
+            }
+            return documents.Count() > 0;
+        }
     }
 }

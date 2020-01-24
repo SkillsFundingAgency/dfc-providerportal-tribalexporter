@@ -482,12 +482,12 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                                                     Address2 = venue.Address2,
                                                                     County = venue.County,
                                                                     Email = venue.Email,
-                                                                    Latitude = double.Parse(
-                                                                        venue.Latitude.ToString(CultureInfo
-                                                                            .InvariantCulture)),
-                                                                    Longitude = double.Parse(
-                                                                        venue.Longitude.ToString(CultureInfo
-                                                                            .InvariantCulture)),
+                                                                    Latitude = venue.Latitude.HasValue ? double.Parse(
+                                                                        venue.Latitude.Value.ToString(CultureInfo
+                                                                            .InvariantCulture)) : default(double?),
+                                                                    Longitude = venue.Longitude.HasValue ? double.Parse(
+                                                                        venue.Longitude.Value.ToString(CultureInfo
+                                                                            .InvariantCulture)) : default(double?),
                                                                     Phone = venue.PHONE,
                                                                     Postcode = venue.PostCode,
                                                                     Town = venue.Town,

@@ -7,5 +7,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Interfaces
     {
         Task<string> GetAllVenuesAsJsonForUkprnAsync(int ukprn);
         Task<bool> HasBeenAnUpdatedSinceAsync(int ukprn, DateTime date);
+        Task<bool> VenueExists(int venueId);
     }
 }

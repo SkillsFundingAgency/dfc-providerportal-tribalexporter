@@ -10,6 +10,7 @@ using System;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace Dfc.ProviderPortal.TribalExporter.Helpers
 {
@@ -22,6 +23,15 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
             Throw.IfNull(settings, nameof(settings));
 
             _blobStorageSettings = settings.Value;
+        }
+
+        public async Task UploadFile(CloudBlobContainer container, string fileName, byte[] data)
+        {
+            var blob = container.GetBlockBlobReference(fileName);
+            using (var stream = new MemoryStream(data))
+            {
+                await blob.UploadFromStreamAsync(stream);
+            }
         }
 
         public CloudBlobContainer GetBlobContainer(string containerName)
