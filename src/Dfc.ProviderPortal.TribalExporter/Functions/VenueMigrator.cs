@@ -22,6 +22,17 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 {
     public static class VenueMigrator
     {
+        /// <summary>
+        /// This function app migrates venues from a 
+        /// </summary>
+        /// <param name="req"></param>
+        /// <param name="log"></param>
+        /// <param name="configuration"></param>
+        /// <param name="venueCollectionService"></param>
+        /// <param name="providerCollectionService"></param>
+        /// <param name="cosmosDbHelper"></param>
+        /// <param name="blobhelper"></param>
+        /// <returns></returns>
         [FunctionName(nameof(VenueMigrator))]
         public static async Task Run(
                     [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] Microsoft.AspNetCore.Http.HttpRequest req,
