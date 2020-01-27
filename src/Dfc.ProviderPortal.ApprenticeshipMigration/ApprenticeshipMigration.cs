@@ -474,8 +474,8 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                                             else
                                                             {
                                                                 apprenticeshipLocation.LocationId = venue.LocationId ?? location.LocationId;
-                                                                apprenticeshipLocation.LocationGuidId =
-                                                                    new Guid(venue.ID);
+                                                                //apprenticeshipLocation.LocationGuidId =
+                                                                //    new Guid(venue.ID);
                                                                 apprenticeshipLocation.Address = new Address()
                                                                 {
                                                                     Address1 = venue.Address1,
@@ -576,7 +576,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                                         {
                                                             var venueID = Guid.NewGuid();
                                                             // There is no such Venue - Add it
-                                                            var addVenue = new Venue(venueID.ToString(),
+                                                            var addVenue = new Venue(
                                                                 location.ProviderUKPRN,
                                                                 location.LocationName,
                                                                 location.AddressLine1,
@@ -585,8 +585,8 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                                                 location.Town,
                                                                 location.County,
                                                                 location.Postcode,
-                                                                location.Latitude,
-                                                                location.Longitude,
+                                                                Convert.ToDouble(location.Latitude),
+                                                                Decimal.ToDouble(location.Longitude),
                                                                 VenueStatus.Live,
                                                                 "DFC – Apprenticeship Migration Tool",
                                                                 DateTime.Now);

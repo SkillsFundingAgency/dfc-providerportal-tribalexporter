@@ -1,4 +1,5 @@
-﻿using Dfc.ProviderPortal.Packages;
+﻿using Dfc.CourseDirectory.Models.Models.Venues;
+using Dfc.ProviderPortal.Packages;
 using Dfc.ProviderPortal.TribalExporter.Interfaces;
 using Dfc.ProviderPortal.TribalExporter.Settings;
 using Microsoft.Azure.Documents;
@@ -80,23 +81,30 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             return documents.Count() > 0;
         }
 
-        public async Task<bool> VenueExists(int venueId)
+        public async Task<Venue> GetDocumentID(int venueId)
         {
             var documents = new List<Document>();
 
             var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.VenuesCollectionId);
-            var sql = $"SELECT * FROM c WHERE c.VENUE_ID = {venueId}";
-                var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
+            var sql = $"SELECT* FROM c WHERE c.VENUE_ID = { venueId}";
+            var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
 
-            using (var client = _cosmosDbHelper.GetClient())
-            using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+            try
             {
-                while (query.HasMoreResults)
+
+                using (var client = _cosmosDbHelper.GetClient())
                 {
-                    foreach (var document in await query.ExecuteNextAsync<Document>()) documents.Add(document);
-                }
+                    var query = client.CreateDocumentQuery<Venue>(uri, sql, options).ToList();
+                    return query.FirstOrDefault();
+                };
             }
-            return documents.Count() > 0;
+            catch (Exception e)
+            {
+                return null;
+            }
         }
     }
 }
+
+
+

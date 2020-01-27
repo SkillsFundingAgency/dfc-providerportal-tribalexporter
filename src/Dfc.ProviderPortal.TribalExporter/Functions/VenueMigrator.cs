@@ -17,13 +17,18 @@ using System.Text;
 using CsvHelper;
 using System.Globalization;
 using System.Runtime.Serialization.Formatters.Binary;
+using Microsoft.Azure.Documents.Client;
+using Dfc.CourseDirectory.Models.Enums;
 
 namespace Dfc.ProviderPortal.TribalExporter.Functions
 {
     public static class VenueMigrator
     {
         /// <summary>
-        /// This function app migrates venues from a 
+        /// This function app migrates venues from a sql db to cosmos outputing the results to 
+        /// blob storage with a file name of VenueExport-{date}. This uses a provider whitelist (ProviderWhiteList.txt) file
+        /// in the route of blob storage, which has a line for every whitelisted UKPRN.
+        /// 
         /// </summary>
         /// <param name="req"></param>
         /// <param name="log"></param>
@@ -52,6 +57,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var venueExportFileName = $"VenueExport-{DateTime.Now.ToString("dd-MM-yy HHmm")}";
             const string WHITE_LIST_FILE = "ProviderWhiteList.txt";
             var ukprnCache = new List<int>();
+            var databaseId = configuration["CosmosDbSettings:DatabaseId"];
 
             using (var sqlConnection = new SqlConnection(connectionString))
             {
@@ -89,7 +95,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                                   pr.Ukprn
                                             FROM Venue Ven
                                             INNER JOIN [Address] Ad on Ad.AddressId = Ven.AddressId
-                                            INNER JOIN [Provider] pr on pr.ProviderId = ven.ProviderId";
+                                            INNER JOIN [Provider] pr on pr.ProviderId = ven.ProviderId
+                                            WHERE Ven.RecordStatusID = 2";
 
                     try
                     {
@@ -105,28 +112,68 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                                 if (await Validate(item))
                                 {
-                                    var newVenue = new Dfc.CourseDirectory.Models.Models.Venues.Venue(Guid.NewGuid().ToString(),
-                                                                                                      item.UKPRN,
-                                                                                                      item.VenueName,
-                                                                                                      item.Address.Address1,
-                                                                                                      item.Address.Address2,
-                                                                                                      null,
-                                                                                                      item.Address.Town,
-                                                                                                      item.Address.County,
-                                                                                                      item.Address.Postcode,
-                                                                                                      item.Address.Latitude,
-                                                                                                      item.Address.Longitude,
-                                                                                                      MapVenueStatus(item.RecordStatusId),
-                                                                                                      item.CreatedByUserId,
-                                                                                                      item.CreatedDateTimeUtc,
-                                                                                                      item.VenueId,
-                                                                                                      item.ProviderId,
-                                                                                                      item.ProviderOwnVenueRef
-                                                                                                      );
-                                    await cosmosDbHelper.CreateDocumentAsync(cosmosDbHelper.GetClient(), venuesCollectionId, newVenue);
+                                    var cosmosVenue = await venueCollectionService.GetDocumentID(item.VenueId);
+                                    if (cosmosVenue != null)
+                                    {
+                                        var s = UriFactory.CreateDocumentUri(databaseId, venuesCollectionId, cosmosVenue.id.ToString());
+                                        Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, venuesCollectionId);
+                                        var editedVenue = new Dfc.CourseDirectory.Models.Models.Venues.Venue()
+                                        {
+                                            id = cosmosVenue.id,
+                                            UKPRN = item.UKPRN,
+                                            VenueName = item.VenueName,
+                                            Address1 = item.Address.Address1,
+                                            Address2 = item.Address.Address2,
+                                            Town = item.Address.Town,
+                                            PostCode = item.Address.Postcode,
+                                            Latitude = item.Address.Latitude,
+                                            Longitude = item.Address.Longitude,
+                                            Status = MapVenueStatus(item.RecordStatusId),
+                                            UpdatedBy = "VenueMigrator",
+                                            DateUpdated = DateTime.Now,
+                                            VenueID = item.VenueId,
+                                            ProviderID = item.ProviderId,
+                                            ProvVenueID = item.ProviderOwnVenueRef,
+                                            Email = item.Email,
+                                            Website = item.Website,
+                                            Telephone = item.Telephone,
+                                            CreatedBy = item.CreatedByUserId,
+                                            CreatedDate = item.CreatedDateTimeUtc
 
-                                    //Log that successfully inserted venue
-                                    AddResultMessage(item.VenueId, "Success");
+                                        };
+
+                                        await cosmosDbHelper.GetClient().UpsertDocumentAsync(collectionUri, editedVenue);
+                                        AddResultMessage(item.VenueId, "Updated Venue");
+                                    }
+                                    else
+                                    {
+                                        var newVenue = new Dfc.CourseDirectory.Models.Models.Venues.Venue()
+                                        {
+                                            UKPRN = item.UKPRN,
+                                            VenueName = item.VenueName,
+                                            Address1 = item.Address.Address1,
+                                            Address2 = item.Address.Address2,
+                                            Town = item.Address.Town,
+                                            PostCode = item.Address.Postcode,
+                                            Latitude = item.Address.Latitude,
+                                            Longitude = item.Address.Longitude,
+                                            Status = MapVenueStatus(item.RecordStatusId),
+                                            UpdatedBy = item.CreatedByUserId,
+                                            DateUpdated = item.CreatedDateTimeUtc,
+                                            VenueID = item.VenueId,
+                                            ProviderID = item.ProviderId,
+                                            ProvVenueID = item.ProviderOwnVenueRef,
+                                            Email = item.Email,
+                                            Website = item.Website,
+                                            Telephone = item.Telephone,
+                                            CreatedDate = DateTime.Now,
+                                            CreatedBy = "VenueMigrator"
+                                        };
+                                        await cosmosDbHelper.CreateDocumentAsync(cosmosDbHelper.GetClient(), venuesCollectionId, newVenue);
+
+                                        //Log that successfully inserted venue
+                                        AddResultMessage(item.VenueId, "Inserted Venue");
+                                    }
                                 }
 
                             }
@@ -143,18 +190,18 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 await WriteResultsToBlobStorage(resultsObjBytes);
             }
 
-            CourseDirectory.Models.Models.Venues.VenueStatus MapVenueStatus(int recordStatus)
+            CourseDirectory.Models.Models.Venues.VenueStatus MapVenueStatus(TribalRecordStatus recordStatus)
             {
                 switch (recordStatus)
                 {
-                    case 1: return CourseDirectory.Models.Models.Venues.VenueStatus.Pending;
-                    case 2: return CourseDirectory.Models.Models.Venues.VenueStatus.Live;
-                    case 3: return CourseDirectory.Models.Models.Venues.VenueStatus.Archived;
-                    case 4: return CourseDirectory.Models.Models.Venues.VenueStatus.Deleted;
+                    case TribalRecordStatus.Pending: return CourseDirectory.Models.Models.Venues.VenueStatus.Pending;
+                    case TribalRecordStatus.Live: return CourseDirectory.Models.Models.Venues.VenueStatus.Live;
+                    case TribalRecordStatus.Archived: return CourseDirectory.Models.Models.Venues.VenueStatus.Archived;
+                    case TribalRecordStatus.Deleted: return CourseDirectory.Models.Models.Venues.VenueStatus.Deleted;
                     default: throw new Exception("$Unable to map recordStatus to VenueStatus");
                 }
             }
-            
+
             byte[] GetResultAsByteArray(IList<ResultMessage> ob)
             {
                 using (var memoryStream = new System.IO.MemoryStream())
@@ -163,7 +210,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     using (var csvWriter = new CsvWriter(streamWriter, CultureInfo.InvariantCulture))
                     {
                         csvWriter.WriteRecords<ResultMessage>(ob);
-                    } 
+                    }
                     return memoryStream.ToArray();
                 }
             }
@@ -191,25 +238,18 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 return list;
             }
 
-            void AddResultMessage(int venueId, string status, string message="")
+            void AddResultMessage(int venueId, string status, string message = "")
             {
-                var validateResult = new ResultMessage() {VenueId=venueId, Status = status, Message= message};
+                var validateResult = new ResultMessage() { VenueId = venueId, Status = status, Message = message };
                 result.Add(validateResult);
             }
 
             async Task<bool> Validate(Venue item)
             {
-                //add prn to cache
-                if (!ukprnCache.Contains(item.UKPRN))
+                //are providers on list of whitelisted providers file
+                if (!whiteListProviders.Any(x => x == item.UKPRN))
                 {
-                    ukprnCache.Add(item.UKPRN);
-                }
-
-                //venue exists
-                var cosmosVenue = await venueCollectionService.VenueExists(item.VenueId);
-                if (cosmosVenue)
-                {
-                    AddResultMessage(item.VenueId, "Failed" ,"Venue already exists in Cosmos");
+                    AddResultMessage(item.VenueId, "Failed", $"Provider {item.ProviderId} not on whitelist, ukprn {item.UKPRN}");
                     return false;
                 }
 
@@ -219,16 +259,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     var cosmosProvider = await providerCollectionService.ProviderExists(item.UKPRN);
                     if (!cosmosProvider)
                     {
-                        AddResultMessage(item.VenueId,"Failed", "Unknown UKPRN");
+                        AddResultMessage(item.VenueId, "Failed", "Unknown UKPRN");
                         return false;
                     }
-                }
-
-                //are providers on list of whitelisted providers file
-                if (!whiteListProviders.Any(x => x == item.UKPRN))
-                {
-                    AddResultMessage(item.VenueId, "Failed", $"Provider {item.ProviderId} not on whitelist, ukprn {item.UKPRN}");
-                    return false;
+                    else
+                    {
+                        //provider exists - add to cache
+                        ukprnCache.Add(item.UKPRN);
+                    }
                 }
                 return true;
             }

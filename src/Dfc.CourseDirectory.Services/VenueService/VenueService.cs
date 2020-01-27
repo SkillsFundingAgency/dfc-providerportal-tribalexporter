@@ -300,7 +300,7 @@ namespace Dfc.CourseDirectory.Services.VenueService
 
                     if (!String.IsNullOrEmpty(criteria.NewAddressId))
                     {
-                        var newVenueIndex = venues.FindIndex(x => x.ID == criteria.NewAddressId);
+                        var newVenueIndex = 0;  // venues.FindIndex(x => x.ID == criteria.NewAddressId);
                         var newVenueItem = venues[newVenueIndex];
 
                         venues.RemoveAt(newVenueIndex);
