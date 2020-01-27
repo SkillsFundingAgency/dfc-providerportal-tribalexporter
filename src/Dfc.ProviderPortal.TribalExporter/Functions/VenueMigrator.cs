@@ -115,11 +115,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                     var cosmosVenue = await venueCollectionService.GetDocumentID(item.VenueId);
                                     if (cosmosVenue != null)
                                     {
-                                        var s = UriFactory.CreateDocumentUri(databaseId, venuesCollectionId, cosmosVenue.id.ToString());
+                                        var s = UriFactory.CreateDocumentUri(databaseId, venuesCollectionId, cosmosVenue.ID.ToString());
                                         Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, venuesCollectionId);
                                         var editedVenue = new Dfc.CourseDirectory.Models.Models.Venues.Venue()
                                         {
-                                            id = cosmosVenue.id,
+                                            ID = cosmosVenue.ID,
                                             UKPRN = item.UKPRN,
                                             VenueName = item.VenueName,
                                             Address1 = item.Address.Address1,

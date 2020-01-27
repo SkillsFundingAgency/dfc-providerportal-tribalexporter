@@ -59,7 +59,7 @@ namespace Dfc.CourseDirectory.Models.Models.Venues
         public string Email { get { return EMAIL; } set { EMAIL = value; } }
         public string Website { get { return WEBSITE; } set { WEBSITE = value; } }
         [JsonProperty("id")]
-        public string id { get; set; }
+        public string ID { get; set; }
         public string CreatedBy { get; set; }
         public DateTime CreatedDate { get; set; }
 

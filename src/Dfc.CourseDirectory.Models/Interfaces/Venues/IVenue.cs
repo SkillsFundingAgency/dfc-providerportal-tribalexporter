@@ -29,7 +29,7 @@ namespace Dfc.CourseDirectory.Models.Interfaces.Venues
         string Telephone { get; set; }
         string Email { get; set; }
         string Website { get; set; }
-        string id { get; set; }
+        string ID { get; set; }
     }
 }
 
