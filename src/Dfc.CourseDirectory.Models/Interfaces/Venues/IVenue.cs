@@ -8,7 +8,6 @@ namespace Dfc.CourseDirectory.Models.Interfaces.Venues
 {
     public interface IVenue
     {
-        string ID { get; }
         int UKPRN { get; set; }
         int ProviderID { get; }
         int VenueID { get; }
@@ -19,10 +18,9 @@ namespace Dfc.CourseDirectory.Models.Interfaces.Venues
         string Town { get; }
         string County { get; }
         string PostCode { get; }
-        decimal Latitude { get; set; }
-        decimal Longitude { get; set; }
+        double? Latitude { get; set; }
+        double? Longitude { get; set; }
         VenueStatus Status { get; set; }
-        DateTime DateAdded { get; }
         DateTime DateUpdated { get; }
         string UpdatedBy { get; }
 
@@ -31,6 +29,7 @@ namespace Dfc.CourseDirectory.Models.Interfaces.Venues
         string Telephone { get; set; }
         string Email { get; set; }
         string Website { get; set; }
+        string ID { get; set; }
     }
 }
 
