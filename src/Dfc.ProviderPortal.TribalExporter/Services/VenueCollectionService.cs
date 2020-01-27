@@ -88,20 +88,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.VenuesCollectionId);
             var sql = $"SELECT* FROM c WHERE c.VENUE_ID = { venueId}";
             var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
-
-            try
+            using (var client = _cosmosDbHelper.GetClient())
             {
+                var query =  client.CreateDocumentQuery<Venue>(uri, sql, options).AsDocumentQuery();
+                return (await query.ExecuteNextAsync()).FirstOrDefault();
+            };
 
-                using (var client = _cosmosDbHelper.GetClient())
-                {
-                    var query = client.CreateDocumentQuery<Venue>(uri, sql, options).ToList();
-                    return query.FirstOrDefault();
-                };
-            }
-            catch (Exception e)
-            {
-                return null;
-            }
         }
     }
 }
