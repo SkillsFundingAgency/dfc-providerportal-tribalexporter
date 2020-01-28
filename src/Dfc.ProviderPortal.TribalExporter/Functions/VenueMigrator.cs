@@ -8,7 +8,6 @@ using Dfc.ProviderPortal.TribalExporter.Interfaces;
 using Dfc.ProviderPortal.TribalExporter.Models.Tribal;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -39,8 +38,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
         /// <param name="blobhelper"></param>
         /// <returns></returns>
         [FunctionName(nameof(VenueMigrator))]
+        [NoAutomaticTrigger]
         public static async Task Run(
-                    [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] Microsoft.AspNetCore.Http.HttpRequest req,
+                    string input,  // Work around https://github.com/Azure/azure-functions-vs-build-sdk/issues/168
                     ILogger log,
                     [Inject] IConfigurationRoot configuration,
                     [Inject] IVenueCollectionService venueCollectionService,
