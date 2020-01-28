@@ -47,7 +47,6 @@ namespace Dfc.ProviderPortal.TribalExporter
         public void Configure(IWebJobsBuilder builder)
         {
             builder.AddDependencyInjection();
-            builder.AddHttp();
 
             var configuration = new ConfigurationBuilder()
             .SetBasePath(Environment.CurrentDirectory)
