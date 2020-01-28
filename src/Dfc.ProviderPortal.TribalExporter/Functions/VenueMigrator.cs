@@ -27,7 +27,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
         /// <summary>
         /// This function app migrates venues from a sql db to cosmos outputing the results to 
         /// blob storage with a file name of VenueExport-{date}. This uses a provider whitelist (ProviderWhiteList.txt) file
-        /// in the route of blob storage, which has a line for every whitelisted UKPRN.
+        /// in the root of a blob storage container, which has a line for every whitelisted UKPRN.
         /// 
         /// </summary>
         /// <param name="req"></param>
@@ -115,35 +115,38 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                     var cosmosVenue = await venueCollectionService.GetDocumentID(item.VenueId);
                                     if (cosmosVenue != null)
                                     {
-                                        var s = UriFactory.CreateDocumentUri(databaseId, venuesCollectionId, cosmosVenue.ID.ToString());
-                                        Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, venuesCollectionId);
-                                        var editedVenue = new Dfc.CourseDirectory.Models.Models.Venues.Venue()
-                                        {
-                                            ID = cosmosVenue.ID,
-                                            UKPRN = item.UKPRN,
-                                            VenueName = item.VenueName,
-                                            Address1 = item.Address.Address1,
-                                            Address2 = item.Address.Address2,
-                                            Town = item.Address.Town,
-                                            PostCode = item.Address.Postcode,
-                                            Latitude = item.Address.Latitude,
-                                            Longitude = item.Address.Longitude,
-                                            Status = MapVenueStatus(item.RecordStatusId),
-                                            UpdatedBy = "VenueMigrator",
-                                            DateUpdated = DateTime.Now,
-                                            VenueID = item.VenueId,
-                                            ProviderID = item.ProviderId,
-                                            ProvVenueID = item.ProviderOwnVenueRef,
-                                            Email = item.Email,
-                                            Website = item.Website,
-                                            Telephone = item.Telephone,
-                                            CreatedBy = item.CreatedByUserId,
-                                            CreatedDate = item.CreatedDateTimeUtc
+                                        //Actual Update has been commented out until further notice, however we still want to write to the log
+                                        //file that we would potentially update this venue record.
+                                        //
+                                        //var s = UriFactory.CreateDocumentUri(databaseId, venuesCollectionId, cosmosVenue.ID.ToString());
+                                        //Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, venuesCollectionId);
+                                        //var editedVenue = new Dfc.CourseDirectory.Models.Models.Venues.Venue()
+                                        //{
+                                        //    ID = cosmosVenue.ID,
+                                        //    UKPRN = item.UKPRN,
+                                        //    VenueName = item.VenueName,
+                                        //    Address1 = item.Address.Address1,
+                                        //    Address2 = item.Address.Address2,
+                                        //    Town = item.Address.Town,
+                                        //    PostCode = item.Address.Postcode,
+                                        //    Latitude = item.Address.Latitude,
+                                        //    Longitude = item.Address.Longitude,
+                                        //    Status = MapVenueStatus(item.RecordStatusId),
+                                        //    UpdatedBy = "VenueMigrator",
+                                        //    DateUpdated = DateTime.Now,
+                                        //    VenueID = item.VenueId,
+                                        //    ProviderID = item.ProviderId,
+                                        //    ProvVenueID = item.ProviderOwnVenueRef,
+                                        //    Email = item.Email,
+                                        //    Website = item.Website,
+                                        //    Telephone = item.Telephone,
+                                        //    CreatedBy = item.CreatedByUserId,
+                                        //    CreatedDate = item.CreatedDateTimeUtc
 
-                                        };
+                                        //};
+                                        //await cosmosDbHelper.GetClient().UpsertDocumentAsync(collectionUri, editedVenue);
 
-                                        await cosmosDbHelper.GetClient().UpsertDocumentAsync(collectionUri, editedVenue);
-                                        AddResultMessage(item.VenueId, "Updated Venue");
+                                        AddResultMessage(item.VenueId, "Venue Exists - Record not updated");
                                     }
                                     else
                                     {
