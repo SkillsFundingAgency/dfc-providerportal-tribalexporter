@@ -35,7 +35,7 @@ using Dfc.CourseDirectory.Services.Interfaces.OnspdService;
 using Dfc.CourseDirectory.Services.OnspdService;
 using Microsoft.Extensions.Logging.Configuration;
 using ApprenticeshipServiceSettings = Dfc.ProviderPortal.TribalExporter.Settings.ApprenticeshipServiceSettings;
-using Microsoft.Azure.WebJobs.Extensions.Httpusing Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting;
 
 [assembly: WebJobsStartup(typeof(WebJobsExtensionStartup), "Web Jobs Extension Startup")]
 
