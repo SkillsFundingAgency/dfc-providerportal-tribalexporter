@@ -35,6 +35,7 @@ using Dfc.CourseDirectory.Services.Interfaces.OnspdService;
 using Dfc.CourseDirectory.Services.OnspdService;
 using Microsoft.Extensions.Logging.Configuration;
 using ApprenticeshipServiceSettings = Dfc.ProviderPortal.TribalExporter.Settings.ApprenticeshipServiceSettings;
+using Microsoft.Azure.WebJobs.Extensions.Httpusing Microsoft.Extensions.Hosting;
 
 [assembly: WebJobsStartup(typeof(WebJobsExtensionStartup), "Web Jobs Extension Startup")]
 
@@ -46,14 +47,13 @@ namespace Dfc.ProviderPortal.TribalExporter
         public void Configure(IWebJobsBuilder builder)
         {
             builder.AddDependencyInjection();
+            builder.AddHttp();
 
             var configuration = new ConfigurationBuilder()
-                .SetBasePath(Environment.CurrentDirectory)
-                .AddJsonFile("local.settings.json", optional: true, reloadOnChange: true)
-                .AddEnvironmentVariables()
-                .Build();
-
-            
+            .SetBasePath(Environment.CurrentDirectory)
+            .AddJsonFile("local.settings.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables()
+            .Build();
 
             builder.Services.AddSingleton<IConfigurationRoot>(configuration);
             builder.Services.Configure<CosmosDbSettings>(configuration.GetSection(nameof(CosmosDbSettings)));
@@ -137,7 +137,7 @@ namespace Dfc.ProviderPortal.TribalExporter
             builder.Services.Configure<CourseServiceSettings>(courseServiceSettingsOptions =>
             {
                 courseServiceSettingsOptions.ApiUrl = configuration.GetValue<string>("CourseServiceSettings:ApiUrl");
-                courseServiceSettingsOptions.ApiKey = string.IsNullOrEmpty(configuration.GetValue<string>("CourseServiceSettings:ApiKey"))?
+                courseServiceSettingsOptions.ApiKey = string.IsNullOrEmpty(configuration.GetValue<string>("CourseServiceSettings:ApiKey")) ?
                     configuration.GetValue<string>("CourseServiceSettings_ApiKey") :
                     configuration.GetValue<string>("CourseServiceSettings:ApiKey");
             });
@@ -233,7 +233,7 @@ namespace Dfc.ProviderPortal.TribalExporter
         {
             DateTime startdate = DateTime.UtcNow.AddDays(-1);
             DateTime endDate = DateTime.UtcNow;
-            
+
             DateTime.TryParse(configuration.GetValue<string>("ExporterStartDate"), out startdate);
             DateTime.TryParse(configuration.GetValue<string>("ExporterEndDate"), out endDate);
 
