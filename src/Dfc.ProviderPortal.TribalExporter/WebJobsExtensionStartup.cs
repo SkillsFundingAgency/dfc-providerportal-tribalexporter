@@ -232,16 +232,13 @@ namespace Dfc.ProviderPortal.TribalExporter
             DateTime startdate = DateTime.UtcNow.AddDays(-1);
             DateTime endDate = DateTime.UtcNow;
 
-            DateTime.TryParse(configuration.GetValue<string>("ExporterStartDate"), out startdate);
-            DateTime.TryParse(configuration.GetValue<string>("ExporterEndDate"), out endDate);
-
             builder.Services.Configure<ExporterSettings>(options =>
             {
                 options.MigrationProviderCsv = configuration.GetValue<string>("MigrationProviderCsv");
                 options.ContainerNameExporter = configuration.GetValue<string>("ContainerNameExporter");
                 options.ContainerNameProviderFiles = configuration.GetValue<string>("ContainerNameProviderFiles");
-                options.ExporterStartDate = configuration.GetValue<string>("ExporterStartDate").ParseUkDateOrDefault(DateTime.UtcNow.AddDays(-1));
-                options.ExporterEndDate = configuration.GetValue<string>("ExporterEndDate").ParseUkDateOrDefault(DateTime.UtcNow);
+                options.ExporterStartDate = startdate;
+                options.ExporterEndDate = endDate;
             });
         }
     }
