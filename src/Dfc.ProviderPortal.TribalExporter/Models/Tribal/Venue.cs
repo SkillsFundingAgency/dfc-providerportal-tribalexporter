@@ -51,8 +51,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Models.Tribal
             item.AddressId = (int)reader["AddressId"];
             item.Telephone = reader["Telephone"] as string;
             item.BulkUploadVenueId = reader["BulkUploadVenueId"] as string;
-            item.CosmosId = reader["CosmosId"] as string;
-            item.AddedByApplicationId = reader["AddedByApplicationId"] as int?;
             item.UKPRN = (int) reader["UKPRN"];
             item.Address = new Address()
             {
