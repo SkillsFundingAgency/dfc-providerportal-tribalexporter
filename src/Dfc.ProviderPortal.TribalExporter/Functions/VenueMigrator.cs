@@ -63,39 +63,37 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 using (var command = sqlConnection.CreateCommand())
                 {
                     command.CommandType = CommandType.Text;
-                    command.CommandText = @"SELECT 
-                                                       Ven.[VenueId],
-                                                          Ven.[ProviderId],
-                                                          Ven.[ProviderOwnVenueRef],
-                                                          Ven.[VenueName],
-                                                          Ven.[Email],
-                                                          Ven.[Website],
-                                                          Ven.[Fax],
-                                                          Ven.[Facilities],
-                                                          Ven.[RecordStatusId],
-                                                          Ven.[CreatedByUserId],
-                                                          Ven.[CreatedDateTimeUtc],
-                                                          Ven.[ModifiedByUserId],
-                                                          Ven.[ModifiedDateTimeUtc],
-                                                          Ven.[AddressId],
-                                                          Ven.[Telephone],
-                                                          Ven.[BulkUploadVenueId],
-                                                          Ven.[CosmosId],
-                                                          Ven.[AddedByApplicationId],
-                                                          Ad.AddressLine1,
-                                                          ad.AddressLine2,
-                                                          ad.Town,
-                                                          ad.County,
-                                                          ad.Postcode,
-                                                          ad.[Latitude],
-                                                          ad.[Longitude],
-                                                          pr.ModifiedDateTimeUtc,
-                                                          pr.ModifiedDateTimeUtc,
-                                                          pr.Ukprn
-                                                    FROM Venue Ven
-                                                    INNER JOIN [Address] Ad on Ad.AddressId = Ven.AddressId
-                                                    INNER JOIN [Provider] pr on pr.ProviderId = ven.ProviderId
-                                                    WHERE Ven.RecordStatusID = 2";
+                    command.CommandText = @"
+                                            SELECT  Ven.[VenueId],
+                                                    Ven.[ProviderId],
+                                                    Ven.[ProviderOwnVenueRef],
+                                                    Ven.[VenueName],
+                                                    Ven.[Email],
+                                                    Ven.[Website],
+                                                    Ven.[Fax],
+                                                    Ven.[Facilities],
+                                                    Ven.[RecordStatusId],
+                                                    Ven.[CreatedByUserId],
+                                                    Ven.[CreatedDateTimeUtc],
+                                                    Ven.[ModifiedByUserId],
+                                                    Ven.[ModifiedDateTimeUtc],
+                                                    Ven.[AddressId],
+                                                    Ven.[Telephone],
+                                                    Ven.[BulkUploadVenueId],
+                                                    Ad.AddressLine1,
+                                                    ad.AddressLine2,
+                                                    ad.Town,
+                                                    ad.County,
+                                                    ad.Postcode,
+                                                    ad.[Latitude],
+                                                    ad.[Longitude],
+                                                    pr.ModifiedDateTimeUtc,
+                                                    pr.ModifiedDateTimeUtc,
+                                                    pr.Ukprn
+                                              FROM Tribal.Venue Ven
+                                              INNER JOIN Tribal.[Address] Ad on Ad.AddressId = Ven.AddressId
+                                              INNER JOIN tribal.[Provider] pr on pr.ProviderId = ven.ProviderId
+                                              WHERE Ven.RecordStatusID = 2";
 
                     try
                     {
