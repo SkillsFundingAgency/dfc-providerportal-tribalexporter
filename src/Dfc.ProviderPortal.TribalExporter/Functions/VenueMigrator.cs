@@ -185,7 +185,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     }
                     catch (Exception ex)
                     {
-                        log.LogInformation("starting query");
                         log.LogError(ex.Message);
                     }
                 }
