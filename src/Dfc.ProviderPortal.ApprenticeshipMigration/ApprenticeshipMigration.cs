@@ -474,8 +474,7 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                                             else
                                                             {
                                                                 apprenticeshipLocation.LocationId = venue.LocationId ?? location.LocationId;
-                                                                //apprenticeshipLocation.LocationGuidId =
-                                                                //    new Guid(venue.ID);
+                                                                //apprenticeshipLocation.LocationGuidId = new Guid(venue.ID);
                                                                 apprenticeshipLocation.Address = new Address()
                                                                 {
                                                                     Address1 = venue.Address1,

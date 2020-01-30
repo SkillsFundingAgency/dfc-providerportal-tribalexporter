@@ -58,44 +58,45 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var ukprnCache = new List<int>();
             var databaseId = configuration["CosmosDbSettings:DatabaseId"];
 
+            log.LogInformation("Got here");
             using (var sqlConnection = new SqlConnection(connectionString))
             {
                 using (var command = sqlConnection.CreateCommand())
                 {
                     command.CommandType = CommandType.Text;
                     command.CommandText = @"SELECT 
-	                                              Ven.[VenueId],
-                                                  Ven.[ProviderId],
-                                                  Ven.[ProviderOwnVenueRef],
-                                                  Ven.[VenueName],
-                                                  Ven.[Email],
-                                                  Ven.[Website],
-                                                  Ven.[Fax],
-                                                  Ven.[Facilities],
-                                                  Ven.[RecordStatusId],
-                                                  Ven.[CreatedByUserId],
-                                                  Ven.[CreatedDateTimeUtc],
-                                                  Ven.[ModifiedByUserId],
-                                                  Ven.[ModifiedDateTimeUtc],
-                                                  Ven.[AddressId],
-                                                  Ven.[Telephone],
-                                                  Ven.[BulkUploadVenueId],
-                                                  Ven.[CosmosId],
-                                                  Ven.[AddedByApplicationId],
-	                                              Ad.AddressLine1,
-	                                              ad.AddressLine2,
-                                                  ad.Town,
-	                                              ad.County,
-	                                              ad.Postcode,
-                                                  ad.[Latitude],
-                                                  ad.[Longitude],
-	                                              pr.ModifiedDateTimeUtc,
-	                                              pr.ModifiedDateTimeUtc,
-                                                  pr.Ukprn
-                                            FROM Venue Ven
-                                            INNER JOIN [Address] Ad on Ad.AddressId = Ven.AddressId
-                                            INNER JOIN [Provider] pr on pr.ProviderId = ven.ProviderId
-                                            WHERE Ven.RecordStatusID = 2";
+                                                       Ven.[VenueId],
+                                                          Ven.[ProviderId],
+                                                          Ven.[ProviderOwnVenueRef],
+                                                          Ven.[VenueName],
+                                                          Ven.[Email],
+                                                          Ven.[Website],
+                                                          Ven.[Fax],
+                                                          Ven.[Facilities],
+                                                          Ven.[RecordStatusId],
+                                                          Ven.[CreatedByUserId],
+                                                          Ven.[CreatedDateTimeUtc],
+                                                          Ven.[ModifiedByUserId],
+                                                          Ven.[ModifiedDateTimeUtc],
+                                                          Ven.[AddressId],
+                                                          Ven.[Telephone],
+                                                          Ven.[BulkUploadVenueId],
+                                                          Ven.[CosmosId],
+                                                          Ven.[AddedByApplicationId],
+                                                          Ad.AddressLine1,
+                                                          ad.AddressLine2,
+                                                          ad.Town,
+                                                          ad.County,
+                                                          ad.Postcode,
+                                                          ad.[Latitude],
+                                                          ad.[Longitude],
+                                                          pr.ModifiedDateTimeUtc,
+                                                          pr.ModifiedDateTimeUtc,
+                                                          pr.Ukprn
+                                                    FROM Venue Ven
+                                                    INNER JOIN [Address] Ad on Ad.AddressId = Ven.AddressId
+                                                    INNER JOIN [Provider] pr on pr.ProviderId = ven.ProviderId
+                                                    WHERE Ven.RecordStatusID = 2";
 
                     try
                     {
@@ -185,6 +186,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     }
                     catch (Exception ex)
                     {
+                        log.LogInformation("starting query");
                         log.LogError(ex.Message);
                     }
                 }

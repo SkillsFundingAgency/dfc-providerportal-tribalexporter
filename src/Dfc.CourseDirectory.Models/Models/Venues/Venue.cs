@@ -198,6 +198,7 @@ namespace Dfc.CourseDirectory.Models.Models.Venues
 
         protected override IEnumerable<object> GetEqualityComponents()
         {
+            yield return ID;
             yield return UKPRN;
             yield return ProviderID;
             yield return VenueID;
