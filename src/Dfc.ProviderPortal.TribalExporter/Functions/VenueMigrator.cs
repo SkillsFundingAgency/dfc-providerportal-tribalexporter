@@ -58,7 +58,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var ukprnCache = new List<int>();
             var databaseId = configuration["CosmosDbSettings:DatabaseId"];
 
-            log.LogInformation("Got here");
             using (var sqlConnection = new SqlConnection(connectionString))
             {
                 using (var command = sqlConnection.CreateCommand())
