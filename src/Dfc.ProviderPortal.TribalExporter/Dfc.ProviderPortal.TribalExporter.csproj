@@ -1,20 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <AzureFunctionsVersion>v3</AzureFunctionsVersion>
-    <FileUpgradeFlags>40</FileUpgradeFlags>
+    <AzureFunctionsVersion>v2</AzureFunctionsVersion>
     <UpgradeBackupLocation>C:\Users\Liam\Source\Repos\dfc-providerportal-tribalexporter\Backup\src\Dfc.ProviderPortal.TribalExporter\</UpgradeBackupLocation>
     <OldToolsVersion>2.0</OldToolsVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CsvHelper" Version="13.0.0" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.5.1" />
     <PackageReference Include="Dfc.ProviderPortal.Packages" Version="0.1.1" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.7.1" />
     <PackageReference Include="Microsoft.Azure.DocumentDB.Core" Version="2.2.3" />
     <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.14" />
     <PackageReference Include="Microsoft.Azure.WebJobs.Extensions" Version="3.0.5" />
     <PackageReference Include="Microsoft.Azure.WebJobs.Host.Storage" Version="3.0.14" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="1.1.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="2.2.0" />
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.2" />
   </ItemGroup>
