@@ -64,7 +64,65 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 {
                     command.CommandType = CommandType.Text;
                     command.CommandText = @"
-                                            SELECT  Ven.[VenueId],
+                                            DECLARE @Venues TABLE
+                                            (
+		                                            VenueId INT NULL,
+		                                            ProviderId INT NOT NULL,
+		                                            ProviderOwnVenueRef NVARCHAR(255)  NULL,
+		                                            VenueName NVARCHAR(255) NOT NULL,
+		                                            Email NVARCHAR(255) NULL,
+		                                            Website NVARCHAR(255) NULL,
+		                                            Fax NVARCHAR(35) NULL,
+		                                            Facilities NVARCHAR(2000),
+		                                            RecordStatusId INT NOT NULL,
+		                                            CreatedByUserId NVARCHAR(128) NOT NULL,
+		                                            CreatedDateTimeUtc DATETIME NOT NULL, 
+		                                            ModifiedByUserId NVARCHAR(128) NULL,
+		                                            ModifiedDateTimeUtc DATETIME NULL,
+		                                            AddressId INT,
+		                                            Telephone NVARCHAR(30) NULL,
+		                                            BulkUploadVenueId NVARCHAR(255) NULL,
+		                                            UKPRN INT NOT NULL,
+		                                            AddressLine1 NVARCHAR(110) NULL,
+		                                            AddressLine2 NVARCHAR(100) NULL,
+		                                            County NVARCHAR(75) NULL,
+		                                            Latitude FLOAT NULL,
+		                                            Longitude FLOAT NULL,
+		                                            Postcode NVARCHAR(30) NULL,
+		                                            Town NVARCHAR(75) NULL,
+		                                            source INT NOT NULL,
+		                                            LocationID INT NULL
+                                            )
+                                            INSERT INTO @Venues
+                                            (
+		                                            VenueId,
+		                                            ProviderId,
+		                                            ProviderOwnVenueRef,
+		                                            VenueName,
+		                                            Email,
+		                                            Website,
+		                                            Fax,
+		                                            Facilities,
+		                                            RecordStatusId,
+		                                            CreatedByUserId,
+		                                            CreatedDateTimeUtc, 
+		                                            ModifiedByUserId,
+		                                            ModifiedDateTimeUtc,
+		                                            AddressId,
+		                                            Telephone,
+		                                            BulkUploadVenueId,
+		                                            UKPRN,
+		                                            AddressLine1,
+		                                            AddressLine2,
+		                                            County,
+		                                            Latitude,
+		                                            Longitude,
+		                                            Postcode,
+		                                            Town,
+		                                            source,
+		                                            LocationID
+                                            )
+                                            SELECT  distinct Ven.[VenueId],
                                                     Ven.[ProviderId],
                                                     Ven.[ProviderOwnVenueRef],
                                                     Ven.[VenueName],
@@ -80,20 +138,56 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                                     Ven.[AddressId],
                                                     Ven.[Telephone],
                                                     Ven.[BulkUploadVenueId],
+		                                            pr.Ukprn,
                                                     Ad.AddressLine1,
                                                     ad.AddressLine2,
-                                                    ad.Town,
                                                     ad.County,
-                                                    ad.Postcode,
                                                     ad.[Latitude],
                                                     ad.[Longitude],
-                                                    pr.ModifiedDateTimeUtc,
-                                                    pr.ModifiedDateTimeUtc,
-                                                    pr.Ukprn
-                                              FROM Tribal.Venue Ven
-                                              INNER JOIN Tribal.[Address] Ad on Ad.AddressId = Ven.AddressId
-                                              INNER JOIN tribal.[Provider] pr on pr.ProviderId = ven.ProviderId
-                                              WHERE Ven.RecordStatusID = 2";
+		                                            ad.Postcode,
+		                                            ad.Town,
+		                                            1 as [Source],
+		                                            NULL as LocationId
+											FROM [tribal].Venue Ven
+                                            INNER JOIN [tribal].[Address] Ad on Ad.AddressId = Ven.AddressId
+                                            INNER JOIN [tribal].[Provider] pr on pr.ProviderId = ven.ProviderId
+                                            WHERE Ven.RecordStatusID = 2
+            
+											UNION ALL 
+
+											SELECT DISTINCT  NULL,
+		                                            L.[ProviderId],
+		                                            NULL,
+		                                            L.[LocationName],
+		                                            L.[Email],
+		                                            L.[Website],
+                                                    NULL,
+                                                    NULL,
+		                                            L.[RecordStatusId],
+                                                    L.[CreatedByUserId],
+                                                    L.[CreatedDateTimeUtc],
+                                                    L.[ModifiedByUserId],
+                                                    L.[ModifiedDateTimeUtc],
+                                                    L.[AddressId],
+                                                    L.[Telephone],
+                                                    NULL,
+		                                            pr.Ukprn,
+                                                    Ad.AddressLine1,
+                                                    ad.AddressLine2,
+		                                            ad.County,
+		                                            ad.[Latitude],
+                                                    ad.[Longitude],
+                                                    ad.Postcode,
+		                                            ad.Town,
+		                                            2 as [Source],
+		                                            L.LocationId as LocationId
+                                            FROM [tribal].Location l
+                                            INNER JOIN [tribal].Address ad on ad.AddressId = l.AddressId
+                                            INNER JOIN [tribal].Provider pr on pr.ProviderId = l.ProviderId
+                                            WHERE l.RecordStatusId = 2
+
+                                            SELECT * FROM @Venues
+                                            ";
 
                     try
                     {
@@ -109,41 +203,38 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                                 if (await Validate(item))
                                 {
-                                    var cosmosVenue = await venueCollectionService.GetDocumentID(item.VenueId);
+                                    var cosmosVenue = await GetVenue(item.Source, item.VenueId, item.LocationID);
                                     if (cosmosVenue != null)
                                     {
-                                        //Actual Update has been commented out until further notice, however we still want to write to the log
-                                        //file that we would potentially update this venue record.
-                                        //
-                                        //var s = UriFactory.CreateDocumentUri(databaseId, venuesCollectionId, cosmosVenue.ID.ToString());
-                                        //Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, venuesCollectionId);
-                                        //var editedVenue = new Dfc.CourseDirectory.Models.Models.Venues.Venue()
-                                        //{
-                                        //    ID = cosmosVenue.ID,
-                                        //    UKPRN = item.UKPRN,
-                                        //    VenueName = item.VenueName,
-                                        //    Address1 = item.Address.Address1,
-                                        //    Address2 = item.Address.Address2,
-                                        //    Town = item.Address.Town,
-                                        //    PostCode = item.Address.Postcode,
-                                        //    Latitude = item.Address.Latitude,
-                                        //    Longitude = item.Address.Longitude,
-                                        //    Status = MapVenueStatus(item.RecordStatusId),
-                                        //    UpdatedBy = "VenueMigrator",
-                                        //    DateUpdated = DateTime.Now,
-                                        //    VenueID = item.VenueId,
-                                        //    ProviderID = item.ProviderId,
-                                        //    ProvVenueID = item.ProviderOwnVenueRef,
-                                        //    Email = item.Email,
-                                        //    Website = item.Website,
-                                        //    Telephone = item.Telephone,
-                                        //    CreatedBy = item.CreatedByUserId,
-                                        //    CreatedDate = item.CreatedDateTimeUtc
+                                        var s = UriFactory.CreateDocumentUri(databaseId, venuesCollectionId, cosmosVenue.ID.ToString());
+                                        Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, venuesCollectionId);
+                                        var editedVenue = new Dfc.CourseDirectory.Models.Models.Venues.Venue()
+                                        {
+                                            ID = cosmosVenue.ID,
+                                            UKPRN = item.UKPRN,
+                                            VenueName = item.VenueName,
+                                            Address1 = item.Address.Address1,
+                                            Address2 = item.Address.Address2,
+                                            Town = item.Address.Town,
+                                            PostCode = item.Address.Postcode,
+                                            Latitude = item.Address.Latitude,
+                                            Longitude = item.Address.Longitude,
+                                            Status = MapVenueStatus(item),
+                                            UpdatedBy = "VenueMigrator",
+                                            DateUpdated = DateTime.Now,
+                                            VenueID = item.VenueId,
+                                            ProviderID = item.ProviderId,
+                                            ProvVenueID = item.ProviderOwnVenueRef,
+                                            Email = item.Email,
+                                            Website = item.Website,
+                                            Telephone = item.Telephone,
+                                            CreatedBy = item.CreatedByUserId,
+                                            CreatedDate = item.CreatedDateTimeUtc,
+                                            LocationId = item.LocationID
+                                        };
+                                        await cosmosDbHelper.GetClient().UpsertDocumentAsync(collectionUri, editedVenue);
 
-                                        //};
-                                        //await cosmosDbHelper.GetClient().UpsertDocumentAsync(collectionUri, editedVenue);
-
-                                        AddResultMessage(item.VenueId, "Venue Exists - Record not updated");
+                                        AddResultMessage(item.VenueId, item.LocationID, "Updated Record", $"Old cosmos record LocationId:{cosmosVenue.LocationId}, VenueId: {cosmosVenue.VenueID}");
                                     }
                                     else
                                     {
@@ -157,7 +248,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                             PostCode = item.Address.Postcode,
                                             Latitude = item.Address.Latitude,
                                             Longitude = item.Address.Longitude,
-                                            Status = MapVenueStatus(item.RecordStatusId),
+                                            Status = MapVenueStatus(item),
                                             UpdatedBy = item.CreatedByUserId,
                                             DateUpdated = item.CreatedDateTimeUtc,
                                             VenueID = item.VenueId,
@@ -167,12 +258,13 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                             Website = item.Website,
                                             Telephone = item.Telephone,
                                             CreatedDate = DateTime.Now,
-                                            CreatedBy = "VenueMigrator"
+                                            CreatedBy = "VenueMigrator",
+                                            LocationId = item.LocationID
                                         };
                                         await cosmosDbHelper.CreateDocumentAsync(cosmosDbHelper.GetClient(), venuesCollectionId, newVenue);
 
                                         //Log that successfully inserted venue
-                                        AddResultMessage(item.VenueId, "Inserted Venue");
+                                        AddResultMessage(item.VenueId, item.LocationID, "Inserted Venue");
                                     }
                                 }
 
@@ -190,9 +282,28 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 await WriteResultsToBlobStorage(resultsObjBytes);
             }
 
-            CourseDirectory.Models.Models.Venues.VenueStatus MapVenueStatus(TribalRecordStatus recordStatus)
+            async Task<Dfc.CourseDirectory.Models.Models.Venues.Venue> GetVenue(VenueSource source, int? venueId, int? locationId)
             {
-                switch (recordStatus)
+                switch(source)
+                {
+                    case VenueSource.Venue:
+                        return await venueCollectionService.GetDocumentByVenueId(venueId.Value);
+                    case VenueSource.Location:
+                        return await venueCollectionService.GetDocumentByLocationId(locationId.Value);
+                    default: return null;
+                }
+            }
+
+            CourseDirectory.Models.Models.Venues.VenueStatus MapVenueStatus(Venue venue)
+            {
+                //ignore record status for venues that do not have a postcode & migrate it over
+                //as pending.
+                if(string.IsNullOrEmpty(venue.Address?.Postcode))
+                {
+                    return CourseDirectory.Models.Models.Venues.VenueStatus.Pending;
+                }
+
+                switch (venue.RecordStatusId)
                 {
                     case TribalRecordStatus.Pending: return CourseDirectory.Models.Models.Venues.VenueStatus.Pending;
                     case TribalRecordStatus.Live: return CourseDirectory.Models.Models.Venues.VenueStatus.Live;
@@ -238,7 +349,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 return list;
             }
 
-            void AddResultMessage(int venueId, string status, string message = "")
+            void AddResultMessage(int? venueId, int? locationId, string status, string message = "")
             {
                 var validateResult = new ResultMessage() { VenueId = venueId, Status = status, Message = message };
                 result.Add(validateResult);
@@ -249,7 +360,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 //are providers on list of whitelisted providers file
                 if (!whiteListProviders.Any(x => x == item.UKPRN))
                 {
-                    AddResultMessage(item.VenueId, "Failed", $"Provider {item.ProviderId} not on whitelist, ukprn {item.UKPRN}");
+                    AddResultMessage(item.VenueId, item.LocationID, "Failed", $"Provider {item.ProviderId} not on whitelist, ukprn {item.UKPRN}");
                     return false;
                 }
 
@@ -259,7 +370,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     var cosmosProvider = await providerCollectionService.ProviderExists(item.UKPRN);
                     if (!cosmosProvider)
                     {
-                        AddResultMessage(item.VenueId, "Failed", "Unknown UKPRN");
+                        AddResultMessage(item.VenueId, item.LocationID, "Failed", "Unknown UKPRN");
                         return false;
                     }
                     else
@@ -277,7 +388,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 [Serializable()]
 public class ResultMessage
 {
-    public int VenueId { get; set; }
+    public int? VenueId { get; set; }
+    public int? LocationId { get; set; }
     public string Status { get; set; }
     public string Message { get; set; }
 }

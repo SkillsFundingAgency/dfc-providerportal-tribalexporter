@@ -81,22 +81,31 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             return documents.Count() > 0;
         }
 
-        public async Task<Venue> GetDocumentID(int venueId)
+        public async Task<Venue> GetDocumentByVenueId(int venueId)
         {
-            var documents = new List<Document>();
-
             var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.VenuesCollectionId);
-            var sql = $"SELECT* FROM c WHERE c.VENUE_ID = { venueId}";
+            var sql = $"SELECT* FROM c WHERE c.VENUE_ID = {venueId}";
             var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
             using (var client = _cosmosDbHelper.GetClient())
             {
                 var query =  client.CreateDocumentQuery<Venue>(uri, sql, options).AsDocumentQuery();
                 return (await query.ExecuteNextAsync()).FirstOrDefault();
             };
+        }
+         
+        public async Task<Venue> GetDocumentByLocationId(int locationId)
+        {
 
+            var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.VenuesCollectionId);
+            var sql = $"SELECT* FROM c WHERE c.LocationId = { locationId }";
+            var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
+            using (var client = _cosmosDbHelper.GetClient())
+            {
+                var query = client.CreateDocumentQuery<Venue>(uri, sql, options).AsDocumentQuery();
+                return (await query.ExecuteNextAsync()).FirstOrDefault();
+            };
         }
     }
 }
-
 
 
