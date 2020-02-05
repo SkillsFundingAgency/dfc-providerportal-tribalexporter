@@ -65,7 +65,7 @@ namespace Dfc.ProviderPortal.TribalExporter
             builder.Services.AddScoped<ICourseCollectionService, CourseCollectionService>();
             builder.Services.AddScoped<IVenueCollectionService, VenueCollectionService>();
             builder.Services.AddScoped<IApprenticeshipServiceWrapper, ApprenticeshipServiceWrapper>();
-
+            builder.Services.AddScoped<IUkrlpApiService, UkrlpApiService>();
 
 
             builder.Services.AddLogging(log => log.SetMinimumLevel(LogLevel.Trace));

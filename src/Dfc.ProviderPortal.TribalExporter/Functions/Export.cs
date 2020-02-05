@@ -19,6 +19,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 {
     public static class Export
     {
+        [Disable]
         [FunctionName(nameof(Export))]
         public static async Task Run(
             [TimerTrigger("%schedule%")]TimerInfo myTimer,

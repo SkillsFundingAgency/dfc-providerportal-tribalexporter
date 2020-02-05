@@ -32,6 +32,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 {
     public class FeCourseMigrationFunction
     {
+        [Disable]
         [FunctionName(nameof(FeCourseMigrationFunction))]
         public static async Task Run(
             [TimerTrigger("%FeMigrationSchedule%")] TimerInfo myTimer,
