@@ -25,7 +25,7 @@ namespace Dfc.CourseDirectory.Models.Models.Venues
         [JsonProperty("PROVIDER_ID", Required = Required.AllowNull)]
         public int ProviderID { get; set; }
         [JsonProperty("VENUE_ID", Required = Required.AllowNull)]
-        public int? VenueID { get; set; }
+        public int VenueID { get; set; }
         [JsonProperty("VENUE_NAME")]
         public string VenueName { get; set; }
         [JsonProperty("PROV_VENUE_ID", Required = Required.AllowNull)]
@@ -53,7 +53,7 @@ namespace Dfc.CourseDirectory.Models.Models.Venues
         public string EMAIL { get; set; }
         public string WEBSITE { get; set; }
 
-        public long? LocationId { get; set; }
+        public int? LocationId { get; set; }
         public int? TribalLocationId { get; set; }
         public string Telephone { get { return PHONE; } set { PHONE = value; } }
         public string Email { get { return EMAIL; } set { EMAIL = value; } }
