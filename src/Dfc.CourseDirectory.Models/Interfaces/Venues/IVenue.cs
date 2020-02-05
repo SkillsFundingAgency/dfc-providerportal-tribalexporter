@@ -10,7 +10,7 @@ namespace Dfc.CourseDirectory.Models.Interfaces.Venues
     {
         int UKPRN { get; set; }
         int ProviderID { get; }
-        int? VenueID { get; }
+        int VenueID { get; }
         string VenueName { get; }
         string ProvVenueID { get; }
         string Address1 { get; }
@@ -25,7 +25,7 @@ namespace Dfc.CourseDirectory.Models.Interfaces.Venues
         string UpdatedBy { get; }
 
         // Apprenticeship related
-        long? LocationId { get; set; }
+        int? LocationId { get; set; }
         string Telephone { get; set; }
         string Email { get; set; }
         string Website { get; set; }
