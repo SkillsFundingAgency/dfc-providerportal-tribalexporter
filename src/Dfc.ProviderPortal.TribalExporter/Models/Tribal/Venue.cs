@@ -10,7 +10,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Models.Tribal
     {
         public string ID { get; set; }
         public int UKPRN { get; set; }
-        public int VenueId { get; set; }
+        public int? VenueId { get; set; }
         public int ProviderId { get; set; }
         public string ProviderOwnVenueRef { get; set; }
         public string VenueName { get; set; }
@@ -29,13 +29,15 @@ namespace Dfc.ProviderPortal.TribalExporter.Models.Tribal
         public string CosmosId { get; set; }
         public int? AddedByApplicationId { get; set; }
         public Address Address { get; set; }
+        public int? LocationID { get; set; }
+        public VenueSource Source { get; set; }
  
 
 
         public static Venue FromDataReader(SqlDataReader reader)
         {
             var item = new Venue();
-            item.VenueId = (int) reader["VenueId"];
+            item.VenueId = reader["VenueId"] as int?;
             item.ProviderId = (int)reader["ProviderId"];
             item.ProviderOwnVenueRef = reader["ProviderOwnVenueRef"] as string;
             item.VenueName = reader["VenueName"] as string;
@@ -51,9 +53,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Models.Tribal
             item.AddressId = (int)reader["AddressId"];
             item.Telephone = reader["Telephone"] as string;
             item.BulkUploadVenueId = reader["BulkUploadVenueId"] as string;
-            item.CosmosId = reader["CosmosId"] as string;
-            item.AddedByApplicationId = reader["AddedByApplicationId"] as int?;
             item.UKPRN = (int) reader["UKPRN"];
+            item.LocationID = reader["LocationId"] as int?;
+            item.Source = (VenueSource) Enum.Parse(typeof(VenueSource), reader["Source"].ToString());
             item.Address = new Address()
             {
                 Address1 = reader["AddressLine1"] as string,

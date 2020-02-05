@@ -43,6 +43,12 @@ namespace Dfc.CourseDirectory.Models.Enums
         Deleted = 4
     }
 
+    public enum VenueSource
+    {
+        Venue = 1,
+        Location = 2
+    }
+
     public enum TransferMethod
     {
         [Description("Undefined")]

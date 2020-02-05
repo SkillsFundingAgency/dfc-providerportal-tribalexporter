@@ -25,7 +25,7 @@ namespace Dfc.CourseDirectory.Models.Models.Venues
         [JsonProperty("PROVIDER_ID", Required = Required.AllowNull)]
         public int ProviderID { get; set; }
         [JsonProperty("VENUE_ID", Required = Required.AllowNull)]
-        public int VenueID { get; set; }
+        public int? VenueID { get; set; }
         [JsonProperty("VENUE_NAME")]
         public string VenueName { get; set; }
         [JsonProperty("PROV_VENUE_ID", Required = Required.AllowNull)]
@@ -198,6 +198,7 @@ namespace Dfc.CourseDirectory.Models.Models.Venues
 
         protected override IEnumerable<object> GetEqualityComponents()
         {
+            yield return ID;
             yield return UKPRN;
             yield return ProviderID;
             yield return VenueID;
