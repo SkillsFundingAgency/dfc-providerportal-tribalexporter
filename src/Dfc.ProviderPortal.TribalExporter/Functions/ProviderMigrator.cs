@@ -109,8 +109,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 var item = ProviderSource.FromDataReader(dataReader);
                                 totalTribalCount++;
 
-                                log.LogInformation($"Processing Provider: {item.ProviderId} with Ukprn {item.UKPRN}.");
-
                                 try
                                 {
                                     // 2) Check if in Whitelist
@@ -156,8 +154,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                     AddResultMessage(item.ProviderId, "PROCESSED-Errored", $"Provider {item.ProviderId} updated in Cosmos Collection, ukprn {item.UKPRN}. {ex.Message}");
                                     log.LogInformation($"Error processing Provider {item.ProviderId} with Ukprn {item.UKPRN}. {ex.Message}");
                                 }
-
-                                log.LogInformation($"Processed Provider {item.ProviderId} with Ukprn {item.UKPRN}.");
                             }
                             dataReader.Close();
                         }
@@ -165,7 +161,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         stopWatch.Stop();
                         log.LogInformation($"Tribal Data: Processing completed in {stopWatch.ElapsedMilliseconds / 1000}");
 
-                        // TODO : Add final result message to show, count of attempted, updated, inserted, failed, and time taken
                         AddResultMessage(0, "SUMMARY", $"Total Time : {stopWatch.ElapsedMilliseconds / 1000} seconds, Tribal : {totalTribalCount}, URLP : {ukrlpApiProviders.Count}, Processed : {totalAttemptedCount}, Updated : {totalUpdatedCount}, Inserted : {totalInsertedCount}");
                     }
                     catch (Exception ex)
