@@ -63,8 +63,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             stopWatch.Stop();
             log.LogInformation($"UKRLApiService: Finished getting datain {stopWatch.ElapsedMilliseconds / 1000}.");
 
+            int totalTribalCount = 0;
+            int totalAttemptedCount = 0;
+            int totalUpdatedCount = 0;
+            int totalInsertedCount = 0;
+       
             var result = new List<ProviderResultMessage>();
-            var ukprnCache = new List<int>();
 
             using (var sqlConnection = new SqlConnection(connectionString))
             {
@@ -102,6 +106,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             {
                                 // 1) Read provider data from Tribal
                                 var item = ProviderSource.FromDataReader(dataReader);
+                                totalTribalCount++;
 
                                 log.LogInformation($"Processing Provider: {item.ProviderId} with Ukprn {item.UKPRN}.");
 
@@ -113,6 +118,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                         AddResultMessage(item.ProviderId, "SKIPPED-NotOnWhitelist", $"Provider {item.ProviderId} not on whitelist, ukprn {item.UKPRN}");
                                         continue;
                                     }
+
+                                    totalAttemptedCount++;
 
                                     // 3) Check againts API ? If no match Add to Result Message, skip next
                                     var ukrlpProviderItem = ukrlpApiProviders.FirstOrDefault(p => p.UnitedKingdomProviderReferenceNumber.Trim() == item.UKPRN.ToString());
@@ -132,12 +139,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                         Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, providerCollectionId);
 
                                         await cosmosDbHelper.GetClient().UpsertDocumentAsync(collectionUri, UpdateCosmosProviderItem(cosmosProviderItem, providerToUpsert));
+                                        totalUpdatedCount++;
 
                                         AddResultMessage(item.ProviderId, "PROCESSED-Updated", $"Provider {item.ProviderId} updated in Cosmos Collection, ukprn {item.UKPRN}");
                                     }
                                     else
                                     {
                                         await cosmosDbHelper.CreateDocumentAsync(cosmosDbHelper.GetClient(), providerCollectionId, providerToUpsert);
+                                        totalInsertedCount++;
 
                                         AddResultMessage(item.ProviderId, "PROCESSED-Inserted", $"Provider {item.ProviderId} inserted in Cosmos Collection, ukprn {item.UKPRN}");
                                     }
@@ -149,14 +158,15 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 }
 
                                 log.LogInformation($"Processed Provider {item.ProviderId} with Ukprn {item.UKPRN}.");
-
-                                // TODO : Add final result message to show, count of attempted, updated, inserted, failed, and time taken
                             }
                             dataReader.Close();
                         }
 
                         stopWatch.Stop();
                         log.LogInformation($"Tribal Data: Processing completed in {stopWatch.ElapsedMilliseconds / 1000}");
+
+                        // TODO : Add final result message to show, count of attempted, updated, inserted, failed, and time taken
+                        AddResultMessage(-1, "SUMMARY", $"Total Time : {stopWatch.ElapsedMilliseconds / 1000} seconds, Tribal : {totalTribalCount}, URLP : {ukrlpApiProviders.Count}, Processed : {totalAttemptedCount}, Updated : {totalUpdatedCount}, Inserted : {totalInsertedCount}");
                     }
                     catch (Exception ex)
                     {
