@@ -157,7 +157,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
 											SELECT DISTINCT  0, 
 		                                            L.[ProviderId],
-		                                            NULL,
+		                                            l.ProviderOwnLocationRef,
 		                                            L.[LocationName],
 		                                            L.[Email],
 		                                            L.[Website],
@@ -215,6 +215,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                             VenueName = item.VenueName,
                                             Address1 = item.Address.Address1,
                                             Address2 = item.Address.Address2,
+                                            County = item.Address.County,
                                             Town = item.Address.Town,
                                             PostCode = item.Address.Postcode,
                                             Latitude = item.Address.Latitude,
@@ -230,7 +231,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                             Telephone = item.Telephone,
                                             CreatedBy = item.CreatedByUserId,
                                             CreatedDate = item.CreatedDateTimeUtc,
-                                            LocationId = item.LocationID
+                                            LocationId = item.LocationID,
+                                            TribalLocationId = item.LocationID
                                         };
                                         await cosmosDbHelper.GetClient().UpsertDocumentAsync(collectionUri, editedVenue);
 
@@ -244,6 +246,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                             VenueName = item.VenueName,
                                             Address1 = item.Address.Address1,
                                             Address2 = item.Address.Address2,
+                                            County = item.Address.County,
                                             Town = item.Address.Town,
                                             PostCode = item.Address.Postcode,
                                             Latitude = item.Address.Latitude,
@@ -259,7 +262,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                             Telephone = item.Telephone,
                                             CreatedDate = DateTime.Now,
                                             CreatedBy = "VenueMigrator",
-                                            LocationId = item.LocationID
+                                            LocationId = item.LocationID,
+                                            TribalLocationId = item.LocationID
                                         };
                                         await cosmosDbHelper.CreateDocumentAsync(cosmosDbHelper.GetClient(), venuesCollectionId, newVenue);
 
