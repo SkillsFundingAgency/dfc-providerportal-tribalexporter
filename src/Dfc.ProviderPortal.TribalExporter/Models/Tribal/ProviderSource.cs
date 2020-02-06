@@ -19,16 +19,16 @@ namespace Dfc.ProviderPortal.TribalExporter.Models.Tribal
 
         public static ProviderSource FromDataReader(SqlDataReader reader)
         {
-            var item = new ProviderSource();
-            item.ProviderId = (int)reader["ProviderId"];
-            item.ProviderName = reader["ProviderName"] as string;
-            item.UKPRN = (int)reader["Ukprn"];
-            item.RecordStatusEnum = (TribalRecordStatus) Enum.Parse(typeof(TribalRecordStatus), reader["RecordStatusId"].ToString());
-            item.RoATPFFlag = (bool)reader["RoATPFFlag"];
-            item.RoATPProviderTypeId = (int)reader["RoATPProviderTypeId"];
-            item.RoATPStartDate = (DateTime?)reader["RoATPStartDate"];
-            item.PassedOverallQAChecks = (bool)reader["PassedOverallQAChecks"];
-            return item;
+                var item = new ProviderSource();
+                item.ProviderId = (int)reader["ProviderId"];
+                item.ProviderName = reader["ProviderName"] as string;
+                item.UKPRN = (int)reader["Ukprn"];
+                item.RecordStatusEnum = (TribalRecordStatus)Enum.Parse(typeof(TribalRecordStatus), reader["RecordStatusId"].ToString());
+                item.RoATPFFlag = (bool)reader["RoATPFFlag"];
+                item.RoATPProviderTypeId = (reader["RoATPProviderTypeId"] == DBNull.Value) ? null : (int?)reader["RoATPProviderTypeId"];
+                item.RoATPStartDate = (reader["RoATPStartDate"] == DBNull.Value) ? null : (DateTime?)reader["RoATPStartDate"];
+                item.PassedOverallQAChecks = (bool)reader["PassedOverallQAChecks"];
+                return item;
         }
     }
 }

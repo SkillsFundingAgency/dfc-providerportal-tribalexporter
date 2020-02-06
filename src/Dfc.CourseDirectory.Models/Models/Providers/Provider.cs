@@ -28,9 +28,15 @@ namespace Dfc.CourseDirectory.Models.Models.Providers
         public string MarketingInformation { get; set; }
         public string Alias { get; set; }
 
+        public bool PassedOverallQAChecks { get; set; }
+        public bool RoATPFFlag { get; set; }
+
+        public int? RoATPProviderTypeId { get; set; }
+
+        public DateTime? RoATPStartDate { get; set; }
+
         public ProviderType ProviderType { get; set; }
-
-
+       
         public Provider(Providercontact[] providercontact, Provideralias[] provideraliases, Verificationdetail[] verificationdetails)
         {
             ProviderContact = providercontact;

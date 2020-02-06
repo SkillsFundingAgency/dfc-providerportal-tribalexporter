@@ -66,7 +66,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             var documents = new List<Document>();
 
             var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.ProvidersCollectionId);
-            var sql = $"SELECT* FROM p WHERE p.UnitedKingdomProviderReferenceNumber = {ukprn}";
+            var sql = $"SELECT * FROM p WHERE p.UnitedKingdomProviderReferenceNumber = \"{ukprn}\"";
             var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
             using (var client = _cosmosDbHelper.GetClient())
             {

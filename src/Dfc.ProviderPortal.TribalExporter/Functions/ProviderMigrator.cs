@@ -3,6 +3,7 @@ using Dfc.CourseDirectory.Models.Models.Providers;
 using Dfc.ProviderPortal.Packages.AzureFunctions.DependencyInjection;
 using Dfc.ProviderPortal.TribalExporter.Interfaces;
 using Dfc.ProviderPortal.TribalExporter.Models.Tribal;
+using Microsoft.Azure.Documents.Client;
 using Microsoft.Azure.Storage.Blob;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Configuration;
@@ -15,6 +16,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using UkrlpService;
 
 namespace Dfc.ProviderPortal.TribalExporter.Functions
 {
@@ -32,7 +34,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     [Inject] IUkrlpApiService ukrlpApiService
                     )
         {
-            const string WHITE_LIST_FILE = "ProviderWhiteList.txt";
+            const string WHITE_LIST_FILE = "ProviderWhiteList-Jav.txt";
 
             var stopWatch = new Stopwatch();
 
@@ -41,7 +43,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var providerCollectionId = configuration["CosmosDbCollectionSettings:ProvidersCollectionId"];
             var connectionString = configuration.GetConnectionString("DefaultConnection");
             var venueExportFileName = $"ProviderExport-{DateTime.Now.ToString("dd-MM-yy HHmm")}";
-            
+
             var blobContainer = blobhelper.GetBlobContainer(configuration["BlobStorageSettings:Container"]);
 
             log.LogInformation($"WhitelistProviders : Start reading...");
@@ -52,6 +54,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
 
             // Get all changed data from UKRLP API
+
             stopWatch.Reset();
             log.LogInformation($"UKRLApiService: Start getting data..");
             stopWatch.Start();
@@ -88,7 +91,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         //Open connection.
                         sqlConnection.Open();
 
+                        stopWatch.Reset();
                         log.LogInformation($"Tribal Data: Start....");
+                        stopWatch.Start();
 
                         using (SqlDataReader dataReader = command.ExecuteReader())
                         {
@@ -97,47 +102,62 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 // 1) Read provider data from Tribal
                                 var item = ProviderSource.FromDataReader(dataReader);
 
-                                stopWatch.Reset();
                                 log.LogInformation($"Processing Provider: {item.ProviderId} with Ukprn {item.UKPRN}.");
 
-                                stopWatch.Start();
-                                // 2) Check if in Whitelist
-                                if (!whiteListProviders.Any(x => x == item.UKPRN))
+                                try
                                 {
-                                    AddResultMessage(item.ProviderId, "SKIPPED-NotOnWhitelist", $"Provider {item.ProviderId} not on whitelist, ukprn {item.UKPRN}");
-                                    continue;
+                                    // 2) Check if in Whitelist
+                                    if (!whiteListProviders.Any(x => x == item.UKPRN))
+                                    {
+                                        AddResultMessage(item.ProviderId, "SKIPPED-NotOnWhitelist", $"Provider {item.ProviderId} not on whitelist, ukprn {item.UKPRN}");
+                                        continue;
+                                    }
+
+                                    // 3) Check againts API ? If no match Add to Result Message, skip next
+                                    var ukrlpProviderItem = ukrlpApiProviders.FirstOrDefault(p => p.UnitedKingdomProviderReferenceNumber.Trim() == item.UKPRN.ToString());
+                                    if (ukrlpProviderItem == null)
+                                    {
+                                        AddResultMessage(item.ProviderId, "SKIPPED-NotInUkrlpApi", $"Provider {item.ProviderId} cannot be found in UKRLP Api, ukprn {item.UKPRN}");
+                                        continue;
+                                    }
+
+                                    // 4) Build Cosmos collection record
+                                    var providerToUpsert = BuildNewCosmosProviderItem(ukrlpProviderItem, item);
+                                    var cosmosProviderItem = await providerCollectionService.GetDocumentByUkprn(item.UKPRN);
+
+                                    // TODO : Should we compare the two providers for difference ?
+                                    if (cosmosProviderItem != null)
+                                    {
+                                        Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, providerCollectionId);
+
+                                        await cosmosDbHelper.GetClient().UpsertDocumentAsync(collectionUri, UpdateCosmosProviderItem(cosmosProviderItem, providerToUpsert));
+
+                                        AddResultMessage(item.ProviderId, "PROCESSED-Updated", $"Provider {item.ProviderId} updated in Cosmos Collection, ukprn {item.UKPRN}");
+                                    }
+                                    else
+                                    {
+                                        await cosmosDbHelper.CreateDocumentAsync(cosmosDbHelper.GetClient(), providerCollectionId, providerToUpsert);
+
+                                        AddResultMessage(item.ProviderId, "PROCESSED-Inserted", $"Provider {item.ProviderId} inserted in Cosmos Collection, ukprn {item.UKPRN}");
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    AddResultMessage(item.ProviderId, "PROCESSED-Errored", $"Provider {item.ProviderId} updated in Cosmos Collection, ukprn {item.UKPRN}. {ex.Message}");
+                                    log.LogInformation($"Error processing Provider {item.ProviderId} with Ukprn {item.UKPRN}. {ex.Message}");
                                 }
 
-                                // 3) Check againts API ? If no match Add to Result Message, skip next
-                                var ukrlpProviderItem = ukrlpApiProviders.FirstOrDefault(p => p.UnitedKingdomProviderReferenceNumber.Trim() == item.UKPRN.ToString());
-                                if (ukrlpProviderItem == null)
-                                {
-                                    AddResultMessage(item.ProviderId, "SKIPPED-NotInUkrlpApi", $"Provider {item.ProviderId} cannot be found in UKRLP Api, ukprn {item.UKPRN}");
-                                    continue;
-                                }
+                                log.LogInformation($"Processed Provider {item.ProviderId} with Ukprn {item.UKPRN}.");
 
-                                // 4) Build Cosmos collection record
-                                var cosmosProviderItem = await providerCollectionService.GetDocumentByUkprn(item.UKPRN);
-                                
-                                if(cosmosProviderItem != null)
-                                {
-                                    AddResultMessage(item.ProviderId, "PROCESSED-Updated", $"Provider {item.ProviderId} updated in Cosmos Collection, ukprn {item.UKPRN}");
-                                }
-                                else
-                                {
-                                    AddResultMessage(item.ProviderId, "PROCESSED-Inserted", $"Provider {item.ProviderId} inserted in Cosmos Collection, ukprn {item.UKPRN}");
-                                }
-
-                                stopWatch.Stop();
-
-                                log.LogInformation($"Processed Provider {item.ProviderId} with Ukprn {item.UKPRN} in {stopWatch.ElapsedMilliseconds / 1000} seconds.");
+                                // TODO : Add final result message to show, count of attempted, updated, inserted, failed, and time taken
                             }
                             dataReader.Close();
                         }
 
-                        log.LogInformation($"Tribal Data: Processing completed.");
+                        stopWatch.Stop();
+                        log.LogInformation($"Tribal Data: Processing completed in {stopWatch.ElapsedMilliseconds / 1000}");
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         log.LogError(ex.Message);
                     }
@@ -151,6 +171,130 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             {
                 var validateResult = new ProviderResultMessage() { ProviderId = providerId, Status = status, Message = message };
                 result.Add(validateResult);
+            }
+
+            Provider BuildNewCosmosProviderItem(ProviderRecordStructure ukrlpData, ProviderSource tribalData)
+            {
+                // Build contacts
+                List<Providercontact> providercontacts = new List<Providercontact>();
+                foreach (ProviderContactStructure ukrlpContact in ukrlpData.ProviderContact)
+                {
+                    // Build contact address
+                    Contactaddress contactaddress = new Contactaddress()
+                    {
+                        SAON = new SAON() { Description = ukrlpContact.ContactAddress.SAON.Description },
+                        PAON = new PAON() { Description = ukrlpContact.ContactAddress.PAON.Description },
+                        StreetDescription = ukrlpContact.ContactAddress.StreetDescription,
+                        UniqueStreetReferenceNumber = ukrlpContact.ContactAddress.UniqueStreetReferenceNumber,
+                        UniquePropertyReferenceNumber = ukrlpContact.ContactAddress.UniquePropertyReferenceNumber,
+                        Locality = ukrlpContact.ContactAddress.Locality,
+                        Items = ukrlpContact.ContactAddress.Items,
+                        ItemsElementName = ukrlpContact.ContactAddress.ItemsElementName?.Select(i => (int)i).ToArray(),
+                        PostTown = ukrlpContact.ContactAddress.ItemsElementName,
+                        PostCode = ukrlpContact.ContactAddress.PostCode,
+                    };
+
+                    // Build contact personal details
+                    Contactpersonaldetails contactpersonaldetails = new Contactpersonaldetails()
+                    {
+                        PersonNameTitle = ukrlpContact.ContactPersonalDetails.PersonNameTitle,
+                        PersonGivenName = ukrlpContact.ContactPersonalDetails.PersonGivenName,
+                        PersonFamilyName = ukrlpContact.ContactPersonalDetails.PersonFamilyName,
+                        PersonNameSuffix = ukrlpContact.ContactPersonalDetails.PersonNameSuffix,
+                        PersonRequestedName = ukrlpContact.ContactPersonalDetails.PersonRequestedName,
+
+                    };
+
+                    var providerContact = new Providercontact(contactaddress, contactpersonaldetails);
+                    providerContact.ContactType = ukrlpContact.ContactType;
+                    providerContact.ContactRole = ukrlpContact.ContactRole;
+                    providerContact.ContactTelephone1 = ukrlpContact.ContactTelephone1;
+                    providerContact.ContactTelephone2 = ukrlpContact.ContactTelephone2;
+                    // providerContact.ContactFax = ukrlpContact.ContactFax;
+                    providerContact.ContactWebsiteAddress = ukrlpContact.ContactWebsiteAddress;
+                    providerContact.ContactEmail = ukrlpContact.ContactEmail;
+                    providerContact.LastUpdated = ukrlpContact.LastUpdated;
+
+                    providercontacts.Add(providerContact);
+                }
+
+                // Build provider aliases
+                List<Provideralias> provideraliases = new List<Provideralias>();
+                foreach (ProviderAliasesStructure ukrlpProviderAlias in ukrlpData.ProviderAliases)
+                {
+                    provideraliases.Add(new Provideralias()
+                    {
+                        ProviderAlias = ukrlpProviderAlias.ProviderAlias,
+                        LastUpdated = ukrlpProviderAlias.LastUpdated,
+                    });
+                }
+
+                // Build provider Verificationdetail
+                List<Verificationdetail> providerVerificationdetails = new List<Verificationdetail>();
+                foreach (VerificationDetailsStructure providerVerificationDetail in ukrlpData.VerificationDetails)
+                {
+                    providerVerificationdetails.Add(new Verificationdetail()
+                    {
+                        VerificationAuthority = providerVerificationDetail.VerificationAuthority,
+                        VerificationID = providerVerificationDetail.VerificationID,
+                    });
+                }
+
+                Provider providerToUpsert = new Provider(providercontacts.ToArray(), provideraliases.ToArray(), providerVerificationdetails.ToArray());
+
+                // TODO : providerToUpsert.ProviderId = tribalData.ProviderId;
+                providerToUpsert.id = Guid.NewGuid();
+                providerToUpsert.UnitedKingdomProviderReferenceNumber = tribalData.UKPRN.ToString();
+                providerToUpsert.ProviderName = ukrlpData.ProviderName;
+                providerToUpsert.ProviderStatus = ukrlpData.ProviderStatus;
+                providerToUpsert.ProviderVerificationDate = ukrlpData.ProviderVerificationDate;
+                providerToUpsert.ProviderVerificationDateSpecified = ukrlpData.ProviderVerificationDateSpecified;
+                providerToUpsert.ExpiryDateSpecified = ukrlpData.ExpiryDateSpecified;
+                providerToUpsert.ProviderAssociations = ukrlpData.ProviderAssociations;
+                //TODO providerToUpsert.Alias = What is the source for this;
+                //TODO DateUpdated does not exists in the destination ?
+                //TODO DateDownloaded does not exists in the destination ?
+                providerToUpsert.Status = Status.Onboarded; // TODO : is this correct ?
+                providerToUpsert.PassedOverallQAChecks = tribalData.PassedOverallQAChecks;
+                providerToUpsert.RoATPFFlag = tribalData.RoATPFFlag;
+                providerToUpsert.RoATPProviderTypeId = tribalData.RoATPProviderTypeId;
+                providerToUpsert.RoATPStartDate = tribalData.RoATPStartDate;
+
+                // TODO : Updated By
+                // TODO : Updated On
+
+                return providerToUpsert;
+            }
+
+            Provider UpdateCosmosProviderItem(Provider cosmosProviderItem, Provider providerToUpsert)
+            {
+                cosmosProviderItem.Alias = providerToUpsert.Alias;
+                cosmosProviderItem.ExpiryDateSpecified = providerToUpsert.ExpiryDateSpecified;
+                //cosmosProviderItem.MarketingInformation = providerToUpsert.MarketingInformation;
+                //cosmosProviderItem.NationalApprenticeshipProvider = providerToUpsert.ExpiryDateSpecified;
+                cosmosProviderItem.PassedOverallQAChecks = providerToUpsert.PassedOverallQAChecks;
+                cosmosProviderItem.ProviderAliases = providerToUpsert.ProviderAliases;
+                cosmosProviderItem.ProviderAssociations = providerToUpsert.ProviderAssociations;
+                cosmosProviderItem.ProviderContact = providerToUpsert.ProviderContact;
+                // TODO cosmosProviderItem.ProviderId = providerToUpsert.ProviderId;
+                cosmosProviderItem.ProviderName = providerToUpsert.ProviderName;
+                cosmosProviderItem.ProviderStatus = providerToUpsert.ProviderStatus;
+                cosmosProviderItem.ProviderType = providerToUpsert.ProviderType;
+                cosmosProviderItem.ProviderVerificationDate = providerToUpsert.ProviderVerificationDate;
+                cosmosProviderItem.ProviderVerificationDateSpecified = providerToUpsert.ProviderVerificationDateSpecified;
+                cosmosProviderItem.RoATPFFlag = providerToUpsert.RoATPFFlag;
+                cosmosProviderItem.RoATPProviderTypeId = providerToUpsert.RoATPProviderTypeId;
+                cosmosProviderItem.RoATPStartDate = providerToUpsert.RoATPStartDate;
+                cosmosProviderItem.Status = providerToUpsert.Status;
+                //cosmosProviderItem.TradingName = providerToUpsert.Provider;
+                cosmosProviderItem.UnitedKingdomProviderReferenceNumber = providerToUpsert.UnitedKingdomProviderReferenceNumber;
+                //cosmosProviderItem.UPIN = providerToUpsert.UPIN;
+                cosmosProviderItem.VerificationDetails = providerToUpsert.VerificationDetails;
+
+                // TODO : Updated By
+                // TODO : Updated On
+
+                return cosmosProviderItem;
             }
 
             async Task<IList<int>> GetProviderWhiteList()
