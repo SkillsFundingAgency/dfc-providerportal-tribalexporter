@@ -10,7 +10,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Models.Tribal
     {
         public string ID { get; set; }
         public int UKPRN { get; set; }
-        public int? VenueId { get; set; }
+        public int VenueId { get; set; }
         public int ProviderId { get; set; }
         public string ProviderOwnVenueRef { get; set; }
         public string VenueName { get; set; }
@@ -37,7 +37,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Models.Tribal
         public static Venue FromDataReader(SqlDataReader reader)
         {
             var item = new Venue();
-            item.VenueId = reader["VenueId"] as int?;
+            item.VenueId = (int) reader["VenueId"];
             item.ProviderId = (int)reader["ProviderId"];
             item.ProviderOwnVenueRef = reader["ProviderOwnVenueRef"] as string;
             item.VenueName = reader["VenueName"] as string;

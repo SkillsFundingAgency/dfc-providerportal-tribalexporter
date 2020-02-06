@@ -66,7 +66,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     command.CommandText = @"
                                             DECLARE @Venues TABLE
                                             (
-		                                            VenueId INT NULL,
+		                                            VenueId INT NOT NULL,
 		                                            ProviderId INT NOT NULL,
 		                                            ProviderOwnVenueRef NVARCHAR(255)  NULL,
 		                                            VenueName NVARCHAR(255) NOT NULL,
@@ -155,7 +155,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             
 											UNION ALL 
 
-											SELECT DISTINCT  NULL,
+											SELECT DISTINCT  0, 
 		                                            L.[ProviderId],
 		                                            NULL,
 		                                            L.[LocationName],
@@ -280,6 +280,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 }
                 var resultsObjBytes = GetResultAsByteArray(result);
                 await WriteResultsToBlobStorage(resultsObjBytes);
+
+                //log completion
+                log.LogInformation("Migrating Venues Complete");
             }
 
             async Task<Dfc.CourseDirectory.Models.Models.Venues.Venue> GetVenue(VenueSource source, int? venueId, int? locationId)
@@ -349,9 +352,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 return list;
             }
 
-            void AddResultMessage(int? venueId, int? locationId, string status, string message = "")
+            void AddResultMessage(int venueId, int? locationId, string status, string message = "")
             {
-                var validateResult = new ResultMessage() { VenueId = venueId, Status = status, Message = message };
+                var validateResult = new ResultMessage() { VenueId = venueId, LocationId = locationId, Status = status, Message = message };
                 result.Add(validateResult);
             }
 
@@ -388,7 +391,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 [Serializable()]
 public class ResultMessage
 {
-    public int? VenueId { get; set; }
+    public int VenueId { get; set; }
     public int? LocationId { get; set; }
     public string Status { get; set; }
     public string Message { get; set; }
