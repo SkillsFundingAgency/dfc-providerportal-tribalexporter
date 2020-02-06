@@ -36,6 +36,9 @@ namespace Dfc.CourseDirectory.Models.Models.Providers
         public DateTime? RoATPStartDate { get; set; }
 
         public ProviderType ProviderType { get; set; }
+
+        public string LastUpdatedBy { get; set; }
+        public DateTime LastUpdatedOn { get; set; }
        
         public Provider(Providercontact[] providercontact, Provideralias[] provideraliases, Verificationdetail[] verificationdetails)
         {

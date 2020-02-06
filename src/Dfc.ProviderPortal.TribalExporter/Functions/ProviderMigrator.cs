@@ -35,6 +35,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     )
         {
             const string WHITE_LIST_FILE = "ProviderWhiteList-Jav.txt";
+            const string ProviderAppName = "Provder.Migrator";
 
             var stopWatch = new Stopwatch();
 
@@ -260,8 +261,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 providerToUpsert.RoATPProviderTypeId = tribalData.RoATPProviderTypeId;
                 providerToUpsert.RoATPStartDate = tribalData.RoATPStartDate;
 
-                // TODO : Updated By
-                // TODO : Updated On
+                providerToUpsert.LastUpdatedBy = ProviderAppName;
+                providerToUpsert.LastUpdatedOn = DateTime.UtcNow;
 
                 return providerToUpsert;
             }
@@ -291,8 +292,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 //cosmosProviderItem.UPIN = providerToUpsert.UPIN;
                 cosmosProviderItem.VerificationDetails = providerToUpsert.VerificationDetails;
 
-                // TODO : Updated By
-                // TODO : Updated On
+                providerToUpsert.LastUpdatedBy = ProviderAppName;
+                providerToUpsert.LastUpdatedOn = DateTime.UtcNow;
 
                 return cosmosProviderItem;
             }
