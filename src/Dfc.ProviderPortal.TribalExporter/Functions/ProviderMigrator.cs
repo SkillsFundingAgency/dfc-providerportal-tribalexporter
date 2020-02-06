@@ -166,7 +166,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         log.LogInformation($"Tribal Data: Processing completed in {stopWatch.ElapsedMilliseconds / 1000}");
 
                         // TODO : Add final result message to show, count of attempted, updated, inserted, failed, and time taken
-                        AddResultMessage(-1, "SUMMARY", $"Total Time : {stopWatch.ElapsedMilliseconds / 1000} seconds, Tribal : {totalTribalCount}, URLP : {ukrlpApiProviders.Count}, Processed : {totalAttemptedCount}, Updated : {totalUpdatedCount}, Inserted : {totalInsertedCount}");
+                        AddResultMessage(0, "SUMMARY", $"Total Time : {stopWatch.ElapsedMilliseconds / 1000} seconds, Tribal : {totalTribalCount}, URLP : {ukrlpApiProviders.Count}, Processed : {totalAttemptedCount}, Updated : {totalUpdatedCount}, Inserted : {totalInsertedCount}");
                     }
                     catch (Exception ex)
                     {
@@ -304,8 +304,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 cosmosProviderItem.UPIN = providerToUpsert.UPIN;
                 cosmosProviderItem.VerificationDetails = providerToUpsert.VerificationDetails;
 
-                providerToUpsert.LastUpdatedBy = ProviderAppName;
-                providerToUpsert.LastUpdatedOn = DateTime.UtcNow;
+                cosmosProviderItem.LastUpdatedBy = providerToUpsert.LastUpdatedBy;
+                cosmosProviderItem.LastUpdatedOn = providerToUpsert.LastUpdatedOn;
 
                 return cosmosProviderItem;
             }
