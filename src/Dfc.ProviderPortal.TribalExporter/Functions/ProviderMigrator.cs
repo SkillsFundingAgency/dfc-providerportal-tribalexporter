@@ -47,12 +47,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             var blobContainer = blobhelper.GetBlobContainer(configuration["BlobStorageSettings:Container"]);
 
-            log.LogInformation($"WhitelistProviders : Start reading...");
-            stopWatch.Start();
+            log.LogInformation($"WhitelistProviders : Start loading...");
             var whiteListProviders = await GetProviderWhiteList();
-            stopWatch.Start();
-            log.LogInformation($"WhitelistProviders : Finished reading in {stopWatch.ElapsedMilliseconds / 1000} seconds.");
-
+            log.LogInformation($"WhitelistProviders : Finished loading.");
 
             // Get all changed data from UKRLP API
 
