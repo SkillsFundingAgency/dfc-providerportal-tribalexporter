@@ -34,7 +34,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     [Inject] IUkrlpApiService ukrlpApiService
                     )
         {
-            const string WHITE_LIST_FILE = "ProviderWhiteList-Jav.txt";
+            const string WHITE_LIST_FILE = "ProviderWhiteList.txt";
             const string ProviderAppName = "Provder.Migrator";
 
             var stopWatch = new Stopwatch();
@@ -84,7 +84,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 		                                            P.RoATPFFlag,
 		                                            P.RoATPProviderTypeId,
 		                                            P.RoATPStartDate,
-		                                            p.PassedOverallQAChecks
+		                                            p.PassedOverallQAChecks,
+                                                    p.MarketingInformation,
+													p.NationalApprenticeshipProvider,
+													p.TradingName,
+													p.UPIN
                                             FROM [Tribal].[Provider] P
                                             JOIN [Tribal].[RecordStatus] RS
                                             ON P.RecordStatusId = RS.RecordStatusId
@@ -133,7 +137,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                     var providerToUpsert = BuildNewCosmosProviderItem(ukrlpProviderItem, item);
                                     var cosmosProviderItem = await providerCollectionService.GetDocumentByUkprn(item.UKPRN);
 
-                                    // TODO : Should we compare the two providers for difference ?
                                     if (cosmosProviderItem != null)
                                     {
                                         Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, providerCollectionId);
@@ -221,7 +224,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     providerContact.ContactRole = ukrlpContact.ContactRole;
                     providerContact.ContactTelephone1 = ukrlpContact.ContactTelephone1;
                     providerContact.ContactTelephone2 = ukrlpContact.ContactTelephone2;
-                    // providerContact.ContactFax = ukrlpContact.ContactFax;
                     providerContact.ContactWebsiteAddress = ukrlpContact.ContactWebsiteAddress;
                     providerContact.ContactEmail = ukrlpContact.ContactEmail;
                     providerContact.LastUpdated = ukrlpContact.LastUpdated;
@@ -253,7 +255,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 Provider providerToUpsert = new Provider(providercontacts.ToArray(), provideraliases.ToArray(), providerVerificationdetails.ToArray());
 
-                // TODO : providerToUpsert.ProviderId = tribalData.ProviderId;
+                providerToUpsert.ProviderId = tribalData.ProviderId;
                 providerToUpsert.id = Guid.NewGuid();
                 providerToUpsert.UnitedKingdomProviderReferenceNumber = tribalData.UKPRN.ToString();
                 providerToUpsert.ProviderName = ukrlpData.ProviderName;
@@ -262,14 +264,17 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 providerToUpsert.ProviderVerificationDateSpecified = ukrlpData.ProviderVerificationDateSpecified;
                 providerToUpsert.ExpiryDateSpecified = ukrlpData.ExpiryDateSpecified;
                 providerToUpsert.ProviderAssociations = ukrlpData.ProviderAssociations;
-                //TODO providerToUpsert.Alias = What is the source for this;
-                //TODO DateUpdated does not exists in the destination ?
-                //TODO DateDownloaded does not exists in the destination ?
+                providerToUpsert.Alias = ukrlpData.ProviderAliases?.FirstOrDefault()?.ProviderAlias;
                 providerToUpsert.Status = Status.Onboarded; // TODO : is this correct ?
                 providerToUpsert.PassedOverallQAChecks = tribalData.PassedOverallQAChecks;
                 providerToUpsert.RoATPFFlag = tribalData.RoATPFFlag;
                 providerToUpsert.RoATPProviderTypeId = tribalData.RoATPProviderTypeId;
                 providerToUpsert.RoATPStartDate = tribalData.RoATPStartDate;
+                providerToUpsert.MarketingInformation = tribalData.MarketingInformation;
+                providerToUpsert.NationalApprenticeshipProvider = tribalData.NationalApprenticeshipProvider;
+                providerToUpsert.TradingName = tribalData.TradingName;
+                providerToUpsert.UPIN = tribalData.UPIN;
+
 
                 providerToUpsert.LastUpdatedBy = ProviderAppName;
                 providerToUpsert.LastUpdatedOn = DateTime.UtcNow;
@@ -281,13 +286,13 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             {
                 cosmosProviderItem.Alias = providerToUpsert.Alias;
                 cosmosProviderItem.ExpiryDateSpecified = providerToUpsert.ExpiryDateSpecified;
-                //cosmosProviderItem.MarketingInformation = providerToUpsert.MarketingInformation;
-                //cosmosProviderItem.NationalApprenticeshipProvider = providerToUpsert.ExpiryDateSpecified;
+                cosmosProviderItem.MarketingInformation = providerToUpsert.MarketingInformation; 
+                cosmosProviderItem.NationalApprenticeshipProvider = providerToUpsert.NationalApprenticeshipProvider; 
                 cosmosProviderItem.PassedOverallQAChecks = providerToUpsert.PassedOverallQAChecks;
                 cosmosProviderItem.ProviderAliases = providerToUpsert.ProviderAliases;
                 cosmosProviderItem.ProviderAssociations = providerToUpsert.ProviderAssociations;
                 cosmosProviderItem.ProviderContact = providerToUpsert.ProviderContact;
-                // TODO cosmosProviderItem.ProviderId = providerToUpsert.ProviderId;
+                cosmosProviderItem.ProviderId = providerToUpsert.ProviderId;
                 cosmosProviderItem.ProviderName = providerToUpsert.ProviderName;
                 cosmosProviderItem.ProviderStatus = providerToUpsert.ProviderStatus;
                 cosmosProviderItem.ProviderType = providerToUpsert.ProviderType;
@@ -297,9 +302,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 cosmosProviderItem.RoATPProviderTypeId = providerToUpsert.RoATPProviderTypeId;
                 cosmosProviderItem.RoATPStartDate = providerToUpsert.RoATPStartDate;
                 cosmosProviderItem.Status = providerToUpsert.Status;
-                //cosmosProviderItem.TradingName = providerToUpsert.Provider;
+                cosmosProviderItem.TradingName = providerToUpsert.TradingName; 
                 cosmosProviderItem.UnitedKingdomProviderReferenceNumber = providerToUpsert.UnitedKingdomProviderReferenceNumber;
-                //cosmosProviderItem.UPIN = providerToUpsert.UPIN;
+                cosmosProviderItem.UPIN = providerToUpsert.UPIN;
                 cosmosProviderItem.VerificationDetails = providerToUpsert.VerificationDetails;
 
                 providerToUpsert.LastUpdatedBy = ProviderAppName;

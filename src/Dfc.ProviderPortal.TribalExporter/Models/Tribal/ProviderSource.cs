@@ -16,6 +16,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Models.Tribal
         public int? RoATPProviderTypeId { get; set; }
         public DateTime? RoATPStartDate { get; set; }
         public bool PassedOverallQAChecks { get; set; }
+        public string MarketingInformation { get; set; }
+        public bool NationalApprenticeshipProvider { get; set; }
+        public string TradingName { get; set; }
+        public int? UPIN { get; set; }
 
         public static ProviderSource FromDataReader(SqlDataReader reader)
         {
@@ -28,7 +32,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Models.Tribal
                 item.RoATPProviderTypeId = (reader["RoATPProviderTypeId"] == DBNull.Value) ? null : (int?)reader["RoATPProviderTypeId"];
                 item.RoATPStartDate = (reader["RoATPStartDate"] == DBNull.Value) ? null : (DateTime?)reader["RoATPStartDate"];
                 item.PassedOverallQAChecks = (bool)reader["PassedOverallQAChecks"];
-                return item;
+                item.MarketingInformation = reader["MarketingInformation"] as string;
+                item.NationalApprenticeshipProvider = (bool)reader["NationalApprenticeshipProvider"];
+                item.TradingName = reader["TradingName"] as string;
+                item.UPIN = (reader["UPIN"] == DBNull.Value) ? null : (int?)reader["UPIN"];
+
+            return item;
         }
     }
 }
