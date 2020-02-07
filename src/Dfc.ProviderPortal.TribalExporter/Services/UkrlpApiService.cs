@@ -15,7 +15,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
 
         }
 
-        public List<ProviderRecordStructure> GetAllProviders()
+        public List<ProviderRecordStructure> GetAllProviders(List<string> ukprnList)
         {
             string[] statusesToFetch =
              {
@@ -27,19 +27,25 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
 
             List<ProviderRecordStructure> results = new List<ProviderRecordStructure>();
 
-            var request = BuildRequest();
+            int chunkSize = 300;
+            var noOfChunks = Math.Ceiling((double)ukprnList.Count / chunkSize);
 
-            foreach (String status in statusesToFetch)
+            // Get UKRLP data in chunks at a time as API does not support large requests.
+            for (int i = 0; i < noOfChunks; i++)
             {
-                request.SelectionCriteria.ProviderStatus = status;
-                request.QueryId = GetNextQueryId();
+                foreach (String status in statusesToFetch)
+                {
+                    var request = BuildRequest(ukprnList.Skip(i * chunkSize).Take(chunkSize).ToArray());
+                    request.SelectionCriteria.ProviderStatus = status;
+                    request.QueryId = GetNextQueryId();
 
-                var providerClient = new ProviderQueryPortTypeClient();
-                providerClient.InnerChannel.OperationTimeout = new TimeSpan(0, 10, 0);
-                Task<response> x = providerClient.retrieveAllProvidersAsync(request);
-                x.Wait();
+                    var providerClient = new ProviderQueryPortTypeClient();
+                    providerClient.InnerChannel.OperationTimeout = new TimeSpan(0, 10, 0);
+                    Task<response> x = providerClient.retrieveAllProvidersAsync(request);
+                    x.Wait();
 
-                results.AddRange(x.Result?.ProviderQueryResponse?.MatchingProviderRecords ?? new ProviderRecordStructure[] { });
+                    results.AddRange(x.Result?.ProviderQueryResponse?.MatchingProviderRecords ?? new ProviderRecordStructure[] { });
+                }
             }
 
             return results.ToList();
@@ -52,13 +58,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             return id.ToString();
         }
 
-        private ProviderQueryStructure BuildRequest()
+        private ProviderQueryStructure BuildRequest(string[] ukprnListToFetch)
         {
             SelectionCriteriaStructure scs = new SelectionCriteriaStructure
             {
                 StakeholderId = "1",
-                ProviderUpdatedSince = DateTime.Now.AddMonths(-12),
-                ProviderUpdatedSinceSpecified = true,
+                UnitedKingdomProviderReferenceNumberList = ukprnListToFetch,
                 ApprovedProvidersOnly = YesNoType.No,
                 ApprovedProvidersOnlySpecified = true,
                 CriteriaCondition = QueryCriteriaConditionType.OR,
