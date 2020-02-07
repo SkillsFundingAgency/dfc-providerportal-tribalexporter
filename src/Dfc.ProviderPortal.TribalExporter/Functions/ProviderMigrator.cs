@@ -56,7 +56,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             stopWatch.Reset();
             log.LogInformation($"UKRLApiService: Start getting data..");
             stopWatch.Start();
-            var ukrlpApiProviders = ukrlpApiService.GetAllProviders();
+            var ukrlpApiProviders = ukrlpApiService.GetAllProviders(whiteListProviders.Select(p => p.ToString()).ToList());
             stopWatch.Stop();
             log.LogInformation($"UKRLApiService: Finished getting datain {stopWatch.ElapsedMilliseconds / 1000}.");
 
