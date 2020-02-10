@@ -35,7 +35,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     )
         {
             const string WHITE_LIST_FILE = "ProviderWhiteList.txt";
-            const string ProviderAppName = "Provder.Migrator";
+            const string ProviderAppName = "Provider.Migrator";
 
             var stopWatch = new Stopwatch();
 
