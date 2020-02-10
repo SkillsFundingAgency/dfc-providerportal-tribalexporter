@@ -20,6 +20,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Models.Tribal
         public bool NationalApprenticeshipProvider { get; set; }
         public string TradingName { get; set; }
         public int? UPIN { get; set; }
+        public int HasCourse { get; set; }
+        public int HasApprenticeship { get; set; }
 
         public static ProviderSource FromDataReader(SqlDataReader reader)
         {
@@ -36,6 +38,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Models.Tribal
                 item.NationalApprenticeshipProvider = (bool)reader["NationalApprenticeshipProvider"];
                 item.TradingName = reader["TradingName"] as string;
                 item.UPIN = (reader["UPIN"] == DBNull.Value) ? null : (int?)reader["UPIN"];
+                item.HasCourse = (int)reader["HasCourse"];
+                item.HasApprenticeship = (int)reader["HasApprenticeship"];
 
             return item;
         }

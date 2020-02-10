@@ -35,7 +35,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     )
         {
             const string WHITE_LIST_FILE = "ProviderWhiteList.txt";
-            const string ProviderAppName = "Provder.Migrator";
+            const string ProviderAppName = "Provider.Migrator";
 
             var stopWatch = new Stopwatch();
 
@@ -73,23 +73,48 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 {
                     command.CommandType = CommandType.Text;
                     command.CommandText = @"SELECT 
-                                                    P.ProviderId,
-                                                    P.Ukprn,
-                                                    P.ProviderName,
-                                                    RS.RecordStatusId,
-                                                    RS.RecordStatusName,
-		                                            P.RoATPFFlag,
-		                                            P.RoATPProviderTypeId,
-		                                            P.RoATPStartDate,
-		                                            p.PassedOverallQAChecks,
-                                                    p.MarketingInformation,
-													p.NationalApprenticeshipProvider,
-													p.TradingName,
-													p.UPIN
-                                            FROM [Tribal].[Provider] P
-                                            JOIN [Tribal].[RecordStatus] RS
-                                            ON P.RecordStatusId = RS.RecordStatusId
-                                            WHERE P.RecordStatusId = 2
+                                                P.ProviderId,
+                                                P.Ukprn,
+                                                P.ProviderName,
+                                                RS.RecordStatusId,
+                                                RS.RecordStatusName,
+		                                        P.RoATPFFlag,
+		                                        P.RoATPProviderTypeId,
+		                                        P.RoATPStartDate,
+		                                        p.PassedOverallQAChecks,
+		                                        P.MarketingInformation,
+		                                        P.NationalApprenticeshipProvider,
+		                                        P.TradingName,
+		                                        P.UPIN,
+		                                        CASE   
+		                                          WHEN Count(C.CourseId) > 0 THEN 1 
+		                                          WHEN Count(C.CourseId) = 0 THEN 0   
+	                                            END As HasCourse,
+				                                        CASE   
+		                                          WHEN Count(A.ApprenticeshipId) > 0 THEN 1 
+		                                          WHEN Count(A.ApprenticeshipId) = 0 THEN 0   
+	                                            END As HasApprenticeship
+                                        FROM [Tribal].[Provider] P
+                                        JOIN [Tribal].[RecordStatus] RS
+                                        ON P.RecordStatusId = RS.RecordStatusId
+                                        LEFT JOIN [Tribal].[Course] C
+                                        ON P.ProviderId = C.ProviderId
+                                        LEFT JOIN [Tribal].[Apprenticeship] A
+                                        ON P.ProviderId = A.ProviderId
+                                        WHERE P.RecordStatusId = 2
+                                        GROUP BY P.ProviderId,
+                                                P.Ukprn,
+                                                P.ProviderName,
+                                                RS.RecordStatusId,
+                                                RS.RecordStatusName,
+		                                        P.RoATPFFlag,
+		                                        P.RoATPProviderTypeId,
+		                                        P.RoATPStartDate,
+		                                        p.PassedOverallQAChecks,
+		                                        P.MarketingInformation,
+		                                        P.NationalApprenticeshipProvider,
+		                                        P.TradingName,
+		                                        P.UPIN
                                             ";
 
                     try
@@ -250,6 +275,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 providerToUpsert.ProviderId = tribalData.ProviderId;
                 providerToUpsert.id = Guid.NewGuid();
                 providerToUpsert.UnitedKingdomProviderReferenceNumber = tribalData.UKPRN.ToString();
+                providerToUpsert.ProviderType = GetProviderType(tribalData.HasCourse, tribalData.HasApprenticeship);
                 providerToUpsert.ProviderName = ukrlpData.ProviderName;
                 providerToUpsert.ProviderStatus = ukrlpData.ProviderStatus;
                 providerToUpsert.ProviderVerificationDate = ukrlpData.ProviderVerificationDate;
@@ -340,6 +366,18 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             {
                 await blobhelper.UploadFile(blobContainer, venueExportFileName, data);
             }
+        }
+
+        private static ProviderType GetProviderType(int hasCourse, int hasApprenticeship)
+        {
+            if (hasCourse == 1 && hasApprenticeship ==1)
+                return ProviderType.Both;
+            else if (hasCourse == 1  && hasApprenticeship != 1)
+                return ProviderType.FE;
+            else if (hasCourse != 1 && hasApprenticeship == 1)
+                return ProviderType.Apprenticeship;
+            else
+                return ProviderType.Undefined;
         }
     }
 }
