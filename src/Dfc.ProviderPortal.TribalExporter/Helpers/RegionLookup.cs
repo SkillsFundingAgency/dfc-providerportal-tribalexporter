@@ -9,13 +9,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
 {
     public static class RegionLookup
     {
-        private static readonly ISet<int> s_nationalVenueLocations = new HashSet<int>(new[]
-        {
-            1,  // ENGLAND
-            100289,  // WORLD
-            23241,  // NON-UK
-            21034  // 21034
-        });
         private static Dictionary<int, string> s_lookup;
 
         public static IReadOnlyCollection<string> FindRegions(int venueLocationId)
@@ -70,7 +63,5 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
                 return results;
             }
         }
-
-        public static bool IsNational(int venueLocationId) => s_nationalVenueLocations.Contains(venueLocationId);
     }
 }
