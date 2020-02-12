@@ -512,7 +512,7 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
 
                 // TODO Ignore start dates in the past?
 
-                var recordStatus = hasErrors ? RecordStatus.Pending : RecordStatus.Live;
+                var recordStatus = hasErrors ? RecordStatus.MigrationPending : RecordStatus.Live;
 
                 return new CourseRun()
                 {
@@ -562,7 +562,7 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                 {
                     foreach (var cr in courseRuns)
                     {
-                        cr.RecordStatus = RecordStatus.Pending;
+                        cr.RecordStatus = RecordStatus.MigrationPending;
                     }
 
                     isValid = false;
