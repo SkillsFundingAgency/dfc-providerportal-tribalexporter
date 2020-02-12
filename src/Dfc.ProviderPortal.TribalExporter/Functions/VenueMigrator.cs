@@ -287,7 +287,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             async Task<Dfc.CourseDirectory.Models.Models.Venues.Venue> GetVenue(VenueSource source, int? venueId, int? locationId)
             {
-                switch(source)
+                switch (source)
                 {
                     case VenueSource.Venue:
                         return await venueCollectionService.GetDocumentByVenueId(venueId.Value);
@@ -301,7 +301,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             {
                 //ignore record status for venues that do not have a postcode & migrate it over
                 //as pending.
-                if(string.IsNullOrEmpty(venue.Address?.Postcode))
+                if (string.IsNullOrEmpty(venue.Address?.Postcode))
                 {
                     return CourseDirectory.Models.Models.Venues.VenueStatus.Pending;
                 }
@@ -386,13 +386,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             }
         }
     }
-}
 
-[Serializable()]
-public class ResultMessage
-{
-    public int VenueId { get; set; }
-    public int? LocationId { get; set; }
-    public string Status { get; set; }
-    public string Message { get; set; }
+    [Serializable()]
+    public class ResultMessage
+    {
+        public int VenueId { get; set; }
+        public int? LocationId { get; set; }
+        public string Status { get; set; }
+        public string Message { get; set; }
+    }
+
 }
