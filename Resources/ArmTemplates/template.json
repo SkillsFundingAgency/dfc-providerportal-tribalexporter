@@ -166,6 +166,12 @@
       "metadata": {
         "description": "URL to the reference data API"
       }
+    },
+    "tribalDatabaseConnectionString": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Connection string to the SFA_CourseDirectory (Tribal) database"
+      }
     }
   },
   "variables": {
@@ -465,6 +471,10 @@
               {
                 "name": "OnspdSearchSettings__IndexName",
                 "value": "onspd"
+              },
+              {
+                "name": "ConnectionStrings__TribalRestore",
+                "value": "[parameters('tribalDatabaseConnectionString')]"
               }
             ]
           },
