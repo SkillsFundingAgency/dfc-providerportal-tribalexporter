@@ -47,7 +47,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var connectionString = configuration.GetConnectionString("DefaultConnection");
             var blobContainer = blobhelper.GetBlobContainer(configuration["BlobStorageSettings:Container"]);
             var whiteListProviders = await GetProviderWhiteList();
-            var result = new List<ResultMessage>();
+            var result = new List<ApprenticeshipResultMessage>();
             var venueExportFileName = $"ApprenticeshipExport-{DateTime.Now.ToString("dd-MM-yy HHmm")}";
             const string WHITE_LIST_FILE = "ProviderWhiteList.txt";
             var ukprnCache = new List<int>();
@@ -211,18 +211,18 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             void AddResultMessage(int apprenticeshipId, string status, string message = "")
             {
-                var validateResult = new ResultMessage() { ApprenticeshipID = apprenticeshipId, Status = status, Message = message };
+                var validateResult = new ApprenticeshipResultMessage() { ApprenticeshipID = apprenticeshipId, Status = status, Message = message };
                 result.Add(validateResult);
             }
 
-            byte[] GetResultAsByteArray(IList<ResultMessage> ob)
+            byte[] GetResultAsByteArray(IList<ApprenticeshipResultMessage> ob)
             {
                 using (var memoryStream = new System.IO.MemoryStream())
                 {
                     using (var streamWriter = new System.IO.StreamWriter(memoryStream))
                     using (var csvWriter = new CsvWriter(streamWriter, CultureInfo.InvariantCulture))
                     {
-                        csvWriter.WriteRecords<ResultMessage>(ob);
+                        csvWriter.WriteRecords<ApprenticeshipResultMessage>(ob);
                     }
                     return memoryStream.ToArray();
                 }
@@ -420,7 +420,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
     }
 
     [Serializable()]
-    public class ResultMessage
+    public class ApprenticeshipResultMessage
     {
         public int ApprenticeshipID { get; set; }
         public string Status { get; set; }
