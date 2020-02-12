@@ -205,7 +205,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                             // Close the SqlDataReader.
                             dataReader.Close();
-                            sqlConnection.Close();
                         }
                     }
                     catch (Exception ex)
