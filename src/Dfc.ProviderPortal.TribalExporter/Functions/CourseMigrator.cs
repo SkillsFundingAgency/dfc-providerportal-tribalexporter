@@ -13,6 +13,7 @@ using Dfc.CourseDirectory.Models.Models.Courses;
 using Dfc.CourseDirectory.Services;
 using Dfc.CourseDirectory.Services.Interfaces;
 using Dfc.ProviderPortal.Packages.AzureFunctions.DependencyInjection;
+using Dfc.ProviderPortal.TribalExporter.Helpers;
 using Dfc.ProviderPortal.TribalExporter.Interfaces;
 using Microsoft.Azure.Documents.Client;
 using Microsoft.Azure.Documents.Linq;
@@ -66,6 +67,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 using (var coursesCmd = conn1.CreateCommand())
                 using (var coursesInstancesCmd = conn2.CreateCommand())
                 {
+                    coursesCmd.CommandTimeout = 60 * 60;  // 1 hour
+                    coursesInstancesCmd.CommandTimeout = 60 * 60;  // 1 hour
+
                     coursesCmd.CommandText = @"
 SELECT
     c.CourseId,
@@ -86,7 +90,7 @@ JOIN Provider p ON c.ProviderId = p.ProviderId
 WHERE c.RecordStatusId = 2  --Live
 --Last updated within 24 months of data freeze 28/02
 AND (c.ModifiedDateTimeUtc >= '2018-02-28' OR EXISTS (
-    SELECT 1 FROM CourseInstances ci
+    SELECT 1 FROM CourseInstance ci
     WHERE ci.CourseId = c.CourseId
     AND ci.RecordStatusId = 2
     AND ci.ModifiedDateTimeUtc >= '2018-02-28'
@@ -110,7 +114,8 @@ SELECT
     ci.PriceAsText,
     ci.Url,
     civ.VenueId,
-    ci.CosmosId
+    ci.CosmosId,
+    ci.VenueLocationId
 FROM CourseInstance ci
 LEFT JOIN CourseInstanceVenue civ ON ci.CourseInstanceId = civ.CourseInstanceId
 LEFT JOIN CourseInstanceStartDate cisd ON ci.CourseInstanceId = cisd.CourseInstanceId
@@ -475,11 +480,42 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                     hasErrors = true;
                 }
 
-                // TODO Work-based should have regions(s) or be national
+                // Work-based should have regions(s) or be national
+                bool? national = null;
+                IEnumerable<string> regions = Array.Empty<string>();
+                if (deliveryMode == DeliveryMode.WorkBased)
+                {
+                    if (!courseInstance.VenueLocationId.HasValue)
+                    {
+                        errors.Add("No region found");
+                        hasErrors = true;
+                    }
+                    else
+                    {
+                        if (RegionLookup.IsNational(courseInstance.VenueLocationId.Value))
+                        {
+                            national = true;
+                        }
+                        else
+                        {
+                            var subRegions = RegionLookup.FindRegions(courseInstance.VenueLocationId.Value);
+
+                            if (subRegions.Count == 0)
+                            {
+                                errors.Add($"Cannot find sub-region(s) for VenueLocationId {courseInstance.VenueLocationId.Value}");
+                                hasErrors = true;
+                            }
+                            else
+                            {
+                                regions = subRegions;
+                            }
+                        }
+                    }
+                }
 
                 // TODO Ignore start dates in the past?
 
-                var recordStatus = hasErrors ? RecordStatus.Pending : RecordStatus.Live;
+                var recordStatus = hasErrors ? RecordStatus.MigrationPending : RecordStatus.Live;
 
                 return new CourseRun()
                 {
@@ -496,9 +532,9 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                     DurationValue = durationValue,
                     FlexibleStartDate = !courseInstance.StartDate.HasValue,
                     id = id,
-                    //National
                     ProviderCourseID = courseInstance.ProviderOwnCourseInstanceRef,
                     RecordStatus = recordStatus,
+                    National = national,
                     Regions = new List<string>(),
                     StartDate = courseInstance.StartDate,
                     StudyMode = studyMode,
@@ -529,7 +565,7 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                 {
                     foreach (var cr in courseRuns)
                     {
-                        cr.RecordStatus = RecordStatus.Pending;
+                        cr.RecordStatus = RecordStatus.MigrationPending;
                     }
 
                     isValid = false;
@@ -642,6 +678,7 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
             public string Url { get; set; }
             public int? VenueId { get; set; }
             public Guid? CosmosId { get; set; }
+            public int? VenueLocationId { get; set; }
         }
     }
 }
