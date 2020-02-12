@@ -25,6 +25,7 @@ namespace Dfc.CourseDirectory.Services.ApprenticeshipService
         private readonly Uri _addCourseUri;
         private readonly Uri _addReportUri;
         private readonly Uri _deleteApprenticeshipsByUKPRNUri;
+        
 
         public ApprenticeshipService(ILogger<CourseService.CourseService> logger,
             HttpClient httpClient,
