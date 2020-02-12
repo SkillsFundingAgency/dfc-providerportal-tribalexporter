@@ -42,37 +42,32 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var blobContainer = configuration["BlobStorageSettings:Container"];
             var whitelistFileName = "ProviderWhiteList.txt";
 
-            var connectionString = configuration.GetConnectionString("TribalRestore");
+            var connectionString = configuration.GetConnectionString("DefaultConnection");
 
-            using (var cosmosDbClient = cosmosDbHelper.GetClient())
+            using (var logStream = new MemoryStream())
+            using (var logStreamWriter = new StreamWriter(logStream))
+            using (var logCsvWriter = new CsvWriter(logStreamWriter, CultureInfo.InvariantCulture))
+            using (var conn1 = new SqlConnection(connectionString))
+            using (var conn2 = new SqlConnection(connectionString))
             {
-                using (var logStream = new MemoryStream())
-                using (var logStreamWriter = new StreamWriter(logStream))
-                using (var logCsvWriter = new CsvWriter(logStreamWriter, CultureInfo.InvariantCulture))
-                using (var conn1 = new SqlConnection(connectionString))
-                using (var conn2 = new SqlConnection(connectionString))
+                // Log CSV headers
+                logCsvWriter.WriteField("CourseId");
+                logCsvWriter.WriteField("UKPRN");
+                logCsvWriter.WriteField("Success");
+                logCsvWriter.WriteField("Status");
+                logCsvWriter.WriteField("Course instances");
+                logCsvWriter.WriteField("Error list");
+                logCsvWriter.NextRecord();
+
+                var whitelist = await GetProviderWhiteList();
+
+                await conn1.OpenAsync();
+                await conn2.OpenAsync();
+
+                using (var coursesCmd = conn1.CreateCommand())
+                using (var coursesInstancesCmd = conn2.CreateCommand())
                 {
-                    // Log CSV headers
-                    logCsvWriter.WriteField("CourseId");
-                    logCsvWriter.WriteField("UKPRN");
-                    logCsvWriter.WriteField("Success");
-                    logCsvWriter.WriteField("Status");
-                    logCsvWriter.WriteField("Course instances");
-                    logCsvWriter.WriteField("Error list");
-                    logCsvWriter.NextRecord();
-
-                    var whitelist = await GetProviderWhiteList();
-
-                    await conn1.OpenAsync();
-                    await conn2.OpenAsync();
-
-                    using (var coursesCmd = conn1.CreateCommand())
-                    using (var coursesInstancesCmd = conn2.CreateCommand())
-                    {
-                        coursesCmd.CommandTimeout = 60 * 60;  // 1 hour
-                        coursesInstancesCmd.CommandTimeout = 60 * 60;  // 1 hour
-
-                        coursesCmd.CommandText = @"
+                    coursesCmd.CommandText = @"
 SELECT
     c.CourseId,
     c.CourseTitle,
@@ -83,6 +78,7 @@ SELECT
     c.ProviderOwnCourseRef,
     c.Url,
     p.UKPRN,
+    c.CosmosId,
     c.EquipmentRequired,
     c.AssessmentMethod,
     p.Loans24Plus
@@ -98,7 +94,7 @@ AND (c.ModifiedDateTimeUtc >= '2018-02-28' OR EXISTS (
 ))
 ORDER BY c.CourseId, c.ProviderId";
 
-                        coursesInstancesCmd.CommandText = @"
+                    coursesInstancesCmd.CommandText = @"
 SELECT
     ci.CourseInstanceId,
     ci.CourseId,
@@ -115,6 +111,7 @@ SELECT
     ci.PriceAsText,
     ci.Url,
     civ.VenueId,
+    ci.CosmosId,
     ci.VenueLocationId
 FROM CourseInstance ci
 LEFT JOIN CourseInstanceVenue civ ON ci.CourseInstanceId = civ.CourseInstanceId
@@ -122,115 +119,109 @@ LEFT JOIN CourseInstanceStartDate cisd ON ci.CourseInstanceId = cisd.CourseInsta
 WHERE ci.RecordStatusId = 2  --Live
 ORDER BY ci.CourseId, ci.OfferedByProviderId";
 
-                        using (var coursesReader = coursesCmd.ExecuteReader())
-                        using (var courseInstanceReader = coursesInstancesCmd.ExecuteReader())
+                    using (var coursesReader = coursesCmd.ExecuteReader())
+                    using (var courseInstanceReader = coursesInstancesCmd.ExecuteReader())
+                    {
+                        var instanceReader = new CourseInstanceReader(courseInstanceReader);
+                        var courseRowReader = coursesReader.GetRowParser<CourseResult>();
+
+                        while (await coursesReader.ReadAsync())
                         {
-                            var instanceReader = new CourseInstanceReader(courseInstanceReader);
-                            var courseRowReader = coursesReader.GetRowParser<CourseResult>();
+                            var course = courseRowReader(coursesReader);
 
-                            while (await coursesReader.ReadAsync())
+                            // If provider is not on whitelist - skip this course
+                            if (!whitelist.Contains(course.UKPRN))
                             {
-                                var course = courseRowReader(coursesReader);
+                                continue;
+                            }
 
-                                // If provider is not on whitelist - skip this course
-                                if (!whitelist.Contains(course.UKPRN))
+                            var instances = await instanceReader.ConsumeReader(course.CourseId);
+
+                            var errors = new List<string>();
+                            CourseMigrationResult result;
+
+                            // Tribal don't have any Courses with zero CourseInstances...
+                            if (instances.Count == 0)
+                            {
+                                errors.Add("Found zero CourseInstances.");
+                            }
+
+                            // Check LARS
+                            var larsSearchResults = !string.IsNullOrEmpty(course.LearningAimRefId) ?
+                                await QueryLars(course.LearningAimRefId) :
+                                Array.Empty<LarsSearchResultItem>();
+
+                            // Check the venues exist
+                            Dictionary<int, Guid> venueIdMap = new Dictionary<int, Guid>();
+                            foreach (var venueId in instances.Where(i => i.VenueId.HasValue).Select(i => i.VenueId.Value))
+                            {
+                                var cosmosVenue = await venueCollectionService.GetDocumentByVenueId(venueId);
+
+                                if (cosmosVenue == null)
                                 {
-                                    continue;
+                                    errors.Add($"Missing venue {venueId}.");
                                 }
-
-                                var instances = await instanceReader.ConsumeReader(course.CourseId);
-
-                                var errors = new List<string>();
-                                CourseMigrationResult result;
-
-                                // Tribal don't have any Courses with zero CourseInstances...
-                                if (instances.Count == 0)
+                                else
                                 {
-                                    errors.Add("Found zero CourseInstances.");
+                                    venueIdMap.Add(venueId, Guid.Parse(cosmosVenue.ID));
                                 }
+                            }
 
-                                // Check LARS
-                                var larsSearchResults = !string.IsNullOrEmpty(course.LearningAimRefId) ?
-                                    await QueryLars(course.LearningAimRefId) :
-                                    Array.Empty<LarsSearchResultItem>();
+                            if (errors.Count == 0)
+                            {
+                                // Got the course in Cosmos already?
+                                var existingCourseRecord = await GetExistingCourse(course.CourseId, course.UKPRN);
 
-                                // Check the venues exist
-                                Dictionary<int, Guid> venueIdMap = new Dictionary<int, Guid>();
-                                foreach (var venueId in instances.Where(i => i.VenueId.HasValue).Select(i => i.VenueId.Value))
-                                {
-                                    if (venueIdMap.ContainsKey(venueId))
+                                var mappedCourseRuns = instances
+                                    .Select(i =>
                                     {
-                                        continue;
-                                    }
-
-                                    var cosmosVenue = await venueCollectionService.GetDocumentByVenueId(venueId);
-
-                                    if (cosmosVenue == null)
-                                    {
-                                        errors.Add($"Missing venue {venueId}.");
-                                    }
-                                    else
-                                    {
-                                        venueIdMap.Add(venueId, Guid.Parse(cosmosVenue.ID));
-                                    }
-                                }
-
-                                if (errors.Count == 0)
-                                {
-                                    // Got the course in Cosmos already?
-                                    var existingCourseRecord = await GetExistingCourse(course.CourseId, course.UKPRN, cosmosDbClient);
-
-                                    var mappedCourseRuns = instances
-                                        .Select(i =>
+                                        Guid? venueId = null;
+                                        if (i.VenueId.HasValue)
                                         {
-                                            Guid? venueId = null;
-                                            if (i.VenueId.HasValue)
-                                            {
-                                                venueId = venueIdMap[i.VenueId.Value];
-                                            }
+                                            venueId = venueIdMap[i.VenueId.Value];
+                                        }
 
                                         // Retain the existing Cosmos ID if there is one
                                         // N.B. We can have more than one match on CourseInstanceId since we 'explode' on multiple start dates
                                         var courseRunId =
-                                                existingCourseRecord?.CourseRuns.SingleOrDefault(r => r.CourseInstanceId == i.CourseInstanceId && r.StartDate == i.StartDate)?.id ??
-                                                Guid.NewGuid();
+                                            existingCourseRecord?.CourseRuns.SingleOrDefault(r => r.CourseInstanceId == i.CourseInstanceId && r.StartDate == i.StartDate)?.id ??
+                                            Guid.NewGuid();
 
-                                            return MapCourseInstance(course, i, courseRunId, venueId, errors);
-                                        })
-                                        .ToList();
+                                        return MapCourseInstance(course, i, courseRunId, venueId, errors);
+                                    })
+                                    .ToList();
 
-                                    var courseId = existingCourseRecord?.id ?? Guid.NewGuid();
-                                    var mappedCourse = MapCourse(course, mappedCourseRuns, larsSearchResults, courseId, errors);
+                                var courseId = existingCourseRecord?.id ?? Guid.NewGuid();
+                                var mappedCourse = MapCourse(course, mappedCourseRuns, larsSearchResults, courseId, errors);
 
-                                    var added = await UpsertCourse(mappedCourse, cosmosDbClient);
-                                    result = added ? CourseMigrationResult.Inserted : CourseMigrationResult.Updated;
-                                }
-                                else
-                                {
-                                    result = CourseMigrationResult.SkippedDueToErrors;
-                                }
-
-                                // Write to log
-                                logCsvWriter.WriteField(course.CourseId);
-                                logCsvWriter.WriteField(course.UKPRN);
-                                logCsvWriter.WriteField(result != CourseMigrationResult.SkippedDueToErrors);
-                                logCsvWriter.WriteField(result.ToString());
-                                logCsvWriter.WriteField(instances.Count);
-                                logCsvWriter.WriteField(string.Join(", ", errors));
-                                logCsvWriter.NextRecord();
+                                var added = await UpsertCourse(mappedCourse);
+                                result = added ? CourseMigrationResult.Inserted : CourseMigrationResult.Updated;
                             }
+                            else
+                            {
+                                result = CourseMigrationResult.SkippedDueToErrors;
+                            }
+
+                            // Write to log
+                            logCsvWriter.WriteField(course.CourseId);
+                            logCsvWriter.WriteField(course.UKPRN);
+                            logCsvWriter.WriteField(result != CourseMigrationResult.SkippedDueToErrors);
+                            logCsvWriter.WriteField(result.ToString());
+                            logCsvWriter.WriteField(instances.Count);
+                            logCsvWriter.WriteField(string.Join(", ", errors));
+                            logCsvWriter.NextRecord();
                         }
                     }
+                }
 
-                    // Upload log CSV to blob storage
-                    {
-                        logStreamWriter.Flush();
+                // Upload log CSV to blob storage
+                {
+                    logStreamWriter.Flush();
 
-                        logStream.Seek(0L, SeekOrigin.Begin);
+                    logStream.Seek(0L, SeekOrigin.Begin);
 
-                        var blob = blobHelper.GetBlobContainer(blobContainer).GetBlockBlobReference(logFileName);
-                        await blob.UploadFromStreamAsync(logStream);
-                    }
+                    var blob = blobHelper.GetBlobContainer(blobContainer).GetBlockBlobReference(logFileName);
+                    await blob.UploadFromStreamAsync(logStream);
                 }
             }
 
@@ -243,19 +234,11 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                 ms.Seek(0L, SeekOrigin.Begin);
 
                 var results = new HashSet<int>();
-                string line;
                 using (var reader = new StreamReader(ms))
                 {
-                    while ((line = reader.ReadLine()) != null)
-                    {
-                        if (string.IsNullOrEmpty(line))
-                        {
-                            continue;
-                        }
-
-                        var ukprn = int.Parse(line);
-                        results.Add(ukprn);
-                    }
+                    var line = reader.ReadLine();
+                    var ukprn = int.Parse(line);
+                    results.Add(ukprn);
                 }
 
                 return results;
@@ -273,31 +256,37 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                 return result.Value.Value.ToList();
             }
 
-            async Task<bool> UpsertCourse(Course course, DocumentClient documentClient)
+            async Task<bool> UpsertCourse(Course course)
             {
                 var collectionLink = UriFactory.CreateDocumentCollectionUri(databaseId, coursesCollectionId);
 
-                var result = await documentClient.UpsertDocumentAsync(collectionLink, course, new RequestOptions()
+                using (var client = cosmosDbHelper.GetClient())
                 {
-                    PartitionKey = new Microsoft.Azure.Documents.PartitionKey(course.ProviderUKPRN)
-                });
+                    var result = await client.UpsertDocumentAsync(collectionLink, course, new RequestOptions()
+                    {
+                        PartitionKey = new Microsoft.Azure.Documents.PartitionKey(course.ProviderUKPRN)
+                    });
 
-                return result.StatusCode == HttpStatusCode.Created;
+                    return result.StatusCode == HttpStatusCode.Created;
+                }
             }
 
-            async Task<Course> GetExistingCourse(int courseId, int ukprn, DocumentClient documentClient)
+            async Task<Course> GetExistingCourse(int courseId, int ukprn)
             {
                 var collectionLink = UriFactory.CreateDocumentCollectionUri(databaseId, coursesCollectionId);
 
-                var query = documentClient
-                    .CreateDocumentQuery<Course>(collectionLink, new FeedOptions()
-                    {
-                        PartitionKey = new Microsoft.Azure.Documents.PartitionKey(ukprn)
-                    })
-                    .Where(d => d.CourseId == courseId)
-                    .AsDocumentQuery();
+                using (var client = cosmosDbHelper.GetClient())
+                {
+                    var query = client
+                        .CreateDocumentQuery<Course>(collectionLink, new FeedOptions()
+                        {
+                            PartitionKey = new Microsoft.Azure.Documents.PartitionKey(ukprn)
+                        })
+                        .Where(d => d.CourseId == courseId)
+                        .AsDocumentQuery();
 
-                return (await query.ExecuteNextAsync()).FirstOrDefault();
+                    return (await query.ExecuteNextAsync()).FirstOrDefault();
+                }
             }
 
             AttendancePattern MapAttendancePattern(DeliveryMode deliveryMode, int? attendancePatternId, out bool hasError)
@@ -476,31 +465,10 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                     hasErrors = true;
                 }
 
-                bool flexibleStartDate = default;
-                DateTime? startDate = default;
-
-                if (deliveryMode == DeliveryMode.Online)
+                if (!string.IsNullOrEmpty(courseInstance.StartDateDescription))
                 {
-                    flexibleStartDate = true;
-                }
-                else if (courseInstance.StartDate.HasValue)
-                {
-                    flexibleStartDate = false;
-                    startDate = courseInstance.StartDate;
-                }
-                else if (string.IsNullOrEmpty(courseInstance.StartDateDescription))
-                {
-                    errors.Add($"Empty StartDateDescription");
+                    errors.Add($"Non-empty StartDateDescription");
                     hasErrors = true;
-                }
-                else if (DateTime.TryParseExact(courseInstance.StartDateDescription, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var sd))
-                {
-                    flexibleStartDate = false;
-                    startDate = sd;
-                }
-                else
-                {
-                    flexibleStartDate = true;
                 }
 
                 if (deliveryMode == DeliveryMode.ClassroomBased && !venueId.HasValue)
@@ -541,8 +509,14 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                         }
                     }
                 }
+                else if (deliveryMode == DeliveryMode.Online)
+                {
+                    national = true;
+                }
 
-                var recordStatus = hasErrors ? RecordStatus.MigrationPending : RecordStatus.Live;
+                // TODO Ignore start dates in the past?
+
+                var recordStatus = hasErrors ? RecordStatus.Pending : RecordStatus.Live;
 
                 return new CourseRun()
                 {
@@ -557,13 +531,13 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                     DeliveryMode = deliveryMode,
                     DurationUnit = durationUnit,
                     DurationValue = durationValue,
-                    FlexibleStartDate = flexibleStartDate,
+                    FlexibleStartDate = !courseInstance.StartDate.HasValue,
                     id = id,
                     ProviderCourseID = courseInstance.ProviderOwnCourseInstanceRef,
                     RecordStatus = recordStatus,
                     National = national,
                     Regions = new List<string>(),
-                    StartDate = startDate,
+                    StartDate = courseInstance.StartDate,
                     StudyMode = studyMode,
                     //UpdatedBy
                     UpdatedDate = DateTime.Now,
@@ -592,7 +566,7 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                 {
                     foreach (var cr in courseRuns)
                     {
-                        cr.RecordStatus = RecordStatus.MigrationPending;
+                        cr.RecordStatus = RecordStatus.Pending;
                     }
 
                     isValid = false;
@@ -618,7 +592,7 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                     NotionalNVQLevelv2 = qualification?.NotionalNVQLevelv2,
                     ProviderUKPRN = course.UKPRN,
                     QualificationCourseTitle = qualification?.LearnAimRefTitle,
-                    QualificationType = qualification?.LearnAimRefTypeDesc,
+                    QualificationType = null,
                     //UpdatedBy
                     UpdatedDate = DateTime.Now,
                     WhatYoullLearn = null,
@@ -681,6 +655,7 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
             public string ProviderOwnCourseRef { get; set; }
             public string Url { get; set; }
             public int UKPRN { get; set; }
+            public Guid? CosmosId { get; set; }
             public string EquipmentRequired { get; set; }
             public string AssessmentMethod { get; set; }
             public bool Loans24Plus { get; set; }
@@ -703,6 +678,7 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
             public string PriceAsText { get; set; }
             public string Url { get; set; }
             public int? VenueId { get; set; }
+            public Guid? CosmosId { get; set; }
             public int? VenueLocationId { get; set; }
         }
     }
