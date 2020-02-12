@@ -154,6 +154,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 var id = existingApprenticeship?.id.ToString() ?? Guid.NewGuid().ToString();
 
+
                 var s = UriFactory.CreateDocumentUri(databaseId, apprenticeshipCollectionId, id);
                 Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, apprenticeshipCollectionId);
                 var cosmosApprenticeship = new ApprenticeshipDTO()
@@ -179,12 +180,43 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     CreatedDate = DateTime.Now,
                     NotionalNVQLevelv2 = nvqLevel2,
                     ApprenticeshipLocations = MapLocations(locations),
-                    ApprenticeshipType = MapApprenticeshipType(tribalRecord)
+                    ApprenticeshipType = MapApprenticeshipType(tribalRecord),
+                    RecordStatusId = MapRecordStatus()
                 };
 
                 await cosmosDbHelper.GetClient().UpsertDocumentAsync(collectionUri, cosmosApprenticeship);
             }
 
+            int MapRecordStatus()
+            {
+                return 0;
+            }
+
+            //Taken entirely from previous migration logic.
+            (ApprenticeshipLocationType, LocationType?) GetApprenticeshipLocationInfo(ApprenticeshipLocationResult lo)
+            {
+                var deliveryModes = lo.DeliveryModes;
+                if ((deliveryModes.Contains(1) && !deliveryModes.Contains(2) && deliveryModes.Contains(3)) ||
+                    (deliveryModes.Contains(1) && deliveryModes.Contains(2) && !deliveryModes.Contains(3)) ||
+                    (deliveryModes.Contains(1) && deliveryModes.Contains(2) && deliveryModes.Contains(3)))
+                {
+                    return (ApprenticeshipLocationType.ClassroomBasedAndEmployerBased, LocationType.Venue);
+                }
+                else if ((!deliveryModes.Contains(1) && !deliveryModes.Contains(2) && deliveryModes.Contains(3)) ||
+                         (!deliveryModes.Contains(1) && deliveryModes.Contains(2) && !deliveryModes.Contains(3)) ||
+                         (!deliveryModes.Contains(1) && deliveryModes.Contains(2) && deliveryModes.Contains(3)))
+                {
+                    return (ApprenticeshipLocationType.ClassroomBased, LocationType.Venue);
+                }
+                else if (deliveryModes.Contains(1) && !deliveryModes.Contains(2) && !deliveryModes.Contains(3))
+                {
+                    return (ApprenticeshipLocationType.EmployerBased, null);
+                }
+                else
+                {
+                    return (ApprenticeshipLocationType.Undefined, LocationType.Undefined);
+                }
+            }
 
             async Task<IList<int>> GetProviderWhiteList()
             {
@@ -296,53 +328,57 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 return (true, existingApprenticeship, referenceDataFramework, referenceDataStandard, locations, provider);
             }
-        }
 
-        private static int MapApprenticeshipType(ApprenticeshipResult tribalRecord)
-        {
-            if (tribalRecord.StandardCode.HasValue)
-                return (int)ApprenticeshipType.StandardCode;
-            else if (tribalRecord.FrameworkCode.HasValue)
-                return (int)ApprenticeshipType.FrameworkCode;
-            else
-                return (int)ApprenticeshipType.Undefined;
-        }
-
-        private static IList<ApprenticeshipLocationDTO> MapLocations(IList<ApprenticeshipLocationResult> locations)
-        {
-            var lst = new List<ApprenticeshipLocationDTO>();
-
-            foreach (var apprenticeshipLocation in locations)
+            int MapApprenticeshipType(ApprenticeshipResult tribalRecord)
             {
-                var appLocation = new ApprenticeshipLocationDTO()
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    VenueId = Guid.Empty.ToString(),
-                    Address = new Dfc.CourseDirectory.Models.Models.Apprenticeships.Address()
-                    {
-                        Address1 = apprenticeshipLocation.AddressLine1,
-                        Address2 = apprenticeshipLocation.AddressLine2,
-                        County = apprenticeshipLocation.County,
-                        Email = apprenticeshipLocation.Email,
-                        Website = apprenticeshipLocation.Website,
-                        Longitude = apprenticeshipLocation.Longitude,
-                        Latitude = apprenticeshipLocation.Latitude,
-                        Postcode = apprenticeshipLocation.Postcode,
-                        Town = apprenticeshipLocation.Town,
-                        Phone = apprenticeshipLocation.Telephone
-                    },
-                    DeliveryModes = apprenticeshipLocation.DeliveryModes,
-                    LocationId = apprenticeshipLocation.LocationId,
-                    Name = apprenticeshipLocation.LocationName,
-                    ProviderId = apprenticeshipLocation.ProviderId,
-                    ProviderUKPRN = apprenticeshipLocation.UKPRN,
-                    Radius = apprenticeshipLocation.Radius
-                };
-
-                lst.Add(appLocation);
+                if (tribalRecord.StandardCode.HasValue)
+                    return (int)ApprenticeshipType.StandardCode;
+                else if (tribalRecord.FrameworkCode.HasValue)
+                    return (int)ApprenticeshipType.FrameworkCode;
+                else
+                    return (int)ApprenticeshipType.Undefined;
             }
 
-            return lst;
+            IList<ApprenticeshipLocationDTO> MapLocations(IList<ApprenticeshipLocationResult> locations)
+            {
+                var lst = new List<ApprenticeshipLocationDTO>();
+
+                foreach (var apprenticeshipLocation in locations)
+                {
+                    var (apprenticeshipLocationType, locationType) = GetApprenticeshipLocationInfo(apprenticeshipLocation);
+                    var appLocation = new ApprenticeshipLocationDTO()
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        VenueId = Guid.Empty.ToString(),
+                        TribalId = apprenticeshipLocation.ApprenticeshipLocationId,
+                        Address = new Dfc.CourseDirectory.Models.Models.Apprenticeships.Address()
+                        {
+                            Address1 = apprenticeshipLocation.AddressLine1,
+                            Address2 = apprenticeshipLocation.AddressLine2,
+                            County = apprenticeshipLocation.County,
+                            Email = apprenticeshipLocation.Email,
+                            Website = apprenticeshipLocation.Website,
+                            Longitude = apprenticeshipLocation.Longitude,
+                            Latitude = apprenticeshipLocation.Latitude,
+                            Postcode = apprenticeshipLocation.Postcode,
+                            Town = apprenticeshipLocation.Town,
+                            Phone = apprenticeshipLocation.Telephone
+                        },
+                        DeliveryModes = apprenticeshipLocation.DeliveryModes,
+                        LocationId = apprenticeshipLocation.LocationId,
+                        Name = apprenticeshipLocation.LocationName,
+                        ProviderId = apprenticeshipLocation.ProviderId,
+                        ProviderUKPRN = apprenticeshipLocation.UKPRN,
+                        Radius = apprenticeshipLocation.Radius,
+                        ApprenticeshipLocationType = (int)apprenticeshipLocationType,
+                        LocationType = (int)locationType
+                    };
+
+                    lst.Add(appLocation);
+                }
+
+                return lst;
+            }
         }
     }
 
@@ -393,6 +429,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
     public class ApprenticeshipLocationResult
     {
+        public int ApprenticeshipLocationId { get; set; }
         public int LocationId { get; set; }
         public int AddressId { get; set; }
         public string AddressLine1 { get; set; }
@@ -474,5 +511,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
         public DateTime UpdatedDate { get; set; }
         public string UpdatedBy { get; set; }
         public string BulkUploadErrors { get; set; }
+        public int TribalId { get; set; } 
     }
 }
