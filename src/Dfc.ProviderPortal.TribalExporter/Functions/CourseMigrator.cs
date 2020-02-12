@@ -509,10 +509,6 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                         }
                     }
                 }
-                else if (deliveryMode == DeliveryMode.Online)
-                {
-                    national = true;
-                }
 
                 // TODO Ignore start dates in the past?
 
