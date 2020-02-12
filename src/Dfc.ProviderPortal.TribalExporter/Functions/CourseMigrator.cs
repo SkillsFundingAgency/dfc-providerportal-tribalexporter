@@ -67,6 +67,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 using (var coursesCmd = conn1.CreateCommand())
                 using (var coursesInstancesCmd = conn2.CreateCommand())
                 {
+                    coursesCmd.CommandTimeout = 60 * 60;  // 1 hour
+                    coursesInstancesCmd.CommandTimeout = 60 * 60;  // 1 hour
+
                     coursesCmd.CommandText = @"
 SELECT
     c.CourseId,
