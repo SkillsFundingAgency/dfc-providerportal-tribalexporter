@@ -73,6 +73,9 @@
     },
     "referenceDataApiUrl": {
       "value": "https://not-a-real-api/referencedata"
+    },
+    "tribalDatabaseConnectionString": {
+      "value": "not-a-real-connection-string"
     }
   }
 }

@@ -82,6 +82,9 @@
     },
     "referenceDataApiUrl": {
       "value": "__referenceDataApiUrl__"
+    },
+    "tribalDatabaseConnectionString": {
+      "value": "__TribalSharedConnectionString__"
     }
   }
 }
