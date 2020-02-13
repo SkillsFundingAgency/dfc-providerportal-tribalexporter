@@ -42,7 +42,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var blobContainer = configuration["BlobStorageSettings:Container"];
             var whitelistFileName = "ProviderWhiteList.txt";
 
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
+            var connectionString = configuration.GetConnectionString("TribalRestore");
 
             using (var logStream = new MemoryStream())
             using (var logStreamWriter = new StreamWriter(logStream))
