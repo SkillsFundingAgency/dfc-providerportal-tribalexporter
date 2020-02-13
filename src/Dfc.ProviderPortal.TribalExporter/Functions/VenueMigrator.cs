@@ -206,6 +206,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             // Close the SqlDataReader.
                             dataReader.Close();
                         }
+
+                        sqlConnection.Close();
                     }
                     catch (Exception ex)
                     {
@@ -215,16 +217,17 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             }
 
             //update or insert records
+            var _cosmosClient = cosmosDbHelper.GetClient();
             foreach (var item in venueList)
             {
                 try
                 {
-                    if (await Validate(item))
+                    if (Validate(item))
                     {
                         var cosmosVenue = await GetVenue(item.Source, item.VenueId, item.LocationID);
                         if (cosmosVenue != null)
                         {
-                            var s = UriFactory.CreateDocumentUri(databaseId, venuesCollectionId, cosmosVenue.ID.ToString());
+                            //var s = UriFactory.CreateDocumentUri(databaseId, venuesCollectionId, cosmosVenue.ID.ToString());
                             Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, venuesCollectionId);
                             var editedVenue = new Dfc.CourseDirectory.Models.Models.Venues.Venue()
                             {
@@ -250,7 +253,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 CreatedDate = item.CreatedDateTimeUtc,
                                 LocationId = item.LocationID
                             };
-                            await cosmosDbHelper.GetClient().UpsertDocumentAsync(collectionUri, editedVenue);
+                            await _cosmosClient.UpsertDocumentAsync(collectionUri, editedVenue);
 
                             AddResultMessage(item.VenueId, item.LocationID, "Updated Record", $"Old cosmos record LocationId:{cosmosVenue.LocationId}, VenueId: {cosmosVenue.VenueID}");
                         }
@@ -279,7 +282,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 CreatedBy = "VenueMigrator",
                                 LocationId = item.LocationID
                             };
-                            await cosmosDbHelper.CreateDocumentAsync(cosmosDbHelper.GetClient(), venuesCollectionId, newVenue);
+                            await cosmosDbHelper.CreateDocumentAsync(_cosmosClient, venuesCollectionId, newVenue);
 
                             //Log that successfully inserted venue
                             AddResultMessage(item.VenueId, item.LocationID, "Inserted Venue");
@@ -375,7 +378,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 result.Add(validateResult);
             }
 
-            async Task<bool> Validate(Venue item)
+            bool Validate(Venue item)
             {
                 //are providers on list of whitelisted providers file
                 if (!whiteListProviders.Any(x => x == item.UKPRN))
