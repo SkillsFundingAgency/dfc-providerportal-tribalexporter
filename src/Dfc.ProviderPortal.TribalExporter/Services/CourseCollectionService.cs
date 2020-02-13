@@ -1,4 +1,5 @@
-﻿using Dfc.ProviderPortal.Packages;
+﻿using Dfc.CourseDirectory.Models.Models.Courses;
+using Dfc.ProviderPortal.Packages;
 using Dfc.ProviderPortal.TribalExporter.Interfaces;
 using Dfc.ProviderPortal.TribalExporter.Settings;
 using Microsoft.Azure.Documents;
@@ -31,6 +32,26 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             _cosmosDbHelper = cosmosDbHelper;
             _cosmosDbSettings = cosmosDbSettings.Value;
             _cosmosDbCollectionSettings = cosmosDbCollectionSettings.Value;
+        }
+
+        public async Task<List<Course>> GetAllCoursesAsync()
+        {
+            var documents = new List<Course>();
+
+                var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.CoursesCollectionId);
+                var sql = $"SELECT * FROM c";
+                var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
+
+                using (var client = _cosmosDbHelper.GetClient())
+                using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+                {
+                    while (query.HasMoreResults)
+                    {
+                        foreach (var document in await query.ExecuteNextAsync<Course>()) documents.Add(document);
+                    }
+                }
+
+            return documents;
         }
 
         public async Task<string> GetAllLiveCoursesAsJsonForUkprnAsync(int ukprn)
