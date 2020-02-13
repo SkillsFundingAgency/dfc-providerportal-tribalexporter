@@ -215,9 +215,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             }
 
             //update or insert records
-            try
+            foreach (var item in venueList)
             {
-                foreach (var item in venueList)
+                try
                 {
                     if (await Validate(item))
                     {
@@ -286,11 +286,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         }
                     }
                 }
+                catch (Exception ex)
+                {
+                    string errorMessage = $"An error occured while updating cosmos record for venue {item.VenueId}. {ex.Message}";
+                    log.LogError(errorMessage, ex);
+                    AddResultMessage(item.VenueId, item.LocationID, errorMessage);
+                }
             }
-            catch (Exception ex)
-            {
-                log.LogError("An error occured while updating cosmos record", ex);
-            }
+
 
             var resultsObjBytes = GetResultAsByteArray(result);
             await WriteResultsToBlobStorage(resultsObjBytes);
