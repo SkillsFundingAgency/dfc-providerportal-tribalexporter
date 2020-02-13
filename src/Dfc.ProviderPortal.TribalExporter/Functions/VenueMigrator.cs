@@ -384,21 +384,22 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     return false;
                 }
 
-                //check to see if a record is already held for ukprn
-                if (!ukprnCache.Contains(item.UKPRN))
-                {
-                    var cosmosProvider = await providerCollectionService.ProviderExists(item.UKPRN);
-                    if (!cosmosProvider)
-                    {
-                        AddResultMessage(item.VenueId, item.LocationID, "Failed", "Unknown UKPRN");
-                        return false;
-                    }
-                    else
-                    {
-                        //provider exists - add to cache
-                        ukprnCache.Add(item.UKPRN);
-                    }
-                }
+                ////check to see if a record is already held for ukprn
+                //if (!ukprnCache.Contains(item.UKPRN))
+                //{
+                //    var cosmosProvider = await providerCollectionService.ProviderExists(item.UKPRN);
+                //    if (!cosmosProvider)
+                //    {
+                //        AddResultMessage(item.VenueId, item.LocationID, "Failed", "Unknown UKPRN");
+                //        return false;
+                //    }
+                //    else
+                //    {
+                //        //provider exists - add to cache
+                //        ukprnCache.Add(item.UKPRN);
+                //    }
+                //}
+
                 return true;
             }
         }
