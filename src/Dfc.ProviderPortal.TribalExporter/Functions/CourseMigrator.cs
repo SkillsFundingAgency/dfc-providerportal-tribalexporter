@@ -59,8 +59,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 logCsvWriter.WriteField("Error list");
                 logCsvWriter.NextRecord();
 
-                //var whitelist = await GetProviderWhiteList();
-                var whitelist = new HashSet<int>(new[] { 10000028 });
+                var whitelist = await GetProviderWhiteList();
 
                 await conn1.OpenAsync();
                 await conn2.OpenAsync();
