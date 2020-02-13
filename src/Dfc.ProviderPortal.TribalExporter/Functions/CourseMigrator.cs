@@ -59,7 +59,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 logCsvWriter.WriteField("Error list");
                 logCsvWriter.NextRecord();
 
-                var whitelist = await GetProviderWhiteList();
+                //var whitelist = await GetProviderWhiteList();
+                var whitelist = new HashSet<int>(new[] { 10000028 });
 
                 await conn1.OpenAsync();
                 await conn2.OpenAsync();
@@ -81,7 +82,6 @@ SELECT
     c.ProviderOwnCourseRef,
     c.Url,
     p.UKPRN,
-    c.CosmosId,
     c.EquipmentRequired,
     c.AssessmentMethod,
     p.Loans24Plus
@@ -114,7 +114,6 @@ SELECT
     ci.PriceAsText,
     ci.Url,
     civ.VenueId,
-    ci.CosmosId,
     ci.VenueLocationId
 FROM CourseInstance ci
 LEFT JOIN CourseInstanceVenue civ ON ci.CourseInstanceId = civ.CourseInstanceId
@@ -654,7 +653,6 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
             public string ProviderOwnCourseRef { get; set; }
             public string Url { get; set; }
             public int UKPRN { get; set; }
-            public Guid? CosmosId { get; set; }
             public string EquipmentRequired { get; set; }
             public string AssessmentMethod { get; set; }
             public bool Loans24Plus { get; set; }
@@ -677,7 +675,6 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
             public string PriceAsText { get; set; }
             public string Url { get; set; }
             public int? VenueId { get; set; }
-            public Guid? CosmosId { get; set; }
             public int? VenueLocationId { get; set; }
         }
     }
