@@ -158,6 +158,11 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                                 Dictionary<int, Guid> venueIdMap = new Dictionary<int, Guid>();
                                 foreach (var venueId in instances.Where(i => i.VenueId.HasValue).Select(i => i.VenueId.Value))
                                 {
+                                    if (venueIdMap.ContainsKey(venueId))
+                                    {
+                                        continue;
+                                    }
+
                                     var cosmosVenue = await venueCollectionService.GetDocumentByVenueId(venueId);
 
                                     if (cosmosVenue == null)
