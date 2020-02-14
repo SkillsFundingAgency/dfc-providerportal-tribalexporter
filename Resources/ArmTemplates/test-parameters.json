@@ -44,20 +44,29 @@
     "sqlCourseDirectoryConnectionString": {
       "value": "not-a-real-database-connection-string"
     },
-    "apimCourseDirectoryKey": {
-      "value": "not-a-real-api-key"
-    },
     "courseApiUrl": {
       "value": "https://not-a-real-api/courses"
+    },
+    "courseApiKey": {
+      "value": "not-a-real-api-key"
     },
     "courseTextApiUrl": {
       "value": "https://not-a-real-api/coursestext"
     },
+    "courseTextApiKey": {
+      "value": "not-a-real-api-key"
+    },
     "venueServiceApiUrl": {
       "value": "https://not-a-real-api/venues"
     },
+    "venueServiceApiKey": {
+      "value": "not-a-real-api-key"
+    },
     "providerApiUrl": {
       "value": "https://not-a-real-api/providers"
+    },
+    "providerApiKey": {
+      "value": "not-a-real-api-key"
     },
     "azureSearchName": {
       "value": "not-a-real-search-instance"
@@ -73,6 +82,9 @@
     },
     "referenceDataApiUrl": {
       "value": "https://not-a-real-api/referencedata"
+    },
+    "referenceDataApiKey": {
+      "value": "not-a-real-api-key"
     },
     "tribalDatabaseConnectionString": {
       "value": "not-a-real-connection-string"

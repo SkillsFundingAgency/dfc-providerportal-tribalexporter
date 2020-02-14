@@ -128,56 +128,59 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                         using (SqlDataReader dataReader = command.ExecuteReader())
                         {
-                            while (dataReader.Read())
+                            using (var _cosmosClient = cosmosDbHelper.GetClient())
                             {
-                                // 1) Read provider data from Tribal
-                                var item = ProviderSource.FromDataReader(dataReader);
-                                totalTribalCount++;
-
-                                try
+                                while (dataReader.Read())
                                 {
-                                    // 2) Check if in Whitelist
-                                    if (!whiteListProviders.Any(x => x == item.UKPRN))
+                                    // 1) Read provider data from Tribal
+                                    var item = ProviderSource.FromDataReader(dataReader);
+                                    totalTribalCount++;
+
+                                    try
                                     {
-                                        AddResultMessage(item.ProviderId, "SKIPPED-NotOnWhitelist", $"Provider {item.ProviderId} not on whitelist, ukprn {item.UKPRN}");
-                                        continue;
+                                        // 2) Check if in Whitelist
+                                        if (!whiteListProviders.Any(x => x == item.UKPRN))
+                                        {
+                                            AddResultMessage(item.ProviderId, "SKIPPED-NotOnWhitelist", $"Provider {item.ProviderId} not on whitelist, ukprn {item.UKPRN}");
+                                            continue;
+                                        }
+
+                                        totalAttemptedCount++;
+
+                                        // 3) Check againts API ? If no match Add to Result Message, skip next
+                                        var ukrlpProviderItem = ukrlpApiProviders.FirstOrDefault(p => p.UnitedKingdomProviderReferenceNumber.Trim() == item.UKPRN.ToString());
+                                        if (ukrlpProviderItem == null)
+                                        {
+                                            AddResultMessage(item.ProviderId, "SKIPPED-NotInUkrlpApi", $"Provider {item.ProviderId} cannot be found in UKRLP Api, ukprn {item.UKPRN}");
+                                            continue;
+                                        }
+
+                                        // 4) Build Cosmos collection record
+                                        var providerToUpsert = BuildNewCosmosProviderItem(ukrlpProviderItem, item);
+                                        var cosmosProviderItem = await providerCollectionService.GetDocumentByUkprn(item.UKPRN);
+
+                                        if (cosmosProviderItem != null)
+                                        {
+                                            Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, providerCollectionId);
+
+                                            await _cosmosClient.UpsertDocumentAsync(collectionUri, UpdateCosmosProviderItem(cosmosProviderItem, providerToUpsert));
+                                            totalUpdatedCount++;
+
+                                            AddResultMessage(item.ProviderId, "PROCESSED-Updated", $"Provider {item.ProviderId} updated in Cosmos Collection, ukprn {item.UKPRN}");
+                                        }
+                                        else
+                                        {
+                                            await cosmosDbHelper.CreateDocumentAsync(_cosmosClient, providerCollectionId, providerToUpsert);
+                                            totalInsertedCount++;
+
+                                            AddResultMessage(item.ProviderId, "PROCESSED-Inserted", $"Provider {item.ProviderId} inserted in Cosmos Collection, ukprn {item.UKPRN}");
+                                        }
                                     }
-
-                                    totalAttemptedCount++;
-
-                                    // 3) Check againts API ? If no match Add to Result Message, skip next
-                                    var ukrlpProviderItem = ukrlpApiProviders.FirstOrDefault(p => p.UnitedKingdomProviderReferenceNumber.Trim() == item.UKPRN.ToString());
-                                    if (ukrlpProviderItem == null)
+                                    catch (Exception ex)
                                     {
-                                        AddResultMessage(item.ProviderId, "SKIPPED-NotInUkrlpApi", $"Provider {item.ProviderId} cannot be found in UKRLP Api, ukprn {item.UKPRN}");
-                                        continue;
+                                        AddResultMessage(item.ProviderId, "PROCESSED-Errored", $"Provider {item.ProviderId} updated in Cosmos Collection, ukprn {item.UKPRN}. {ex.Message}");
+                                        log.LogInformation($"Error processing Provider {item.ProviderId} with Ukprn {item.UKPRN}. {ex.Message}");
                                     }
-
-                                    // 4) Build Cosmos collection record
-                                    var providerToUpsert = BuildNewCosmosProviderItem(ukrlpProviderItem, item);
-                                    var cosmosProviderItem = await providerCollectionService.GetDocumentByUkprn(item.UKPRN);
-
-                                    if (cosmosProviderItem != null)
-                                    {
-                                        Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, providerCollectionId);
-
-                                        await cosmosDbHelper.GetClient().UpsertDocumentAsync(collectionUri, UpdateCosmosProviderItem(cosmosProviderItem, providerToUpsert));
-                                        totalUpdatedCount++;
-
-                                        AddResultMessage(item.ProviderId, "PROCESSED-Updated", $"Provider {item.ProviderId} updated in Cosmos Collection, ukprn {item.UKPRN}");
-                                    }
-                                    else
-                                    {
-                                        await cosmosDbHelper.CreateDocumentAsync(cosmosDbHelper.GetClient(), providerCollectionId, providerToUpsert);
-                                        totalInsertedCount++;
-
-                                        AddResultMessage(item.ProviderId, "PROCESSED-Inserted", $"Provider {item.ProviderId} inserted in Cosmos Collection, ukprn {item.UKPRN}");
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    AddResultMessage(item.ProviderId, "PROCESSED-Errored", $"Provider {item.ProviderId} updated in Cosmos Collection, ukprn {item.UKPRN}. {ex.Message}");
-                                    log.LogInformation($"Error processing Provider {item.ProviderId} with Ukprn {item.UKPRN}. {ex.Message}");
                                 }
                             }
                             dataReader.Close();
