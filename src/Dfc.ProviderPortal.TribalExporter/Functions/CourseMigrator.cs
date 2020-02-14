@@ -586,7 +586,7 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                     NotionalNVQLevelv2 = qualification?.NotionalNVQLevelv2,
                     ProviderUKPRN = course.UKPRN,
                     QualificationCourseTitle = qualification?.LearnAimRefTitle,
-                    QualificationType = null,
+                    QualificationType = qualification?.LearnAimRefTypeDesc,
                     //UpdatedBy
                     UpdatedDate = DateTime.Now,
                     WhatYoullLearn = null,
