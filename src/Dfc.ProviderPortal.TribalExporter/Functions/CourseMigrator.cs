@@ -243,11 +243,19 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                 ms.Seek(0L, SeekOrigin.Begin);
 
                 var results = new HashSet<int>();
+                string line;
                 using (var reader = new StreamReader(ms))
                 {
-                    var line = reader.ReadLine();
-                    var ukprn = int.Parse(line);
-                    results.Add(ukprn);
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        if (string.IsNullOrEmpty(line))
+                        {
+                            continue;
+                        }
+
+                        var ukprn = int.Parse(line);
+                        results.Add(ukprn);
+                    }
                 }
 
                 return results;
