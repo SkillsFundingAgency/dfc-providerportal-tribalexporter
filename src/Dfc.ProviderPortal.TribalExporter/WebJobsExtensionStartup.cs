@@ -68,7 +68,10 @@ namespace Dfc.ProviderPortal.TribalExporter
             builder.Services.AddScoped<IUkrlpApiService, UkrlpApiService>();
 
 
-            builder.Services.AddLogging(log => log.SetMinimumLevel(LogLevel.Trace));
+            builder.Services.AddLogging(log => { 
+                log.SetMinimumLevel(LogLevel.Trace);
+                log.AddApplicationInsights(configuration.GetValue<string>("APPINSIGHTS_INSTRUMENTATIONKEY"));
+            });
             builder.Services.AddTransient((provider) => new HttpClient());
             builder.Services.Configure<VenueServiceSettings>(venueServiceSettingsOptions =>
             {
