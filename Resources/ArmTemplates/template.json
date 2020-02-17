@@ -62,6 +62,12 @@
         "description": "Cosmos DB Venues collection name for app settings"
       }
     },
+    "cosmosDBcollectionApprencticeship": {
+      "type": "string",
+      "metadata": {
+        "description": "Cosmos DB Apprenticeship collection name for app settings"
+      }
+    },
     "schedule": {
       "type": "string",
       "metadata": {
@@ -311,6 +317,10 @@
               {
                 "name": "CosmosDbCollectionSettings__VenuesCollectionId",
                 "value": "[parameters('cosmosDBcollectionVenues')]"
+              },
+              {
+                "name": "CosmosDbCollectionSettings__ApprenticeshipCollectionId",
+                "value": "[parameters('cosmosDBcollectionApprencticeship')]"
               },
               {
                 "name": "ApprenticeshipServiceSettings__ApiUrl",
