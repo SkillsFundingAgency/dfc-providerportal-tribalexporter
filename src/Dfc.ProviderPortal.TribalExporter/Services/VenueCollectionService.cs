@@ -14,11 +14,12 @@ using System.Threading.Tasks;
 
 namespace Dfc.ProviderPortal.TribalExporter.Services
 {
-    public class VenueCollectionService : IVenueCollectionService
+    public class VenueCollectionService : IVenueCollectionService, IDisposable
     {
         private readonly ICosmosDbHelper _cosmosDbHelper;
         private readonly ICosmosDbSettings _cosmosDbSettings;
         private readonly ICosmosDbCollectionSettings _cosmosDbCollectionSettings;
+        private readonly DocumentClient _documentClient;
 
         public VenueCollectionService(
             ICosmosDbHelper cosmosDbHelper,
@@ -32,7 +33,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             _cosmosDbHelper = cosmosDbHelper;
             _cosmosDbSettings = cosmosDbSettings.Value;
             _cosmosDbCollectionSettings = cosmosDbCollectionSettings.Value;
+            _documentClient = _cosmosDbHelper.GetClient();
         }
+
+        public void Dispose() => _documentClient.Dispose();
 
         public async Task<string> GetAllVenuesAsJsonForUkprnAsync(int ukprn)
         {
@@ -44,8 +48,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
                 var sql = $"SELECT * FROM c WHERE c.UKPRN = {ukprn} AND c.Status = 1";
                 var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
 
-                using (var client = _cosmosDbHelper.GetClient())
-                using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+                using (var query = _documentClient.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
                 {
                     while (query.HasMoreResults)
                     {
@@ -68,8 +71,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
                 var sql = $"SELECT * FROM c WHERE c.UKPRN = {ukprn} AND c.DateUpdated > '{date.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}'";
                 var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
 
-                using (var client = _cosmosDbHelper.GetClient())
-                using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+                using (var query = _documentClient.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
                 {
                     while (query.HasMoreResults)
                     {
@@ -86,11 +88,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.VenuesCollectionId);
             var sql = $"SELECT* FROM c WHERE c.VENUE_ID = {venueId}";
             var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
-            using (var client = _cosmosDbHelper.GetClient())
-            {
-                var query =  client.CreateDocumentQuery<Venue>(uri, sql, options).AsDocumentQuery();
-                return (await query.ExecuteNextAsync()).FirstOrDefault();
-            };
+            var query = _documentClient.CreateDocumentQuery<Venue>(uri, sql, options).AsDocumentQuery();
+            return (await query.ExecuteNextAsync()).FirstOrDefault();
         }
          
         public async Task<Venue> GetDocumentByLocationId(int locationId)
@@ -99,11 +98,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.VenuesCollectionId);
             var sql = $"SELECT* FROM c WHERE c.LocationId = { locationId }";
             var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
-            using (var client = _cosmosDbHelper.GetClient())
-            {
-                var query = client.CreateDocumentQuery<Venue>(uri, sql, options).AsDocumentQuery();
-                return (await query.ExecuteNextAsync()).FirstOrDefault();
-            };
+            var query = _documentClient.CreateDocumentQuery<Venue>(uri, sql, options).AsDocumentQuery();
+            return (await query.ExecuteNextAsync()).FirstOrDefault();
         }
     }
 }
