@@ -476,6 +476,33 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                     hasErrors = true;
                 }
 
+                bool flexibleStartDate = default;
+                DateTime? startDate = default;
+
+                if (deliveryMode == DeliveryMode.Online)
+                {
+                    flexibleStartDate = true;
+                }
+                else if (courseInstance.StartDate.HasValue)
+                {
+                    flexibleStartDate = false;
+                    startDate = courseInstance.StartDate;
+                }
+                else if (string.IsNullOrEmpty(courseInstance.StartDateDescription))
+                {
+                    errors.Add($"Empty StartDateDescription");
+                    hasErrors = true;
+                }
+                else if (DateTime.TryParseExact(courseInstance.StartDateDescription, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var sd))
+                {
+                    flexibleStartDate = false;
+                    startDate = sd;
+                }
+                else
+                {
+                    flexibleStartDate = true;
+                }
+
                 if (!string.IsNullOrEmpty(courseInstance.StartDateDescription))
                 {
                     errors.Add($"Non-empty StartDateDescription");
@@ -521,8 +548,6 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                     }
                 }
 
-                // TODO Ignore start dates in the past?
-
                 var recordStatus = hasErrors ? RecordStatus.MigrationPending : RecordStatus.Live;
 
                 return new CourseRun()
@@ -538,13 +563,13 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                     DeliveryMode = deliveryMode,
                     DurationUnit = durationUnit,
                     DurationValue = durationValue,
-                    FlexibleStartDate = !courseInstance.StartDate.HasValue,
+                    FlexibleStartDate = flexibleStartDate,
                     id = id,
                     ProviderCourseID = courseInstance.ProviderOwnCourseInstanceRef,
                     RecordStatus = recordStatus,
                     National = national,
                     Regions = new List<string>(),
-                    StartDate = courseInstance.StartDate,
+                    StartDate = startDate,
                     StudyMode = studyMode,
                     //UpdatedBy
                     UpdatedDate = DateTime.Now,
