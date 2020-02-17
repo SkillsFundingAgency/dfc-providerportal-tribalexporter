@@ -409,13 +409,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             }
         }
     }
-}
 
-[Serializable()]
-public class ResultMessage
-{
-    public int VenueId { get; set; }
-    public int? LocationId { get; set; }
-    public string Status { get; set; }
-    public string Message { get; set; }
+    [Serializable()]
+    public class ResultMessage
+    {
+        public int VenueId { get; set; }
+        public int? LocationId { get; set; }
+        public string Status { get; set; }
+        public string Message { get; set; }
+    }
+
 }
