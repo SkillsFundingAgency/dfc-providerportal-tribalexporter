@@ -503,12 +503,6 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                     flexibleStartDate = true;
                 }
 
-                if (!string.IsNullOrEmpty(courseInstance.StartDateDescription))
-                {
-                    errors.Add($"Non-empty StartDateDescription");
-                    hasErrors = true;
-                }
-
                 if (deliveryMode == DeliveryMode.ClassroomBased && !venueId.HasValue)
                 {
                     errors.Add($"No venue");
