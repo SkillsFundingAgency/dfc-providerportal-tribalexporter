@@ -55,7 +55,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var whiteListProviders = await GetProviderWhiteList();
             var result = new List<ApprenticeshipResultMessage>();
             var venueExportFileName = $"ApprenticeshipExport-{DateTime.Now.ToString("dd-MM-yy HHmm")}";
-            const string WHITE_LIST_FILE = "ProviderWhiteList.txt";
+            const string WHITE_LIST_FILE = "ProviderWhiteList-Apprenticeships.txt";
             var ukprnCache = new List<int>();
             var databaseId = configuration["CosmosDbSettings:DatabaseId"];
             var apprenticeshipList = new List<ApprenticeshipResult>();
