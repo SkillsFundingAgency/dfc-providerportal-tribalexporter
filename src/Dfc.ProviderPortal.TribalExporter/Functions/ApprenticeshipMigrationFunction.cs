@@ -16,7 +16,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
     public class ApprenticeshipMigrationFunction
     {
         [FunctionName(nameof(ApprenticeshipMigrationFunction))]
-        [Disable]
         public static async Task Run(
             [TimerTrigger("%ApprenticeshipMigrationSchedule%")]
             TimerInfo myTimer,
