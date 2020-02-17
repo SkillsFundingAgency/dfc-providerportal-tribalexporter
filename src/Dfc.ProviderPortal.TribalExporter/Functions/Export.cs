@@ -90,6 +90,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             {
                 logFile.AppendLine(e.Message);
                 logFile.AppendLine(e.ToString());
+                throw;
             }
             finally
             {
