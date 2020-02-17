@@ -50,7 +50,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     )
         {
             var apprenticeshipCollectionId = configuration["CosmosDbCollectionSettings:ApprenticeshipCollectionId"];
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
+            var connectionString = configuration.GetConnectionString("TribalRestore");
             var blobContainer = blobhelper.GetBlobContainer(configuration["BlobStorageSettings:Container"]);
             var whiteListProviders = await GetProviderWhiteList();
             var result = new List<ApprenticeshipResultMessage>();
@@ -114,7 +114,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                         WHERE al.RecordStatusId = 2 and 
                                               al.ApprenticeshipId = @ApprenticeshipId
                                         ORDER BY ApprenticeshipId,ApprenticeshipLocationId";
-
 
             try
             {
