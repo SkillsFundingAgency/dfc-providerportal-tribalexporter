@@ -14,11 +14,12 @@ using System.Threading.Tasks;
 
 namespace Dfc.ProviderPortal.TribalExporter.Services
 {
-    public class CourseCollectionService : ICourseCollectionService
+    public class CourseCollectionService : ICourseCollectionService, IDisposable
     {
         private readonly ICosmosDbHelper _cosmosDbHelper;
         private readonly ICosmosDbSettings _cosmosDbSettings;
         private readonly ICosmosDbCollectionSettings _cosmosDbCollectionSettings;
+        private readonly DocumentClient _documentClient;
 
         public CourseCollectionService(
             ICosmosDbHelper cosmosDbHelper,
@@ -32,7 +33,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             _cosmosDbHelper = cosmosDbHelper;
             _cosmosDbSettings = cosmosDbSettings.Value;
             _cosmosDbCollectionSettings = cosmosDbCollectionSettings.Value;
+            _documentClient = _cosmosDbHelper.GetClient();
         }
+
+        public void Dispose() => _documentClient.Dispose();
 
         public async Task<List<Course>> GetAllCoursesAsync()
         {
@@ -42,8 +46,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
                 var sql = $"SELECT * FROM c";
                 var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
 
-                using (var client = _cosmosDbHelper.GetClient())
-                using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+                using (var query = _documentClient.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
                 {
                     while (query.HasMoreResults)
                     {
@@ -64,8 +67,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
                 var sql = $"SELECT * FROM c WHERE c.ProviderUKPRN = {ukprn} AND ARRAY_CONTAINS(c.CourseRuns, {{ RecordStatus: 1 }}, true)";
                 var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
 
-                using (var client = _cosmosDbHelper.GetClient())
-                using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+                using (var query = _documentClient.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
                 {
                     while (query.HasMoreResults)
                     {
@@ -87,8 +89,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
                 var sql = $"SELECT * FROM c WHERE c.ProviderUKPRN = {ukprn} AND ARRAY_CONTAINS(c.CourseRuns, {{ RecordStatus: 1 }}, true) AND c.CreatedDate > '{date.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}'";
                 var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
 
-                using (var client = _cosmosDbHelper.GetClient())
-                using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+                using (var query = _documentClient.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
                 {
                     while (query.HasMoreResults)
                     {
@@ -110,8 +111,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
                 var sql = $"SELECT c.id FROM c JOIN cr IN c.CourseRuns WHERE cr.RecordStatus = 1 AND  cr.CreatedDate > '{date.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}' AND c.ProviderUKPRN = {ukprn}";
                 var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
 
-                using (var client = _cosmosDbHelper.GetClient())
-                using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+                using (var query = _documentClient.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
                 {
                     while (query.HasMoreResults)
                     {
@@ -133,8 +133,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
                 var sql = $"SELECT * FROM c WHERE c.ProviderUKPRN = {ukprn} AND ARRAY_CONTAINS(c.CourseRuns, {{ RecordStatus: 1 }}, true) AND c.UpdatedDate > '{date.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}'";
                 var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
 
-                using (var client = _cosmosDbHelper.GetClient())
-                using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+                using (var query = _documentClient.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
                 {
                     while (query.HasMoreResults)
                     {
@@ -156,8 +155,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
                 var sql = $"SELECT c.id FROM c JOIN cr IN c.CourseRuns WHERE cr.RecordStatus = 1 AND  cr.UpdatedDate > '{date.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}' AND c.ProviderUKPRN = {ukprn}";
                 var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
 
-                using (var client = _cosmosDbHelper.GetClient())
-                using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+                using (var query = _documentClient.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
                 {
                     while (query.HasMoreResults)
                     {
@@ -180,8 +178,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
                 var sql = $"SELECT * FROM c WHERE c.ProviderUKPRN = {ukprn} AND ARRAY_CONTAINS(c.CourseRuns, {{ RecordStatus: 4 }}, true) AND c.UpdatedDate > '{date.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}'";
                 var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
 
-                using (var client = _cosmosDbHelper.GetClient())
-                using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+                using (var query = _documentClient.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
                 {
                     while (query.HasMoreResults)
                     {
@@ -203,8 +200,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
                 var sql = $"SELECT c.id FROM c JOIN cr IN c.CourseRuns WHERE cr.RecordStatus = 4 AND  cr.UpdatedDate > '{date.ToString("s", System.Globalization.CultureInfo.InvariantCulture)}' AND c.ProviderUKPRN = {ukprn}";
                 var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
 
-                using (var client = _cosmosDbHelper.GetClient())
-                using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+                using (var query = _documentClient.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
                 {
                     while (query.HasMoreResults)
                     {
