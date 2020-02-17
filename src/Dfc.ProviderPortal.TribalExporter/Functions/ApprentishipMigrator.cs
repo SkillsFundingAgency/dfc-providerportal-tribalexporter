@@ -59,6 +59,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var ukprnCache = new List<int>();
             var databaseId = configuration["CosmosDbSettings:DatabaseId"];
             var apprenticeshipList = new List<ApprenticeshipResult>();
+            var apprenticeshipErrors = new List<string>();
 
             var apprenticeshipSQL = @"SELECT a.ApprenticeshipId,
 	                                           p.ProviderId,
@@ -78,7 +79,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 	                                           p.Ukprn
                                         FROM Apprenticeship a
                                         INNER JOIN Provider p on p.ProviderId = a.ProviderId
-                                        where a.providerId=307683 and a.recordStatusId=2
+                                        WHERE a.recordStatusId=2
                                         ORDER BY ProviderId
                                         ";
             var apprenticeshipLocationsSQL = @"SELECT al.ApprenticeshipId,
@@ -141,11 +142,13 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             foreach (var item in apprenticeshipList)
             {
+                apprenticeshipErrors = new List<string>();
                 //check to see if prn is whitelisted
                 if (IsOnWhiteList(item.UKPRN))
                 {
                     try
                     {
+                        var errorList = new List<string>();
                         //get relevant info
                         var exisitingApprenticeship = await GetExistingApprenticeship(item);
                         var referenceDataFramework = await GetReferenceDataFramework(item);
@@ -168,17 +171,18 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                                                     mappedStatus,
                                                                     referenceDataFramework?.Id.ToString(),
                                                                     referenceDataStandard?.id.ToString(),
-                                                                    cosmosProvider.id.ToString(),
+                                                                    cosmosProvider?.id.ToString(),
                                                                     MappedTitle,
                                                                     mappedNvqLevel);
 
-
                         //insert record into cosmos
                         await CreateOrUpdateApprenticeshipRecord(mappedApprenticeship);
+
+                        AddResultMessage(item.ApprenticeshipID, "Success", string.Join("\n",  apprenticeshipErrors));
                     }
                     catch (Exception e)
                     {
-                        AddResultMessage(item.ApprenticeshipID, "Failed", "Exception occured creating record");
+                        AddResultMessage(item.ApprenticeshipID, "Failed", $"Exception occured creating record - {e.Message}");
                         log.LogError("Error occurred creating or updating apprenticeship record!", e);
                     }
                 }
@@ -233,7 +237,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 return cosmosApprenticeship;
             }
 
-
             async Task<IList<Dfc.CourseDirectory.Models.Models.Venues.Venue>> GetCosmosVenues(IList<ApprenticeshipLocationResult> locations)
             {
                 IList<Dfc.CourseDirectory.Models.Models.Venues.Venue> lst = new List<Dfc.CourseDirectory.Models.Models.Venues.Venue>();
@@ -265,14 +268,20 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             async Task<ReferenceDateStandard> GetReferenceDataStandard(ApprenticeshipResult item)
             {
                 var apprenticeship = await apprenticeReferenceDataService.GetStandardById(item.StandardCode ?? 0, item.Version ?? 0);
-                return apprenticeship?.Value?.Value;
+                //if(apprenticeship.IsSuccess)
+                    return apprenticeship?.Value?.Value;
+                //else
+                //    throw new Exception("Error calling GetReferenceDataFramework.GetFrameworkByCode()");
             }
 
             async Task<ReferenceDataFramework> GetReferenceDataFramework(ApprenticeshipResult item)
             {
                 //checks for framework apprenticeship
                 var framework = await apprenticeReferenceDataService.GetFrameworkByCode(item.FrameworkCode ?? 0, item.ProgType ?? 0, item.PathWayCode ?? 0);
-                return framework?.Value?.Value;
+                if (framework.IsSuccess)
+                    return framework?.Value?.Value;
+                else
+                    throw new Exception("Error calling apprenticeReferenceDataService.GetStandardById()");
             }
 
             async Task<Apprenticeship> GetExistingApprenticeship(ApprenticeshipResult item)
@@ -287,15 +296,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 {
                     var s = UriFactory.CreateDocumentUri(databaseId, apprenticeshipCollectionId, apprenticeship.id);
                     Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, apprenticeshipCollectionId);
-                    await client.UpsertDocumentAsync(collectionUri, apprenticeship);
+                    var res =await client.UpsertDocumentAsync(collectionUri, apprenticeship);
                 }
             }
 
             RecordStatus MapApprenticeshipRecordStatus(IList<ApprenticeshipLocationDTO> mappedLocation)
             {
-                //if there are any migrations that are not live, then the who apprenticeship record
-                //should be marked as pending.
-                if (mappedLocation.Any(x => x.RecordStatus == VenueStatus.Pending))
+                //if there are any errors with apprenticeshipREcord, set record to migration pending.
+                if (apprenticeshipErrors.Any())
                     return RecordStatus.MigrationPending;
                 else
                     return RecordStatus.Live;
@@ -468,12 +476,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 else if (tribalRecord.FrameworkCode.HasValue)
                     return ApprenticeshipType.FrameworkCode;
                 else
+                {
+                    apprenticeshipErrors.Add($"ApprenticeshipId: {tribalRecord.ApprenticeshipID} has undefined apprenticeshipType");
                     return ApprenticeshipType.Undefined;
+                }
             }
 
             IList<ApprenticeshipLocationDTO> MapLocations(IList<ApprenticeshipLocationResult> locations, IList<Dfc.CourseDirectory.Models.Models.Venues.Venue> venues)
             {
-
                 var locationBasedApprenticeshipLocation = new List<ApprenticeshipLocationDTO>();
                 var regionBasedApprenticeshipLocation = new List<ApprenticeshipLocationDTO>();
 
@@ -488,9 +498,15 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     var type = GetApprenticeshipLocationType(location);
                     if (type == ApprenticeshipLocationType.EmployerBased)
                     {
-
                         var allRegionsWithSubRegions = new SelectRegionModel();
                         var onspdRegionSubregion = onspdService.GetOnspdData(new OnspdSearchCriteria(location.Postcode));
+                        if (onspdRegionSubregion.IsFailure)
+                            apprenticeshipErrors.Add($"LocationId: {location.LocationId} - Querying onspd failed");
+                        else if (onspdRegionSubregion.HasValue)
+                        {
+                            apprenticeshipErrors.Add($"Location:{location.LocationId} - Did not find a record for postcode: {location.Postcode}");
+                            continue;
+                        }
 
                         var selectedSubRegion = allRegionsWithSubRegions.RegionItems.SelectMany(sr => sr.SubRegion.Where(sb =>
                                                                                                 sb.SubRegionName == onspdRegionSubregion.Value.Value.LocalAuthority ||
@@ -500,7 +516,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                         if (selectedSubRegion == null)
                         {
-                            // Problem - No selectedRegion and NO selectedSubRegion match => Undefined 
+                            apprenticeshipErrors.Add($"Location:{location.LocationId} Unable to match region with ons data api, location skipped");
                             continue;
                         }
                         else
@@ -553,7 +569,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         if (cosmosVenueItem != null)
                             status = cosmosVenueItem.Status;
                         else
+                        {
+                            apprenticeshipErrors.Add($"LocationId: {location.LocationId} did not find a venue in cosmos, record marked as pending");
                             status = VenueStatus.Pending;
+                        }
 
                         var appLocation = new ApprenticeshipLocationDTO()
                         {
@@ -562,16 +581,16 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             TribalId = location.ApprenticeshipLocationId,
                             Address = new Dfc.CourseDirectory.Models.Models.Apprenticeships.Address()
                             {
-                                Address1 = cosmosVenueItem.Address1,
-                                Address2 = cosmosVenueItem.Address2,
-                                County = cosmosVenueItem.County,
-                                Email = cosmosVenueItem.Email,
-                                Website = cosmosVenueItem.Website,
-                                Longitude = cosmosVenueItem.Longitude,
-                                Latitude = cosmosVenueItem.Latitude,
-                                Postcode = cosmosVenueItem.PostCode,
-                                Town = cosmosVenueItem.Town,
-                                Phone = cosmosVenueItem.Telephone
+                                Address1 = cosmosVenueItem?.Address1,
+                                Address2 = cosmosVenueItem?.Address2,
+                                County = cosmosVenueItem?.County,
+                                Email = cosmosVenueItem?.Email,
+                                Website = cosmosVenueItem?.Website,
+                                Longitude = cosmosVenueItem?.Longitude,
+                                Latitude = cosmosVenueItem?.Latitude,
+                                Postcode = cosmosVenueItem?.PostCode,
+                                Town = cosmosVenueItem?.Town,
+                                Phone = cosmosVenueItem?.Telephone
                             },
                             DeliveryModes = location.DeliveryModes,
                             LocationId = location.LocationId,
@@ -588,6 +607,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             CreatedDate = DateTime.Now,
                         };
                         locationBasedApprenticeshipLocation.Add(appLocation);
+                    }
+                    else
+                    {
+                        apprenticeshipErrors.Add($"LocationId: {location.LocationId} skipped as type was unknown {type}");
+                        continue;
                     }
 
                     if (regionBasedApprenticeshipLocation.Any(x => x.RecordStatus == VenueStatus.Live))
