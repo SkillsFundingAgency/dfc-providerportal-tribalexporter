@@ -30,7 +30,10 @@
       "value": "providers"
     },
     "cosmosDBcollectionVenues": {
-      "value": "providerportal"
+      "value": "venues"
+    },
+    "cosmosDBcollectionApprencticeship": {
+      "value": "apprenticeship"
     },
     "schedule": {
       "value": "0 0 23 * * *"
