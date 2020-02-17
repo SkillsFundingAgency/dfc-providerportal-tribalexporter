@@ -53,20 +53,29 @@
     "sqlCourseDirectoryConnectionString": {
       "value": "__sqlCourseDirectoryConnectionString__"
     },
-    "apimCourseDirectoryKey": {
-      "value": "__apimKey__"
-    },
     "courseApiUrl": {
       "value": "__courseApiUrl__"
+    },
+    "courseApiKey": {
+      "value": "__ApimPublishCourseDirectoryKey__"
     },
     "courseTextApiUrl": {
       "value": "__courseTextApiUrl__"
     },
+    "courseTextApiKey": {
+      "value": "__ApimPublishCourseDirectoryKey__"
+    },
     "venueServiceApiUrl": {
       "value": "__venueServiceApiUrl__"
     },
+    "venueServiceApiKey": {
+      "value": "__ApimPublishCourseDirectoryKey__"
+    },
     "providerApiUrl": {
       "value": "__providerApiUrl__"
+    },
+    "providerApiKey": {
+      "value": "__ApimPublishCourseDirectoryKey__"
     },
     "azureSearchName": {
       "value": "__azureSearchName__"
@@ -82,6 +91,12 @@
     },
     "referenceDataApiUrl": {
       "value": "__referenceDataApiUrl__"
+    },
+    "referenceDataApiKey": {
+      "value": "__ApimPublishCourseDirectoryKey__"
+    },
+    "tribalDatabaseConnectionString": {
+      "value": "__TribalSharedConnectionString__"
     }
   }
 }
