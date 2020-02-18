@@ -67,11 +67,18 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
 
             var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.ProvidersCollectionId);
             var sql = $"SELECT * FROM p WHERE p.UnitedKingdomProviderReferenceNumber = \"{ukprn}\"";
+
             var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
             using (var client = _cosmosDbHelper.GetClient())
             {
-                var query = client.CreateDocumentQuery<Provider>(uri, sql, options).AsDocumentQuery();
-                return (await query.ExecuteNextAsync()).OrderByDescending(x => x.DateUpdated).FirstOrDefault();
+                var providerList = new List<Provider>();
+                var query = client.CreateDocumentQuery<Document>(uri, sql, options).AsDocumentQuery();
+                while (query.HasMoreResults)
+                {
+                    foreach (var document in await query.ExecuteNextAsync<Provider>()) providerList.Add(document);
+                }
+
+                return providerList.OrderByDescending(x => x.DateUpdated).FirstOrDefault();
             };
         }
 
