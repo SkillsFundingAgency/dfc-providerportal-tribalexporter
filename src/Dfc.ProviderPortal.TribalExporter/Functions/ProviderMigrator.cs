@@ -178,8 +178,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                     }
                                     catch (Exception ex)
                                     {
-                                        AddResultMessage(item.ProviderId, "PROCESSED-Errored", $"Provider {item.ProviderId} updated in Cosmos Collection, ukprn {item.UKPRN}. {ex.Message}");
-                                        log.LogInformation($"Error processing Provider {item.ProviderId} with Ukprn {item.UKPRN}. {ex.Message}");
+                                        string errorMessage = $"Error processing Provider {item.ProviderId} with Ukprn {item.UKPRN}. {ex.Message}";
+                                        AddResultMessage(item.ProviderId, "PROCESSED-Errored", errorMessage);
+                                        log.LogInformation(errorMessage);
                                     }
                                 }
                             }
@@ -211,6 +212,15 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             {
                 // Build contacts
                 List<Providercontact> providercontacts = new List<Providercontact>();
+                var ukrlpDataContacts = ukrlpData.ProviderContact
+                                                    .Where(c => c.ContactType == "P")
+                                                    .OrderByDescending(c => c.LastUpdated);
+
+                if(!ukrlpDataContacts.Any())
+                {
+                    throw new Exception("Provider contacts of type P could not be found.");
+                }
+
                 foreach (ProviderContactStructure ukrlpContact in ukrlpData.ProviderContact)
                 {
                     // Build contact address
