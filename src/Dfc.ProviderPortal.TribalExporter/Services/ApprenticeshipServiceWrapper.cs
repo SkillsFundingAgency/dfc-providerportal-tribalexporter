@@ -39,7 +39,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
         public async Task<Apprenticeship> GetApprenticeshipByApprenticeshipID(int apprenticeshipId)
         {
             var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.ApprenticeshipCollectionId);
-            var sql = $"SELECT* FROM c WHERE c.ApprenticeshipID = { apprenticeshipId }";
+            var sql = $"SELECT* FROM c WHERE c.ApprenticeshipId = { apprenticeshipId }";
             var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
             using (var client = _cosmosDbHelper.GetClient())
             {
