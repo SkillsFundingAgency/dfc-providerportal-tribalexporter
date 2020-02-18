@@ -46,6 +46,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
             {
                 var results = new Dictionary<int, string>();
 
+                // Keep a record of all the VenueLocationIds so we can detect duplicates.
+                // Don't add duplicates to the output - it should be a lookup error.
+                var venueLocationIds = new HashSet<int>();
+
                 var lookupFileResourceName = "Dfc.ProviderPortal.TribalExporter.VenueLookup.txt";
                 using (var lookupFile = typeof(RegionLookup).Assembly.GetManifestResourceStream(lookupFileResourceName))
                 using (var reader = new StreamReader(lookupFile))
@@ -63,7 +67,15 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
                         var vlId = int.Parse(parts[0]);
                         var region = parts[1];
 
-                        results.Add(vlId, region);
+                        if (venueLocationIds.Add(vlId))
+                        {
+                            results.Add(vlId, region);
+                        }
+                        else
+                        {
+                            // Duplicate - remove all for VenueLocationId
+                            results.Remove(vlId);
+                        }
                     }
                 }
 
