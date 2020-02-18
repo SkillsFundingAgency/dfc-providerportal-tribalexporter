@@ -221,7 +221,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     throw new Exception("Provider contacts of type P could not be found.");
                 }
 
-                foreach (ProviderContactStructure ukrlpContact in ukrlpData.ProviderContact)
+                foreach (ProviderContactStructure ukrlpContact in ukrlpDataContacts)
                 {
                     // Build contact address
                     Contactaddress contactaddress = new Contactaddress()
