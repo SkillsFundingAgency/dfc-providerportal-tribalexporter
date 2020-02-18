@@ -42,7 +42,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             // TODO : Change to correct collection below
             var databaseId = configuration["CosmosDbSettings:DatabaseId"];
             var providerCollectionId = configuration["CosmosDbCollectionSettings:ProvidersCollectionId"];
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
+            var connectionString = configuration.GetConnectionString("TribalRestore");
             var venueExportFileName = $"ProviderExport-{DateTime.Now.ToString("dd-MM-yy HHmm")}";
 
             var blobContainer = blobhelper.GetBlobContainer(configuration["BlobStorageSettings:Container"]);
