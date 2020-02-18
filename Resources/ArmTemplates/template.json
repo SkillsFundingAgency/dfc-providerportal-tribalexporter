@@ -62,6 +62,12 @@
         "description": "Cosmos DB Venues collection name for app settings"
       }
     },
+    "cosmosDBcollectionApprencticeship": {
+      "type": "string",
+      "metadata": {
+        "description": "Cosmos DB Apprenticeship collection name for app settings"
+      }
+    },
     "schedule": {
       "type": "string",
       "metadata": {
@@ -107,16 +113,16 @@
         "description": "connection string to the sql server database"
       }
     },
-    "apimCourseDirectoryKey": {
-      "type": "securestring",
-      "metadata": {
-        "description": "APIM product key for the Course Directory apis"
-      }
-    },
     "courseApiUrl": {
       "type": "string",
       "metadata": {
         "description": "URL to the course API"
+      }
+    },
+    "courseApiKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "token to access to the course API"
       }
     },
     "courseTextApiUrl": {
@@ -125,16 +131,34 @@
         "description": "URL to the course text API"
       }
     },
+    "courseTextApiKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "token to access to the coursetext API"
+      }
+    },
     "venueServiceApiUrl": {
       "type": "string",
       "metadata": {
         "description": "URL to the venue API"
       }
     },
+    "venueServiceApiKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "token to access to the venues API"
+      }
+    },
     "providerApiUrl": {
       "type": "string",
       "metadata": {
         "description": "URL to the provider API"
+      }
+    },
+    "providerApiKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "token to access to the providers API"
       }
     },
     "azureSearchName": {
@@ -165,6 +189,18 @@
       "type": "string",
       "metadata": {
         "description": "URL to the reference data API"
+      }
+    },
+    "referenceDataApiKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "token to access to the reference data API"
+      }
+    },
+    "tribalDatabaseConnectionString": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Connection string to the SFA_CourseDirectory (Tribal) database"
       }
     }
   },
@@ -283,6 +319,10 @@
                 "value": "[parameters('cosmosDBcollectionVenues')]"
               },
               {
+                "name": "CosmosDbCollectionSettings__ApprenticeshipCollectionId",
+                "value": "[parameters('cosmosDBcollectionApprencticeship')]"
+              },
+              {
                 "name": "ApprenticeshipServiceSettings__ApiUrl",
                 "value": "[parameters('ApprenticeshipServiceApiUrl')]"
               },
@@ -300,7 +340,7 @@
               },
               {
                 "name": "CourseServiceSettings__ApiKey",
-                "value": "[parameters('apimCourseDirectoryKey')]"
+                "value": "[parameters('courseApiKey')]"
               },
               {
                 "name": "CourseTextServiceSettings__ApiUrl",
@@ -308,7 +348,7 @@
               },
               {
                 "name": "CourseTextServiceSettings__ApiKey",
-                "value": "[parameters('apimCourseDirectoryKey')]"
+                "value": "[parameters('courseTextApiKey')]"
               },
               {
                 "name": "VenueServiceSettings__ApiUrl",
@@ -316,7 +356,7 @@
               },
               {
                 "name": "VenueServiceSettings__ApiKey",
-                "value": "[parameters('apimCourseDirectoryKey')]"
+                "value": "[parameters('venueServiceApiKey')]"
               },
               {
                 "name": "ProviderServiceSettings__ApiUrl",
@@ -324,7 +364,7 @@
               },
               {
                 "name": "ProviderServiceSettings__ApiKey",
-                "value": "[parameters('apimCourseDirectoryKey')]"
+                "value": "[parameters('providerApiKey')]"
               },
               {
                 "name": "LarsSearchSettings__ApiUrl",
@@ -444,7 +484,7 @@
               },
               {
                 "name": "ApprenticeReferenceDataSettings__ApiKey",
-                "value": "[parameters('apimCourseDirectoryKey')]"
+                "value": "[parameters('referenceDataApiKey')]"
               },
               {
                 "name": "RegionSubRegionRangeRadius",
@@ -465,6 +505,10 @@
               {
                 "name": "OnspdSearchSettings__IndexName",
                 "value": "onspd"
+              },
+              {
+                "name": "ConnectionStrings__TribalRestore",
+                "value": "[parameters('tribalDatabaseConnectionString')]"
               }
             ]
           },
