@@ -71,7 +71,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             using (var client = _cosmosDbHelper.GetClient())
             {
                 var query = client.CreateDocumentQuery<Provider>(uri, sql, options).AsDocumentQuery();
-                return (await query.ExecuteNextAsync()).FirstOrDefault();
+                return (await query.ExecuteNextAsync()).OrderByDescending(x => x.LastUpdated).FirstOrDefault();
             };
         }
 

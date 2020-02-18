@@ -250,8 +250,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                     Email = item.Email,
                                     Website = item.Website,
                                     Telephone = item.Telephone,
-                                    CreatedBy = item.CreatedByUserId,
-                                    CreatedDate = item.CreatedDateTimeUtc,
+                                    CreatedBy = "VenueMigrator",
+                                    CreatedDate = DateTime.Now,
                                     LocationId = item.LocationID
                                 };
                                 await _cosmosClient.UpsertDocumentAsync(collectionUri, editedVenue);

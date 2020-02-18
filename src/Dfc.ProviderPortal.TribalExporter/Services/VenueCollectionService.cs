@@ -89,7 +89,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             var sql = $"SELECT* FROM c WHERE c.VENUE_ID = {venueId}";
             var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
             var query = _documentClient.CreateDocumentQuery<Venue>(uri, sql, options).AsDocumentQuery();
-            return (await query.ExecuteNextAsync()).FirstOrDefault();
+            return (await query.ExecuteNextAsync()).OrderByDescending(x => x.DateCreated).FirstOrDefault();
         }
          
         public async Task<Venue> GetDocumentByLocationId(int locationId)
@@ -99,7 +99,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             var sql = $"SELECT* FROM c WHERE c.LocationId = { locationId }";
             var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
             var query = _documentClient.CreateDocumentQuery<Venue>(uri, sql, options).AsDocumentQuery();
-            return (await query.ExecuteNextAsync()).FirstOrDefault();
+            return (await query.ExecuteNextAsync()).OrderByDescending(x => x.DateCreated).FirstOrDefault();
         }
     }
 }

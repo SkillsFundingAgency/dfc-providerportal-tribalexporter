@@ -177,7 +177,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         //insert record into cosmos
                         await CreateOrUpdateApprenticeshipRecord(mappedApprenticeship);
 
-                        AddResultMessage(item.ApprenticeshipID, "Success", string.Join("\n",  apprenticeshipErrors));
+                        AddResultMessage(item.ApprenticeshipID, "Success", string.Join("\n", apprenticeshipErrors));
                     }
                     catch (Exception e)
                     {
@@ -201,6 +201,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             {
                 var apprenticeshipTitle = tribalRecord.FrameworkCode.HasValue ? refDataFramework?.NasTitle : refDataStandard?.StandardName;
                 var nvqLevel2 = refDataStandard?.NotionalEndLevel;
+
+                if(string.IsNullOrEmpty(apprenticeshipTitle))
+                    apprenticeshipErrors.Add($"Unable to determine Apprenticeship Title, framework code {tribalRecord.FrameworkCode}, pathway code: {tribalRecord.PathWayCode}, standard code: {tribalRecord.StandardCode}, version: {tribalRecord.Version}")
+
                 return (apprenticeshipTitle, nvqLevel2);
             }
 
@@ -210,7 +214,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 var cosmosApprenticeship = new ApprenticeshipDTO()
                 {
                     id = id,
-                    ApprenticeshipID = tribalRecord.ApprenticeshipID,
+                    ApprenticeshipId = tribalRecord.ApprenticeshipID,
                     ApprenticeshipTitle = apprenticeshipTitle,
                     ProviderId = providerId,
                     PathWayCode = tribalRecord.PathWayCode,
@@ -267,20 +271,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             async Task<ReferenceDateStandard> GetReferenceDataStandard(ApprenticeshipResult item)
             {
                 var apprenticeship = await apprenticeReferenceDataService.GetStandardById(item.StandardCode ?? 0, item.Version ?? 0);
-                //if(apprenticeship.IsSuccess)
-                    return apprenticeship?.Value?.Value;
-                //else
-                //    throw new Exception("Error calling GetReferenceDataFramework.GetFrameworkByCode()");
+                return apprenticeship?.Value?.Value;
             }
 
             async Task<ReferenceDataFramework> GetReferenceDataFramework(ApprenticeshipResult item)
             {
                 //checks for framework apprenticeship
-                var framework = await apprenticeReferenceDataService.GetFrameworkByCode(item.FrameworkCode ?? 0, item.ProgType ?? 0, item.PathWayCode ?? 0);
-                if (framework.IsSuccess)
-                    return framework?.Value?.Value;
-                else
-                    throw new Exception("Error calling apprenticeReferenceDataService.GetStandardById()");
+                var apprenticeship = await apprenticeReferenceDataService.GetFrameworkByCode(item.FrameworkCode ?? 0, item.ProgType ?? 0, item.PathWayCode ?? 0);
+                return apprenticeship?.Value?.Value;
             }
 
             async Task<Apprenticeship> GetExistingApprenticeship(ApprenticeshipResult item)
@@ -295,7 +293,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 {
                     var s = UriFactory.CreateDocumentUri(databaseId, apprenticeshipCollectionId, apprenticeship.id);
                     Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, apprenticeshipCollectionId);
-                    var res =await client.UpsertDocumentAsync(collectionUri, apprenticeship);
+                    var res = await client.UpsertDocumentAsync(collectionUri, apprenticeship);
                 }
             }
 
@@ -528,13 +526,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         apprenticeshipErrors.Add($"LocationId: {location.LocationId} skipped as type was unknown {type}");
                         continue;
                     }
+                }
 
-                    if (regionBasedApprenticeshipLocation.Any(x => x.RecordStatus == VenueStatus.Live))
-                    {
-                        var regionLocation = regionBasedApprenticeshipLocation.FirstOrDefault(x => x.RecordStatus == VenueStatus.Live);
-                        regionLocation.Regions = regionBasedApprenticeshipLocation.Where(x => x.Regions != null).SelectMany(x => x.Regions).Distinct().ToList();
-                        locationBasedApprenticeshipLocation.Add(regionLocation);
-                    }
+                //add a new location with all distinct regions.
+                if (regionBasedApprenticeshipLocation.Any(x => x.RecordStatus == VenueStatus.Live))
+                {
+                    var regionLocation = regionBasedApprenticeshipLocation.FirstOrDefault(x => x.RecordStatus == VenueStatus.Live);
+                    regionLocation.Regions = regionBasedApprenticeshipLocation.Where(x => x.Regions != null).SelectMany(x => x.Regions).Distinct().ToList();
+                    locationBasedApprenticeshipLocation.Add(regionLocation);
                 }
 
                 return locationBasedApprenticeshipLocation;
@@ -622,7 +621,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
     public class ApprenticeshipDTO
     {
         public string id { get; set; }
-        public int ApprenticeshipID { get; set; }
+        public int ApprenticeshipId { get; set; }
         public string ApprenticeshipTitle { get; set; }
         public string ProviderId { get; set; }
         public string StandardId { get; set; }
