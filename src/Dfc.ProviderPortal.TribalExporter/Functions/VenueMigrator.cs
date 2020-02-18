@@ -312,7 +312,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 switch (source)
                 {
                     case VenueSource.Venue:
-                        return await venueCollectionService.GetDocumentByVenueId(3048129);// venueId.Value);
+                        return await venueCollectionService.GetDocumentByVenueId(venueId.Value);
                     case VenueSource.Location:
                         return await venueCollectionService.GetDocumentByLocationId(locationId.Value);
                     default: return null;
