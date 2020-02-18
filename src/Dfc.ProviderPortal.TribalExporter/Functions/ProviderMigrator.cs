@@ -94,12 +94,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 		                                          WHEN Count(A.ApprenticeshipId) > 0 THEN 1 
 		                                          WHEN Count(A.ApprenticeshipId) = 0 THEN 0   
 	                                            END As HasApprenticeship
-                                        FROM [Tribal].[Provider] P
-                                        JOIN [Tribal].[RecordStatus] RS
+                                        FROM [Provider] P
+                                        JOIN [RecordStatus] RS
                                         ON P.RecordStatusId = RS.RecordStatusId
-                                        LEFT JOIN [Tribal].[Course] C
+                                        LEFT JOIN [Course] C
                                         ON P.ProviderId = C.ProviderId
-                                        LEFT JOIN [Tribal].[Apprenticeship] A
+                                        LEFT JOIN [Apprenticeship] A
                                         ON P.ProviderId = A.ProviderId
                                         WHERE P.RecordStatusId = 2
                                         GROUP BY P.ProviderId,
@@ -209,11 +209,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             }
 
             Provider BuildNewCosmosProviderItem(ProviderRecordStructure ukrlpData, ProviderSource tribalData)
-            {
+             {
                 // Build contacts
                 List<Providercontact> providercontacts = new List<Providercontact>();
                 var ukrlpDataContacts = ukrlpData.ProviderContact
-                                                    .Where(c => c.ContactType == "P")
                                                     .OrderByDescending(c => c.LastUpdated);
 
                 if(!ukrlpDataContacts.Any())
