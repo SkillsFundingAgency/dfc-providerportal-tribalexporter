@@ -48,10 +48,10 @@
       "value": "__csvFilename__"
     },
     "ApprenticeshipServiceApiUrl": {
-      "value": "__ApprenticeshipServiceApiUrl__"
+      "value": "__apprenticeshipApiUrl__"
     },
     "ApprenticeshipServiceApiKey": {
-      "value": "__ApprenticeshipServiceApiKey__"
+      "value": "__ApimPublishCourseDirectoryKey__"
     },
     "sqlCourseDirectoryConnectionString": {
       "value": "__sqlCourseDirectoryConnectionString__"
