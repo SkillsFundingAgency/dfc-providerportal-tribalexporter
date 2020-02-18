@@ -49,7 +49,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     )
         {
             var venuesCollectionId = configuration["CosmosDbCollectionSettings:VenuesCollectionId"];
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
+            var connectionString = configuration.GetConnectionString("TribalRestore");
             var blobContainer = blobhelper.GetBlobContainer(configuration["BlobStorageSettings:Container"]);
             var whiteListProviders = await GetProviderWhiteList();
             var result = new List<ResultMessage>();
@@ -149,9 +149,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 		                                            ad.Town,
 		                                            1 as [Source],
 		                                            NULL as LocationId
-											FROM [tribal].Venue Ven
-                                            INNER JOIN [tribal].[Address] Ad on Ad.AddressId = Ven.AddressId
-                                            INNER JOIN [tribal].[Provider] pr on pr.ProviderId = ven.ProviderId
+											FROM Venue Ven
+                                            INNER JOIN [Address] Ad on Ad.AddressId = Ven.AddressId
+                                            INNER JOIN [Provider] pr on pr.ProviderId = ven.ProviderId
                                             WHERE Ven.RecordStatusID = 2
             
 											UNION ALL 
@@ -182,9 +182,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 		                                            ad.Town,
 		                                            2 as [Source],
 		                                            L.LocationId as LocationId
-                                            FROM [tribal].Location l
-                                            INNER JOIN [tribal].Address ad on ad.AddressId = l.AddressId
-                                            INNER JOIN [tribal].Provider pr on pr.ProviderId = l.ProviderId
+                                            FROM Location l
+                                            INNER JOIN Address ad on ad.AddressId = l.AddressId
+                                            INNER JOIN Provider pr on pr.ProviderId = l.ProviderId
                                             WHERE l.RecordStatusId = 2
 
                                             SELECT * FROM @Venues
@@ -211,7 +211,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     }
                     catch (Exception ex)
                     {
-                        log.LogError("An error occured migratiing Apprenticeships", ex);
+                        log.LogError("An error occured migratiing Venues", ex);
                     }
                 }
             }
@@ -312,7 +312,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 switch (source)
                 {
                     case VenueSource.Venue:
-                        return await venueCollectionService.GetDocumentByVenueId(venueId.Value);
+                        return await venueCollectionService.GetDocumentByVenueId(3048129);// venueId.Value);
                     case VenueSource.Location:
                         return await venueCollectionService.GetDocumentByLocationId(locationId.Value);
                     default: return null;

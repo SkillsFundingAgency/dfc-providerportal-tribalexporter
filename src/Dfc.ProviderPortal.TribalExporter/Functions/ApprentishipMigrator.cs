@@ -202,8 +202,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 var apprenticeshipTitle = tribalRecord.FrameworkCode.HasValue ? refDataFramework?.NasTitle : refDataStandard?.StandardName;
                 var nvqLevel2 = refDataStandard?.NotionalEndLevel;
 
-                if(string.IsNullOrEmpty(apprenticeshipTitle))
-                    apprenticeshipErrors.Add($"Unable to determine Apprenticeship Title, framework code {tribalRecord.FrameworkCode}, pathway code: {tribalRecord.PathWayCode}, standard code: {tribalRecord.StandardCode}, version: {tribalRecord.Version}")
+                if (string.IsNullOrEmpty(apprenticeshipTitle))
+                    apprenticeshipErrors.Add($"Unable to determine Apprenticeship Title, framework code {tribalRecord.FrameworkCode}, pathway code: {tribalRecord.PathWayCode}, standard code: {tribalRecord.StandardCode}, version: {tribalRecord.Version}");
 
                 return (apprenticeshipTitle, nvqLevel2);
             }

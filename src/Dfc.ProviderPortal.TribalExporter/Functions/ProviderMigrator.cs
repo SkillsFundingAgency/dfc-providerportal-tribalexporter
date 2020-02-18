@@ -298,7 +298,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
 
                 providerToUpsert.LastUpdatedBy = ProviderAppName;
-                providerToUpsert.LastUpdatedOn = DateTime.UtcNow;
+                providerToUpsert.DateUpdated = DateTime.UtcNow;
 
                 return providerToUpsert;
             }
@@ -329,7 +329,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 cosmosProviderItem.VerificationDetails = providerToUpsert.VerificationDetails;
 
                 cosmosProviderItem.LastUpdatedBy = providerToUpsert.LastUpdatedBy;
-                cosmosProviderItem.LastUpdatedOn = providerToUpsert.LastUpdatedOn;
+                cosmosProviderItem.DateUpdated = providerToUpsert.DateUpdated;
 
                 return cosmosProviderItem;
             }
