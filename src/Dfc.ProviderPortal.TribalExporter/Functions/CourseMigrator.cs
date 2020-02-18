@@ -595,6 +595,7 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                         cr.RecordStatus = RecordStatus.MigrationPending;
                     }
 
+                    errors.Add("LARS lookup failed");
                     isValid = false;
                 }
 
