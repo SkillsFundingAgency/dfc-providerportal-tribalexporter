@@ -415,7 +415,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         var onspdRegionSubregion = onspdService.GetOnspdData(new OnspdSearchCriteria(location.Postcode));
                         if (onspdRegionSubregion.IsFailure)
                             apprenticeshipErrors.Add($"LocationId: {location.LocationId} - Querying onspd failed");
-                        else if (onspdRegionSubregion.HasValue)
+                        else if (!onspdRegionSubregion.HasValue)
                         {
                             apprenticeshipErrors.Add($"Location:{location.LocationId} - Did not find a record for postcode: {location.Postcode}");
                             continue;
