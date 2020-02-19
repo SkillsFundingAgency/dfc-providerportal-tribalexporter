@@ -126,6 +126,7 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                         using (var courseInstanceReader = coursesInstancesCmd.ExecuteReader())
                         {
                             var instanceReader = new CourseInstanceReader(courseInstanceReader);
+                            var instanceEnumerator = instanceReader.ProcessReader().GetEnumerator();
                             var courseRowReader = coursesReader.GetRowParser<CourseResult>();
 
                             while (await coursesReader.ReadAsync())
@@ -138,7 +139,7 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                                     continue;
                                 }
 
-                                var instances = await instanceReader.ConsumeReader(course.CourseId);
+                                var instances = instanceReader.ConsumeReader(instanceEnumerator, course.CourseId);
 
                                 var errors = new List<string>();
                                 CourseMigrationResult result;
@@ -650,31 +651,41 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
             {
                 _reader = reader;
                 _rowParser = _reader.GetRowParser<CourseInstanceResult>();
-
-                _reader.Read();
             }
 
-            public async Task<IReadOnlyCollection<CourseInstanceResult>> ConsumeReader(int courseId)
+            public IEnumerable<CourseInstanceResult> ProcessReader()
+            {
+                while (_reader.Read())
+                {
+                    yield return _rowParser(_reader);
+                }
+            }
+
+            public IReadOnlyCollection<CourseInstanceResult> ConsumeReader(
+                IEnumerator<CourseInstanceResult> enumerator,
+                int courseId)
             {
                 var buffer = new List<CourseInstanceResult>();
 
-                CourseInstanceResult item;
-                while (true)
+                if (enumerator.Current == null)
                 {
-                    item = _rowParser(_reader);
-                    
-                    if (item.CourseId == courseId)
-                    {
-                        buffer.Add(item);
-                    }
+                    enumerator.MoveNext();
+                }
+
+                do
+                {
+                    var item = enumerator.Current;
 
                     if (item.CourseId > courseId)
                     {
-                        break;
+                        return buffer;
                     }
-
-                    await _reader.ReadAsync();
+                    else if (item.CourseId == courseId)
+                    {
+                        buffer.Add(item);
+                    }
                 }
+                while (enumerator.MoveNext());
 
                 return buffer;
             }
