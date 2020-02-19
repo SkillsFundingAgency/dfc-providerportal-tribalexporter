@@ -562,7 +562,7 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                     ProviderCourseID = courseInstance.ProviderOwnCourseInstanceRef,
                     RecordStatus = recordStatus,
                     National = national,
-                    Regions = new List<string>(),
+                    Regions = regions,
                     StartDate = startDate,
                     StudyMode = studyMode,
                     //UpdatedBy
