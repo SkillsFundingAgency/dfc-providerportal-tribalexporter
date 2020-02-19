@@ -85,21 +85,30 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
 
         public async Task<Venue> GetDocumentByVenueId(int venueId)
         {
+            var lst = new List<Venue>();
             var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.VenuesCollectionId);
             var sql = $"SELECT* FROM c WHERE c.VENUE_ID = {venueId}";
             var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
             var query = _documentClient.CreateDocumentQuery<Venue>(uri, sql, options).AsDocumentQuery();
-            return (await query.ExecuteNextAsync()).OrderByDescending(x => x.CreatedDate).FirstOrDefault();
+            while (query.HasMoreResults)
+            {
+                foreach (var document in await query.ExecuteNextAsync<Venue>()) lst.Add(document);
+            }
+            return lst.OrderByDescending(x => x.CreatedDate).FirstOrDefault();
         }
          
         public async Task<Venue> GetDocumentByLocationId(int locationId)
         {
-
+            var lst = new List<Venue>();
             var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.VenuesCollectionId);
             var sql = $"SELECT* FROM c WHERE c.LocationId = { locationId }";
             var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
             var query = _documentClient.CreateDocumentQuery<Venue>(uri, sql, options).AsDocumentQuery();
-            return (await query.ExecuteNextAsync()).OrderByDescending(x => x.CreatedDate).FirstOrDefault();
+            while (query.HasMoreResults)
+            {
+                foreach (var document in await query.ExecuteNextAsync<Venue>()) lst.Add(document);
+            }
+            return lst.OrderByDescending(x => x.CreatedDate).FirstOrDefault();
         }
     }
 }
