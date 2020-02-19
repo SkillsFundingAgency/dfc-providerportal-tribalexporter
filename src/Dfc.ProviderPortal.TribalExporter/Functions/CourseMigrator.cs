@@ -547,6 +547,7 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                             else
                             {
                                 regions = subRegions;
+                                national = false;
                             }
                         }
                     }
