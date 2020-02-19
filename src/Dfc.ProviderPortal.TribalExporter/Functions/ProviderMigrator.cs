@@ -86,17 +86,27 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 		                                        P.NationalApprenticeshipProvider,
 		                                        P.TradingName,
 		                                        P.UPIN,
+												Ar.AddressLine1,
+												Ar.AddressLine2,
+												Ar.Town,
+												Ar.County,
+												Ar.Postcode,
+												P.Email,
+												P.Website,
+												P.Telephone,
 		                                        CASE   
 		                                          WHEN Count(C.CourseId) > 0 THEN 1 
 		                                          WHEN Count(C.CourseId) = 0 THEN 0   
 	                                            END As HasCourse,
-				                                        CASE   
+				                                CASE   
 		                                          WHEN Count(A.ApprenticeshipId) > 0 THEN 1 
 		                                          WHEN Count(A.ApprenticeshipId) = 0 THEN 0   
 	                                            END As HasApprenticeship
                                         FROM [Provider] P
                                         JOIN [RecordStatus] RS
                                         ON P.RecordStatusId = RS.RecordStatusId
+										JOIN [Address] Ar
+										ON P.AddressId = Ar.AddressId
                                         LEFT JOIN [Course] C
                                         ON P.ProviderId = C.ProviderId
                                         LEFT JOIN [Apprenticeship] A
@@ -114,7 +124,15 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 		                                        P.MarketingInformation,
 		                                        P.NationalApprenticeshipProvider,
 		                                        P.TradingName,
-		                                        P.UPIN
+		                                        P.UPIN,
+												Ar.AddressLine1,
+												Ar.AddressLine2,
+												Ar.Town,
+												Ar.County,
+												Ar.Postcode,
+												P.Email,
+												P.Website,
+												P.Telephone
                                             ";
 
                     try
@@ -213,15 +231,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 // Build contacts
                 List<Providercontact> providercontacts = new List<Providercontact>();
                 var ukrlpDataContacts = ukrlpData.ProviderContact
+                                                    .Where(p => p.ContactType == "P")
                                                     .OrderByDescending(c => c.LastUpdated);
 
-                if(!ukrlpDataContacts.Any())
+                // Load UKRLP api contacts if available
+                if(ukrlpDataContacts.Any())
                 {
-                    throw new Exception("Provider contacts of type P could not be found.");
-                }
+                    var ukrlpContact = ukrlpDataContacts.First();
 
-                foreach (ProviderContactStructure ukrlpContact in ukrlpDataContacts)
-                {
                     // Build contact address
                     Contactaddress contactaddress = new Contactaddress()
                     {
@@ -233,7 +250,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         Locality = ukrlpContact.ContactAddress.Locality,
                         Items = ukrlpContact.ContactAddress.Items,
                         ItemsElementName = ukrlpContact.ContactAddress.ItemsElementName?.Select(i => (int)i).ToArray(),
-                        PostTown = ukrlpContact.ContactAddress.ItemsElementName,
+                        PostTown = ukrlpContact.ContactAddress.PostTown,
                         PostCode = ukrlpContact.ContactAddress.PostCode,
                     };
 
@@ -258,6 +275,36 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     providerContact.LastUpdated = ukrlpContact.LastUpdated;
 
                     providercontacts.Add(providerContact);
+
+                }
+                else
+                {
+                    // Check if valid Tribal Address exists
+                    if(tribalData.IsValidAddress)
+                    {
+                        // Build contact address
+                        Contactaddress tribalContactaddress = new Contactaddress()
+                        {
+                            StreetDescription = tribalData.AddressLine1,
+                            Locality = tribalData.County,
+                            PostTown = tribalData.Town,
+                            PostCode = tribalData.PostCode,
+                        };
+
+                        var tribalContact = new Providercontact(tribalContactaddress, null);
+                        tribalContact.ContactType = "P";
+                        tribalContact.ContactTelephone1 = tribalData.Telephone;
+                        tribalContact.ContactWebsiteAddress = tribalData.Website;
+                        tribalContact.ContactEmail = tribalData.Email;
+                        tribalContact.LastUpdated = DateTime.UtcNow;
+
+                        providercontacts.Add(tribalContact);
+                    }
+                    else
+                    {
+                        // Cannot find address in UKRLP api or tribal so raise alert
+                        throw new Exception($"Error cannot find contact address details in UKRLP Api or Tribal data.");
+                    }
                 }
 
                 // Build provider aliases
