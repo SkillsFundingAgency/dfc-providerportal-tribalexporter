@@ -24,7 +24,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 {
     public static class CourseMigrator
     {
-        private enum CourseMigrationResult { SkippedDueToErrors, Inserted, Updated }
+        private enum CourseMigrationResult { SkippedDueToErrors, Inserted, Updated, Exception }
 
         [FunctionName(nameof(CourseMigrator))]
         [NoAutomaticTrigger]
@@ -143,77 +143,86 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                                 var errors = new List<string>();
                                 CourseMigrationResult result;
 
-                                // Tribal don't have any Courses with zero CourseInstances...
-                                if (instances.Count == 0)
+                                try
                                 {
-                                    errors.Add("Found zero CourseInstances.");
-                                }
 
-                                // Check LARS
-                                var larsSearchResults = !string.IsNullOrEmpty(course.LearningAimRefId) ?
-                                    await QueryLars(course.LearningAimRefId) :
-                                    Array.Empty<LarsSearchResultItem>();
-
-                                // Check the venues exist
-                                Dictionary<int, Guid> venueIdMap = new Dictionary<int, Guid>();
-                                foreach (var venueId in instances.Where(i => i.VenueId.HasValue).Select(i => i.VenueId.Value))
-                                {
-                                    if (venueIdMap.ContainsKey(venueId))
+                                    // Tribal don't have any Courses with zero CourseInstances...
+                                    if (instances.Count == 0)
                                     {
-                                        continue;
+                                        errors.Add("Found zero CourseInstances.");
                                     }
 
-                                    var cosmosVenue = await venueCollectionService.GetDocumentByVenueId(venueId);
+                                    // Check LARS
+                                    var larsSearchResults = !string.IsNullOrEmpty(course.LearningAimRefId) ?
+                                        await QueryLars(course.LearningAimRefId) :
+                                        Array.Empty<LarsSearchResultItem>();
 
-                                    if (cosmosVenue == null)
+                                    // Check the venues exist
+                                    Dictionary<int, Guid> venueIdMap = new Dictionary<int, Guid>();
+                                    foreach (var venueId in instances.Where(i => i.VenueId.HasValue).Select(i => i.VenueId.Value))
                                     {
-                                        errors.Add($"Missing venue {venueId}.");
+                                        if (venueIdMap.ContainsKey(venueId))
+                                        {
+                                            continue;
+                                        }
+
+                                        var cosmosVenue = await venueCollectionService.GetDocumentByVenueId(venueId);
+
+                                        if (cosmosVenue == null)
+                                        {
+                                            errors.Add($"Missing venue {venueId}.");
+                                        }
+                                        else
+                                        {
+                                            venueIdMap.Add(venueId, Guid.Parse(cosmosVenue.ID));
+                                        }
+                                    }
+
+                                    if (errors.Count == 0)
+                                    {
+                                        // Got the course in Cosmos already?
+                                        var existingCourseRecord = await GetExistingCourse(course.CourseId, course.UKPRN, cosmosDbClient);
+
+                                        var mappedCourseRuns = instances
+                                            .Select(i =>
+                                            {
+                                                Guid? venueId = null;
+                                                if (i.VenueId.HasValue)
+                                                {
+                                                    venueId = venueIdMap[i.VenueId.Value];
+                                                }
+
+                                            // Retain the existing Cosmos ID if there is one
+                                            // N.B. We can have more than one match on CourseInstanceId since we 'explode' on multiple start dates
+                                            var courseRunId =
+                                                    existingCourseRecord?.CourseRuns.SingleOrDefault(r => r.CourseInstanceId == i.CourseInstanceId && r.StartDate == i.StartDate)?.id ??
+                                                    Guid.NewGuid();
+
+                                                return MapCourseInstance(course, i, courseRunId, venueId, errors);
+                                            })
+                                            .ToList();
+
+                                        var courseId = existingCourseRecord?.id ?? Guid.NewGuid();
+                                        var mappedCourse = MapCourse(course, mappedCourseRuns, larsSearchResults, courseId, errors);
+
+                                        var added = await UpsertCourse(mappedCourse, cosmosDbClient);
+                                        result = added ? CourseMigrationResult.Inserted : CourseMigrationResult.Updated;
                                     }
                                     else
                                     {
-                                        venueIdMap.Add(venueId, Guid.Parse(cosmosVenue.ID));
+                                        result = CourseMigrationResult.SkippedDueToErrors;
                                     }
                                 }
-
-                                if (errors.Count == 0)
+                                catch (Exception ex)
                                 {
-                                    // Got the course in Cosmos already?
-                                    var existingCourseRecord = await GetExistingCourse(course.CourseId, course.UKPRN, cosmosDbClient);
-
-                                    var mappedCourseRuns = instances
-                                        .Select(i =>
-                                        {
-                                            Guid? venueId = null;
-                                            if (i.VenueId.HasValue)
-                                            {
-                                                venueId = venueIdMap[i.VenueId.Value];
-                                            }
-
-                                        // Retain the existing Cosmos ID if there is one
-                                        // N.B. We can have more than one match on CourseInstanceId since we 'explode' on multiple start dates
-                                        var courseRunId =
-                                                existingCourseRecord?.CourseRuns.SingleOrDefault(r => r.CourseInstanceId == i.CourseInstanceId && r.StartDate == i.StartDate)?.id ??
-                                                Guid.NewGuid();
-
-                                            return MapCourseInstance(course, i, courseRunId, venueId, errors);
-                                        })
-                                        .ToList();
-
-                                    var courseId = existingCourseRecord?.id ?? Guid.NewGuid();
-                                    var mappedCourse = MapCourse(course, mappedCourseRuns, larsSearchResults, courseId, errors);
-
-                                    var added = await UpsertCourse(mappedCourse, cosmosDbClient);
-                                    result = added ? CourseMigrationResult.Inserted : CourseMigrationResult.Updated;
-                                }
-                                else
-                                {
-                                    result = CourseMigrationResult.SkippedDueToErrors;
+                                    errors.Add(ex.ToString().Replace("\n", " "));
+                                    result = CourseMigrationResult.Exception;
                                 }
 
                                 // Write to log
                                 logCsvWriter.WriteField(course.CourseId);
                                 logCsvWriter.WriteField(course.UKPRN);
-                                logCsvWriter.WriteField(result != CourseMigrationResult.SkippedDueToErrors);
+                                logCsvWriter.WriteField(result == CourseMigrationResult.Inserted || result == CourseMigrationResult.Updated);
                                 logCsvWriter.WriteField(result.ToString());
                                 logCsvWriter.WriteField(instances.Count);
                                 logCsvWriter.WriteField(string.Join(", ", errors));
