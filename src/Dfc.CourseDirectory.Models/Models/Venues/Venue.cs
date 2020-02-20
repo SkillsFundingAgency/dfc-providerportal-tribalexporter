@@ -28,7 +28,7 @@ namespace Dfc.CourseDirectory.Models.Models.Venues
         public int VenueID { get; set; }
         [JsonProperty("VENUE_NAME")]
         public string VenueName { get; set; }
-        [JsonProperty("PROV_VENUE_ID", Required = Required.AllowNull)]
+        [JsonProperty("PROV_VENUE_ID")]
         public string ProvVenueID { get; set; }
         [JsonProperty("ADDRESS_1")]
         public string Address1 { get; set; }
