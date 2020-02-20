@@ -526,7 +526,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 {
                     var regionLocation = regionBasedApprenticeshipLocation.FirstOrDefault(x => x.RecordStatus == VenueStatus.Live);
                     regionLocation.Regions = regionBasedApprenticeshipLocation.Where(x => x.Regions != null).SelectMany(x => x.Regions).Distinct().ToList();
-                    regionLocation.Address = null;
                     locationBasedApprenticeshipLocation.Add(regionLocation);
                 }
 
