@@ -60,6 +60,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var databaseId = configuration["CosmosDbSettings:DatabaseId"];
             var apprenticeshipList = new List<ApprenticeshipResult>();
             var apprenticeshipErrors = new List<string>();
+            var createdBy = "ApprenticeshipMigrator";
+            var createdDate = DateTime.Now;
 
             var apprenticeshipSQL = @"SELECT a.ApprenticeshipId,
 	                                           p.ProviderId,
@@ -230,8 +232,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     ContactTelephone = tribalRecord.ContactTelephone,
                     ContactEmail = tribalRecord.ContactEmail,
                     ContactWebsite = tribalRecord.ContactWebsite,
-                    CreatedBy = "ApprenticeshipMigrator",
-                    CreatedDate = DateTime.Now,
+                    CreatedBy = createdBy,
+                    CreatedDate = createdDate,
                     NotionalNVQLevelv2 = notionalNVQLevelv2,
                     ApprenticeshipLocations = locs,
                     ApprenticeshipType = apprenticeshipTye,
@@ -439,19 +441,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 Id = Guid.NewGuid().ToString(),
                                 VenueId = Guid.Empty.ToString(),
                                 TribalId = location.ApprenticeshipLocationId,
-                                Address = new Dfc.CourseDirectory.Models.Models.Apprenticeships.Address()
-                                {
-                                    Address1 = location.AddressLine1,
-                                    Address2 = location.AddressLine2,
-                                    County = location.County,
-                                    Email = location.Email,
-                                    Website = location.Website,
-                                    Longitude = location.Longitude,
-                                    Latitude = location.Latitude,
-                                    Postcode = location.Postcode,
-                                    Town = location.Town,
-                                    Phone = location.Telephone
-                                },
                                 DeliveryModes = location.DeliveryModes,
                                 LocationId = selectedSubRegion.ApiLocationId,
                                 Name = location.LocationName,
@@ -463,8 +452,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 LocationGuidId = null,
                                 Regions = new List<string> { selectedSubRegion.Id },
                                 RecordStatus = VenueStatus.Live,
-                                CreatedBy = "ApprenticeshipMigrator",
-                                CreatedDate = DateTime.Now
+                                CreatedBy = createdBy,
+                                CreatedDate = createdDate,
+                                UpdatedBy = createdBy,
+                                UpdatedDate = createdDate
                             };
 
                             //region based apprenticeships
@@ -516,8 +507,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             LocationGuidId = cosmosVenueItem?.ID,
                             Regions = null,
                             RecordStatus = status,
-                            CreatedBy = "ApprenticeshipMigrator",
-                            CreatedDate = DateTime.Now,
+                            CreatedBy = createdBy,
+                            CreatedDate = createdDate,
+                            UpdatedBy = createdBy, 
+                            UpdatedDate = createdDate
                         };
                         locationBasedApprenticeshipLocation.Add(appLocation);
                     }
@@ -533,6 +526,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 {
                     var regionLocation = regionBasedApprenticeshipLocation.FirstOrDefault(x => x.RecordStatus == VenueStatus.Live);
                     regionLocation.Regions = regionBasedApprenticeshipLocation.Where(x => x.Regions != null).SelectMany(x => x.Regions).Distinct().ToList();
+                    regionLocation.Address = null;
                     locationBasedApprenticeshipLocation.Add(regionLocation);
                 }
 
