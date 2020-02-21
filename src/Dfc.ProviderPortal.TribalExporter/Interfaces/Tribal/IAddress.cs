@@ -10,8 +10,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Interfaces.Tribal
         string Address2 { get; set; }
         string County { get; set; }
         string Email { get; set; }
-        double? Latitude { get; set; }
-        double? Longitude { get; set; }
+        decimal? Latitude { get; set; }
+        decimal? Longitude { get; set; }
         string Phone { get; set; }
         string Postcode { get; set; }
         string Town { get; set; }

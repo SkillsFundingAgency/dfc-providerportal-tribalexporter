@@ -14,9 +14,9 @@ namespace Dfc.CourseDirectory.Models.Interfaces.Apprenticeships
 
         string Email { get; set; }
 
-        double? Latitude { get; set; }
+        decimal? Latitude { get; set; }
 
-        double? Longitude { get; set; }
+        decimal? Longitude { get; set; }
 
         string Phone { get; set; }
 

@@ -61,8 +61,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Models.Tribal
                 Address1 = reader["AddressLine1"] as string,
                 Address2 = reader["AddressLine2"] as string,
                 County = reader["County"] as string,
-                Latitude = reader["Latitude"] as double?,
-                Longitude = reader["Longitude"] as double?,
+                Latitude = reader["Latitude"] as decimal?,
+                Longitude = reader["Longitude"] as decimal?,
                 Postcode = reader["Postcode"] as string,
                 Town = reader["Town"] as string
             };

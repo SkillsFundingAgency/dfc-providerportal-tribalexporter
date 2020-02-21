@@ -427,8 +427,8 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                                     Address2 = location.AddressLine2,
                                                     County = location.County,
                                                     Email = location.Email,
-                                                    Latitude = double.Parse(location.Longitude.ToString()),
-                                                    Longitude = double.Parse(location.Longitude.ToString()),
+                                                    Latitude = location.Longitude,
+                                                    Longitude = location.Longitude,
                                                     Phone = location.Telephone,
                                                     Postcode = location.Postcode,
                                                     Town = location.Town,
@@ -481,12 +481,12 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                                                     Address2 = venue.Address2,
                                                                     County = venue.County,
                                                                     Email = venue.Email,
-                                                                    Latitude = venue.Latitude.HasValue ? double.Parse(
+                                                                    Latitude = venue.Latitude.HasValue ? Decimal.Parse(
                                                                         venue.Latitude.Value.ToString(CultureInfo
-                                                                            .InvariantCulture)) : default(double?),
-                                                                    Longitude = venue.Longitude.HasValue ? double.Parse(
+                                                                            .InvariantCulture)) : default(decimal?),
+                                                                    Longitude = venue.Longitude.HasValue ? decimal.Parse(
                                                                         venue.Longitude.Value.ToString(CultureInfo
-                                                                            .InvariantCulture)) : default(double?),
+                                                                            .InvariantCulture)) : default(decimal?),
                                                                     Phone = venue.PHONE,
                                                                     Postcode = venue.PostCode,
                                                                     Town = venue.Town,
@@ -584,8 +584,8 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                                                 location.Town,
                                                                 location.County,
                                                                 location.Postcode,
-                                                                Convert.ToDouble(location.Latitude),
-                                                                Decimal.ToDouble(location.Longitude),
+                                                                location.Latitude,
+                                                                location.Longitude,
                                                                 VenueStatus.Live,
                                                                 "DFC – Apprenticeship Migration Tool",
                                                                 DateTime.Now);
@@ -603,12 +603,8 @@ namespace Dfc.ProviderPortal.ApprenticeshipMigration
                                                                 Address2 = location.AddressLine2,
                                                                 County = location.County,
                                                                 Email = location.Email,
-                                                                Latitude = double.Parse(
-                                                                    location.Latitude.ToString(CultureInfo
-                                                                        .InvariantCulture)),
-                                                                Longitude = double.Parse(
-                                                                    location.Longitude.ToString(CultureInfo
-                                                                        .InvariantCulture)),
+                                                                Latitude = location.Latitude,
+                                                                Longitude = location.Longitude,
                                                                 Phone = location.Telephone,
                                                                 Postcode = location.Postcode,
                                                                 Town = location.Town,
