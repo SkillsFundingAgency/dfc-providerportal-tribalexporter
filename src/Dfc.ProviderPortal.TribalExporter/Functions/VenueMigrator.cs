@@ -218,7 +218,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             //update or insert records
             using (var _cosmosClient = cosmosDbHelper.GetClient())
-            { 
+            {
                 foreach (var item in venueList)
                 {
                     try
@@ -256,7 +256,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 };
                                 await _cosmosClient.UpsertDocumentAsync(collectionUri, editedVenue);
 
-                                AddResultMessage(item.VenueId, item.LocationID, "Updated Record", $"Old cosmos record LocationId:{cosmosVenue.LocationId}, VenueId: {cosmosVenue.VenueID}");
+                                AddResultMessage(item.UKPRN, item.VenueId, item.LocationID, "Updated Record", $"Old cosmos record LocationId:{cosmosVenue.LocationId}, VenueId: {cosmosVenue.VenueID}");
                             }
                             else
                             {
@@ -286,7 +286,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 await cosmosDbHelper.CreateDocumentAsync(_cosmosClient, venuesCollectionId, newVenue);
 
                                 //Log that successfully inserted venue
-                                AddResultMessage(item.VenueId, item.LocationID, "Inserted Venue");
+                                AddResultMessage(item.UKPRN, item.VenueId, item.LocationID, "Inserted Venue");
                             }
                         }
                     }
@@ -294,7 +294,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     {
                         string errorMessage = $"An error occured while updating cosmos record for venue {item.VenueId}. {ex.Message}";
                         log.LogError(errorMessage, ex);
-                        AddResultMessage(item.VenueId, item.LocationID, errorMessage);
+                        AddResultMessage(item.UKPRN, item.VenueId, item.LocationID, errorMessage);
                     }
                 }
             }
@@ -374,9 +374,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 return list;
             }
 
-            void AddResultMessage(int venueId, int? locationId, string status, string message = "")
+            void AddResultMessage(int ukprn, int venueId, int? locationId, string status, string message = "")
             {
-                var validateResult = new ResultMessage() { VenueId = venueId, LocationId = locationId, Status = status, Message = message };
+                var validateResult = new ResultMessage() { UKPRN = ukprn, VenueId = venueId, LocationId = locationId, Status = status, Message = message };
                 result.Add(validateResult);
             }
 
@@ -385,7 +385,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 //are providers on list of whitelisted providers file
                 if (!whiteListProviders.Any(x => x == item.UKPRN))
                 {
-                    AddResultMessage(item.VenueId, item.LocationID, "Failed", $"Provider {item.ProviderId} not on whitelist, ukprn {item.UKPRN}");
+                    AddResultMessage(item.UKPRN, item.VenueId, item.LocationID, "Failed", $"Provider {item.ProviderId} not on whitelist, ukprn {item.UKPRN}");
                     return false;
                 }
 
@@ -413,6 +413,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
     [Serializable()]
     public class ResultMessage
     {
+        public int UKPRN { get; set; }
         public int VenueId { get; set; }
         public int? LocationId { get; set; }
         public string Status { get; set; }
