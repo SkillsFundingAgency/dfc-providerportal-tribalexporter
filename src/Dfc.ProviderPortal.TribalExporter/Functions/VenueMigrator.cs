@@ -238,6 +238,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                     Address1 = item.Address.Address1,
                                     Address2 = item.Address.Address2,
                                     Town = item.Address.Town,
+                                    County = item.Address.County,
                                     PostCode = item.Address.Postcode,
                                     Latitude = item.Address.Latitude,
                                     Longitude = item.Address.Longitude,
@@ -252,7 +253,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                     Telephone = item.Telephone,
                                     CreatedBy = "VenueMigrator",
                                     CreatedDate = DateTime.Now,
-                                    LocationId = item.LocationID
+                                    LocationId = item.LocationID,
+                                    TribalLocationId = item.LocationID
                                 };
                                 await _cosmosClient.UpsertDocumentAsync(collectionUri, editedVenue);
 
@@ -267,6 +269,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                     Address1 = item.Address.Address1,
                                     Address2 = item.Address.Address2,
                                     Town = item.Address.Town,
+                                    County = item.Address.County,
                                     PostCode = item.Address.Postcode,
                                     Latitude = item.Address.Latitude,
                                     Longitude = item.Address.Longitude,
@@ -281,7 +284,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                     Telephone = item.Telephone,
                                     CreatedDate = DateTime.Now,
                                     CreatedBy = "VenueMigrator",
-                                    LocationId = item.LocationID
+                                    LocationId = item.LocationID,
+                                    TribalLocationId = item.LocationID
                                 };
                                 await cosmosDbHelper.CreateDocumentAsync(_cosmosClient, venuesCollectionId, newVenue);
 
