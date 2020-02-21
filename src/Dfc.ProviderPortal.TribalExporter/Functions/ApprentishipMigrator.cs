@@ -137,7 +137,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             }
             catch (Exception e)
             {
-                AddResultMessage(0, "Failed", e.Message);
+                AddResultMessage(0, 0, "Failed", null, e.Message);
                 log.LogError("Error occured Migrating Apprenticeships", e.Message);
             }
 
@@ -179,16 +179,16 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         //insert record into cosmos
                         await CreateOrUpdateApprenticeshipRecord(mappedApprenticeship);
 
-                        AddResultMessage(item.ApprenticeshipID, "Success", string.Join("\n", apprenticeshipErrors));
+                        AddResultMessage(item.ApprenticeshipID, item.UKPRN, "Success", mappedApprenticeship.ApprenticeshipTitle, string.Join("\n", apprenticeshipErrors));
                     }
                     catch (Exception e)
                     {
-                        AddResultMessage(item.ApprenticeshipID, "Failed", $"Exception occured creating record - {e.Message}");
+                        AddResultMessage(item.ApprenticeshipID, item.UKPRN, "Failed", null, $"Exception occured creating record - {e.Message}");
                         log.LogError("Error occurred creating or updating apprenticeship record!", e);
                     }
                 }
                 else
-                    AddResultMessage(item.ApprenticeshipID, "Skipped", $"PRN {item.UKPRN} not whitelisted");
+                    AddResultMessage(item.ApprenticeshipID, item.UKPRN, "Skipped", $"PRN {item.UKPRN} not whitelisted");
             }
 
             //Log Results to blob storage
@@ -357,9 +357,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 await blobhelper.UploadFile(blobContainer, venueExportFileName, data);
             }
 
-            void AddResultMessage(int apprenticeshipId, string status, string message = "")
+            void AddResultMessage(int apprenticeshipId, int ukprn, string status, string apprenticeshipTitle, string message = "")
             {
-                var validateResult = new ApprenticeshipResultMessage() { ApprenticeshipID = apprenticeshipId, Status = status, Message = message };
+                var validateResult = new ApprenticeshipResultMessage() { ApprenticeshipID = apprenticeshipId, Status = status, Message = message, UKPRN = ukprn, ApprenticeshipTitle = apprenticeshipTitle };
                 result.Add(validateResult);
             }
 
@@ -509,7 +509,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             RecordStatus = status,
                             CreatedBy = createdBy,
                             CreatedDate = createdDate,
-                            UpdatedBy = createdBy, 
+                            UpdatedBy = createdBy,
                             UpdatedDate = createdDate
                         };
                         locationBasedApprenticeshipLocation.Add(appLocation);
@@ -607,6 +607,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
     public class ApprenticeshipResultMessage
     {
         public int ApprenticeshipID { get; set; }
+        public int UKPRN { get; set; }
+        public string ApprenticeshipTitle { get; set; }
         public string Status { get; set; }
         public string Message { get; set; }
     }
