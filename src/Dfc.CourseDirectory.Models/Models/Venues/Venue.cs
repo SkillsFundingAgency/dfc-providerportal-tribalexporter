@@ -40,10 +40,8 @@ namespace Dfc.CourseDirectory.Models.Models.Venues
         public string County { get; set; }
         [JsonProperty("POSTCODE")]
         public string PostCode { get; set; }
-        [JsonProperty("LATITUDE")]
-        public double? Latitude { get; set; }
-        [JsonProperty("LONGITUDE")]
-        public double? Longitude { get; set; }
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
         public VenueStatus Status { get; set; }
         public DateTime DateUpdated { get; set; }
         public string UpdatedBy { get; set; }
@@ -75,8 +73,8 @@ namespace Dfc.CourseDirectory.Models.Models.Venues
             string town,
             string county,
             string postcode,
-            double? latitude,
-            double? longitude,
+            decimal? latitude,
+            decimal? longitude,
             VenueStatus status,
             string updatedBy,
             DateTime dateUpdated)
@@ -118,8 +116,8 @@ namespace Dfc.CourseDirectory.Models.Models.Venues
             string town,
             string county,
             string postcode,
-            double? latitude,
-            double? longitude,
+            decimal? latitude,
+            decimal? longitude,
             VenueStatus status,
             string updatedBy,
             DateTime dateAdded,
@@ -163,8 +161,8 @@ namespace Dfc.CourseDirectory.Models.Models.Venues
             string town,
             string county,
             string postcode,
-            double? latitude,
-            double? longitude,
+            decimal? latitude,
+            decimal? longitude,
             VenueStatus status,
             string updatedBy,
             DateTime dateUpdated
