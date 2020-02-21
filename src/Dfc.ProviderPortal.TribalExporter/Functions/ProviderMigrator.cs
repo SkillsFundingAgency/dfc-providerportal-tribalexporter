@@ -197,7 +197,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                     catch (Exception ex)
                                     {
                                         string errorMessage = $"Error processing Provider {item.ProviderId} with Ukprn {item.UKPRN}. {ex.Message}";
-                                        AddResultMessage(item.ProviderId, "PROCESSED-Errored", errorMessage);
+                                        AddResultMessage(item.ProviderId, "ERRORED", errorMessage);
                                         log.LogInformation(errorMessage);
                                     }
                                 }
@@ -303,7 +303,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     else
                     {
                         // Cannot find address in UKRLP api or tribal so raise alert
-                        throw new Exception($"Error cannot find contact address details in UKRLP Api or Tribal data.");
+                        AddResultMessage(tribalData.ProviderId, "WARNING", $"Cannot find contact address details in Api or Tribal data for Provider {tribalData.ProviderId}, ukprn {tribalData.UKPRN}.");
                     }
                 }
 
