@@ -10,6 +10,7 @@ using CsvHelper;
 using Dapper;
 using Dfc.CourseDirectory.Models.Enums;
 using Dfc.CourseDirectory.Models.Models.Courses;
+using Dfc.CourseDirectory.Models.Models.Regions;
 using Dfc.CourseDirectory.Services;
 using Dfc.CourseDirectory.Services.Interfaces;
 using Dfc.ProviderPortal.Packages.AzureFunctions.DependencyInjection;
@@ -522,6 +523,7 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                 // Work-based should have regions(s) or be national
                 bool? national = null;
                 IEnumerable<string> regions = Array.Empty<string>();
+                IEnumerable<SubRegionItemModel> subRegions = Array.Empty<SubRegionItemModel>();
                 if (deliveryMode == DeliveryMode.WorkBased)
                 {
                     if (!courseInstance.VenueLocationId.HasValue)
@@ -537,16 +539,17 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                         }
                         else
                         {
-                            var subRegions = RegionLookup.FindRegions(courseInstance.VenueLocationId.Value);
+                            var lookupResult = RegionLookup.FindRegions(courseInstance.VenueLocationId.Value);
 
-                            if (subRegions.Count == 0)
+                            if (!lookupResult.HasValue)
                             {
                                 errors.Add($"Cannot find sub-region(s) for VenueLocationId {courseInstance.VenueLocationId.Value}");
                                 hasErrors = true;
                             }
                             else
                             {
-                                regions = subRegions;
+                                regions = lookupResult.Value.regionIds;
+                                subRegions = lookupResult.Value.subRegions;
                                 national = false;
                             }
                         }
@@ -576,6 +579,7 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                     Regions = regions,
                     StartDate = startDate,
                     StudyMode = studyMode,
+                    SubRegions = subRegions,
                     //UpdatedBy
                     UpdatedDate = DateTime.Now,
                     VenueId = venueId

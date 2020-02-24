@@ -1,9 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using Dfc.ProviderPortal.TribalExporter.Models;
+using Dfc.CourseDirectory.Models.Models.Regions;
 
 namespace Dfc.ProviderPortal.TribalExporter.Helpers
 {
@@ -18,7 +17,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
         });
         private static Dictionary<int, string> s_lookup;
 
-        public static IReadOnlyCollection<string> FindRegions(int venueLocationId)
+        public static (IReadOnlyCollection<string> regionIds, IReadOnlyCollection<SubRegionItemModel> subRegions)? FindRegions(
+            int venueLocationId)
         {
             var lookup = LazyInitializer.EnsureInitialized(ref s_lookup, LoadLookupFile);
 
@@ -26,19 +26,26 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
             
             if (regionId == default)
             {
-                return Array.Empty<string>();
+                return null;
             }
             else
             {
-                // If result is a region (not a sub-region) we need to expand to all the sub regions
-                var region = RegionInfo.All.SingleOrDefault(r => r.Id == regionId);
+                var availableRegions = new SelectRegionModel();
+
+                // If region is not a subregion, expand its subregions
+                var region = availableRegions.RegionItems.SingleOrDefault(r => r.Id == regionId);
                 if (region != null)
                 {
-                    return region.SubRegions.Select(sr => sr.Id).ToList();
+                    var regionIds = region.SubRegion.Select(sr => sr.Id).ToList();
+                    var subRegions = new[] { availableRegions.GetSubRegionItemByRegionCode(regionId) };
+                    return (regionIds, subRegions);
                 }
                 else
                 {
-                    return new[] { regionId };
+                    var subRegion = availableRegions.RegionItems.SelectMany(ri => ri.SubRegion).Single(r => r.Id == regionId);
+                    var regionIds = new[] { regionId };
+                    var subRegions = new[] { subRegion };
+                    return (regionIds, subRegions);
                 }
             }
 
