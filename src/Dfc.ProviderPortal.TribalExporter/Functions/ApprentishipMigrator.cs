@@ -179,10 +179,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                         //insert record into cosmos
                         await CreateOrUpdateApprenticeshipRecord(mappedApprenticeship);
-                        AddResultMessage(apprenticeship.ApprenticeshipID, apprenticeship.UKPRN, "Success", mappedApprenticeship.ApprenticeshipTitle, string.Join("\n", apprenticeshipErrors));
+                        AddResultMessage(apprenticeship.ApprenticeshipID, apprenticeship.UKPRN, Enum.GetName(typeof(RecordStatus), mappedApprenticeship.RecordStatus), mappedApprenticeship.ApprenticeshipTitle, string.Join("\n", apprenticeshipErrors));
                     }
                     else
-                        AddResultMessage(apprenticeship.ApprenticeshipID, apprenticeship.UKPRN, "Skipped", $"PRN {apprenticeship.UKPRN} not whitelisted");
+                        AddResultMessage(apprenticeship.ApprenticeshipID, apprenticeship.UKPRN, "Skipped", null, $"PRN {apprenticeship.UKPRN} not whitelisted");
                 }
                 catch (Exception e)
                 {
@@ -364,12 +364,15 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             var allRegionsWithSubRegions = new SelectRegionModel();
                             var onspdRegionSubregion = onspdService.GetOnspdData(new OnspdSearchCriteria(location.Postcode));
                             if (onspdRegionSubregion.IsFailure)
-                                apprenticeshipErrors.Add($"LocationId: {location.LocationId} - Querying onspd failed");
-                        else if (!onspdRegionSubregion.HasValue)
-                                    {
-                                        apprenticeshipErrors.Add($"Location:{location.LocationId} - Did not find a record for postcode: {location.Postcode}");
-                                        continue;
-                                    }
+                            {
+                                apprenticeshipErrors.Add($"LocationId: {location.LocationId} - Querying onspd failed - {onspdRegionSubregion.Error}");
+                                continue;
+                            }
+                            else if (!onspdRegionSubregion.HasValue)
+                            {
+                                apprenticeshipErrors.Add($"Location:{location.LocationId} - Did not find a record for postcode: {location.Postcode}");
+                                continue;
+                            }
 
                             var selectedSubRegion = allRegionsWithSubRegions.RegionItems.SelectMany(sr => sr.SubRegion.Where(sb =>
                                                                                                     sb.SubRegionName == onspdRegionSubregion.Value.Value.LocalAuthority ||
@@ -490,7 +493,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             log.LogInformation("Migrating Apprenticeships Complete");
 
 
-            
+
 
             async Task<IList<int>> GetProviderWhiteList()
             {
@@ -534,7 +537,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         csvWriter.WriteRecords<ApprenticeshipResultMessage>(ob);
                         csvWriter.Flush();
                     }
-                    
+
                     return memoryStream.ToArray();
                 }
             }
@@ -547,7 +550,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     return true;
             }
 
-            
+
         }
     }
 
