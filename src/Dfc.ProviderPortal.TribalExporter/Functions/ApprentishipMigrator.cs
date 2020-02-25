@@ -62,7 +62,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var apprenticeshipList = new List<ApprenticeshipResult>();
             var createdBy = "ApprenticeshipMigrator";
             var createdDate = DateTime.Now;
-            SemaphoreSlim semaphore = new SemaphoreSlim(1); ;
+            SemaphoreSlim semaphore = new SemaphoreSlim(5); ;
 
             var apprenticeshipSQL = @"SELECT  a.ApprenticeshipId,
 	                                           p.ProviderId,
