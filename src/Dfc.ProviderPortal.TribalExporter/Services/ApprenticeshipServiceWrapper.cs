@@ -41,11 +41,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.ApprenticeshipCollectionId);
             var sql = $"SELECT* FROM c WHERE c.ApprenticeshipId = { apprenticeshipId }";
             var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
-            using (var client = _cosmosDbHelper.GetClient())
-            {
-                var query = client.CreateDocumentQuery<Apprenticeship>(uri, sql, options).AsDocumentQuery();
-                return (await query.ExecuteNextAsync()).FirstOrDefault();
-            };
+            var client = _cosmosDbHelper.GetClient();
+            var query = client.CreateDocumentQuery<Apprenticeship>(uri, sql, options).AsDocumentQuery();
+            return (await query.ExecuteNextAsync()).FirstOrDefault();
         }
 
         public string GetApprenticeshipDeltaUpdatesAsJson()
