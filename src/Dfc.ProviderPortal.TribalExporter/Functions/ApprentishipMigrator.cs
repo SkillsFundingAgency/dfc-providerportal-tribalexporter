@@ -28,6 +28,7 @@ using Dfc.CourseDirectory.Services.Interfaces.OnspdService;
 using Dfc.CourseDirectory.Services.OnspdService;
 using Dfc.CourseDirectory.Models.Models.Regions;
 using Dfc.CourseDirectory.Models.Models.Venues;
+using System.Threading;
 
 namespace Dfc.ProviderPortal.TribalExporter.Functions
 {
@@ -59,11 +60,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var ukprnCache = new List<int>();
             var databaseId = configuration["CosmosDbSettings:DatabaseId"];
             var apprenticeshipList = new List<ApprenticeshipResult>();
-            var apprenticeshipErrors = new List<string>();
             var createdBy = "ApprenticeshipMigrator";
             var createdDate = DateTime.Now;
+            SemaphoreSlim semaphore = new SemaphoreSlim(5); ;
 
-            var apprenticeshipSQL = @"SELECT a.ApprenticeshipId,
+            var apprenticeshipSQL = @"SELECT  a.ApprenticeshipId,
 	                                           p.ProviderId,
 	                                           a.FrameworkCode,
 	                                           a.ProgType,
@@ -141,33 +142,33 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 log.LogError("Error occured Migrating Apprenticeships", e.Message);
             }
 
-            foreach (var item in apprenticeshipList)
+            await Task.WhenAll(apprenticeshipList.Select(async apprenticeship =>
             {
-                apprenticeshipErrors = new List<string>();
-                //check to see if prn is whitelisted
-                if (IsOnWhiteList(item.UKPRN))
+                var apprenticeshipErrors = new List<string>();
+                await semaphore.WaitAsync();
+                try
                 {
-                    try
+                    if (IsOnWhiteList(apprenticeship.UKPRN))
                     {
-                        var errorList = new List<string>();
+                        apprenticeshipErrors = new List<string>();
                         //get relevant info
-                        var exisitingApprenticeship = await GetExistingApprenticeship(item);
-                        var referenceDataFramework = await GetReferenceDataFramework(item);
-                        var referenceDataStandard = await GetReferenceDataStandard(item);
-                        var locations = await GetLocations(item);
+                        var exisitingApprenticeship = await GetExistingApprenticeship(apprenticeship);
+                        var referenceDataFramework = await GetReferenceDataFramework(apprenticeship);
+                        var referenceDataStandard = await GetReferenceDataStandard(apprenticeship);
+                        var locations = await GetLocations(apprenticeship);
                         var cosmosVenues = await GetCosmosVenues(locations);
-                        var cosmosProvider = await GetProvider(item);
+                        var cosmosProvider = await GetProvider(apprenticeship);
 
 
                         //map objects for creating cosmos record
                         var locs = MapLocations(locations, cosmosVenues);
                         var id = exisitingApprenticeship?.id.ToString() ?? Guid.NewGuid().ToString();
-                        var apprenticeType = MapApprenticeshipType(item);
-                        var (MappedTitle, mappedNvqLevel) = MapAprenticeshipTitle(item, referenceDataFramework, referenceDataStandard);
+                        var apprenticeType = MapApprenticeshipType(apprenticeship);
+                        var (MappedTitle, mappedNvqLevel) = MapAprenticeshipTitle(apprenticeship, referenceDataFramework, referenceDataStandard);
                         var mappedStatus = MapApprenticeshipRecordStatus(locs);
                         var mappedApprenticeship = MapApprenticeship(locs,
                                                                     id,
-                                                                    item,
+                                                                    apprenticeship,
                                                                     apprenticeType,
                                                                     mappedStatus,
                                                                     referenceDataFramework?.Id.ToString(),
@@ -178,18 +179,308 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                         //insert record into cosmos
                         await CreateOrUpdateApprenticeshipRecord(mappedApprenticeship);
-
-                        AddResultMessage(item.ApprenticeshipID, item.UKPRN, "Success", mappedApprenticeship.ApprenticeshipTitle, string.Join("\n", apprenticeshipErrors));
+                        AddResultMessage(apprenticeship.ApprenticeshipID, apprenticeship.UKPRN, "Success", mappedApprenticeship.ApprenticeshipTitle, string.Join("\n", apprenticeshipErrors));
                     }
-                    catch (Exception e)
+                    else
+                        AddResultMessage(apprenticeship.ApprenticeshipID, apprenticeship.UKPRN, "Skipped", $"PRN {apprenticeship.UKPRN} not whitelisted");
+                }
+                catch (Exception e)
+                {
+                    AddResultMessage(apprenticeship.ApprenticeshipID, apprenticeship.UKPRN, "Failed", null, $"Exception occured creating record - {e.Message}");
+                    log.LogError("Error occurred creating or updating apprenticeship record!", e);
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+
+                (string, string) MapAprenticeshipTitle(ApprenticeshipResult tribalRecord, ReferenceDataFramework refDataFramework, ReferenceDateStandard refDataStandard)
+                {
+                    var apprenticeshipTitle = tribalRecord.FrameworkCode.HasValue ? refDataFramework?.NasTitle : refDataStandard?.StandardName;
+                    var nvqLevel2 = refDataStandard?.NotionalEndLevel;
+
+                    if (string.IsNullOrEmpty(apprenticeshipTitle))
                     {
-                        AddResultMessage(item.ApprenticeshipID, item.UKPRN, "Failed", null, $"Exception occured creating record - {e.Message}");
-                        log.LogError("Error occurred creating or updating apprenticeship record!", e);
+                        lock (apprenticeshipErrors)
+                            apprenticeshipErrors.Add($"Unable to determine Apprenticeship Title, framework code {tribalRecord.FrameworkCode}, pathway code: {tribalRecord.PathWayCode}, standard code: {tribalRecord.StandardCode}, version: {tribalRecord.Version}");
+                    }
+
+                    return (apprenticeshipTitle, nvqLevel2);
+                }
+
+                ApprenticeshipDTO MapApprenticeship(IList<ApprenticeshipLocationDTO> locs, string id, ApprenticeshipResult tribalRecord, ApprenticeshipType apprenticeshipTye,
+                    RecordStatus recordStatus, string frameworkId, string standardId, string providerId, string apprenticeshipTitle, string notionalNVQLevelv2)
+                {
+                    var cosmosApprenticeship = new ApprenticeshipDTO()
+                    {
+                        id = id,
+                        ApprenticeshipId = tribalRecord.ApprenticeshipID,
+                        ApprenticeshipTitle = apprenticeshipTitle,
+                        ProviderId = providerId,
+                        PathWayCode = tribalRecord.PathWayCode,
+                        ProgType = tribalRecord.ProgType,
+                        ProviderUKPRN = tribalRecord.UKPRN,
+                        FrameworkId = frameworkId,
+                        StandardId = standardId,
+                        FrameworkCode = tribalRecord.FrameworkCode,
+                        StandardCode = tribalRecord.StandardCode,
+                        Version = tribalRecord.Version,
+                        MarketingInformation = tribalRecord.MarketingInformation,
+                        Url = tribalRecord.Url,
+                        ContactTelephone = tribalRecord.ContactTelephone,
+                        ContactEmail = tribalRecord.ContactEmail,
+                        ContactWebsite = tribalRecord.ContactWebsite,
+                        CreatedBy = createdBy,
+                        CreatedDate = createdDate,
+                        NotionalNVQLevelv2 = notionalNVQLevelv2,
+                        ApprenticeshipLocations = locs,
+                        ApprenticeshipType = apprenticeshipTye,
+                        RecordStatus = recordStatus
+                    };
+                    return cosmosApprenticeship;
+                }
+
+                async Task<IList<Dfc.CourseDirectory.Models.Models.Venues.Venue>> GetCosmosVenues(IList<ApprenticeshipLocationResult> locations)
+                {
+                    IList<Dfc.CourseDirectory.Models.Models.Venues.Venue> lst = new List<Dfc.CourseDirectory.Models.Models.Venues.Venue>();
+                    foreach (var s in locations)
+                    {
+                        var venue = await venueCollectionService.GetDocumentByLocationId(s.LocationId);
+                        if (venue != null)
+                        {
+                            lst.Add(venue);
+                        }
+                    }
+                    return lst;
+                }
+
+                async Task<Provider> GetProvider(ApprenticeshipResult item)
+                {
+                    return await providerCollectionService.GetDocumentByUkprn(item.UKPRN);
+                }
+
+                async Task<List<ApprenticeshipLocationResult>> GetLocations(ApprenticeshipResult item)
+                {
+                    using (var sqlConnection = new SqlConnection(connectionString))
+                    {
+                        var lst = await sqlConnection.QueryAsync<ApprenticeshipLocationResult>(apprenticeshipLocationsSQL, new { apprenticeshipId = item.ApprenticeshipID }, commandType: CommandType.Text);
+                        return lst.ToList();
                     }
                 }
-                else
-                    AddResultMessage(item.ApprenticeshipID, item.UKPRN, "Skipped", $"PRN {item.UKPRN} not whitelisted");
-            }
+
+                async Task<ReferenceDateStandard> GetReferenceDataStandard(ApprenticeshipResult item)
+                {
+                    var app = await apprenticeReferenceDataService.GetStandardById(item.StandardCode ?? 0, item.Version ?? 0);
+                    return app?.Value?.Value;
+                }
+
+                async Task<ReferenceDataFramework> GetReferenceDataFramework(ApprenticeshipResult item)
+                {
+                    //checks for framework apprenticeship
+                    var app = await apprenticeReferenceDataService.GetFrameworkByCode(item.FrameworkCode ?? 0, item.ProgType ?? 0, item.PathWayCode ?? 0);
+                    return app?.Value?.Value;
+                }
+
+                async Task<Apprenticeship> GetExistingApprenticeship(ApprenticeshipResult item)
+                {
+                    //fetch existing apprenticeship row.
+                    return await apprenticeshipService.GetApprenticeshipByApprenticeshipID(item.ApprenticeshipID);
+                }
+
+                async Task CreateOrUpdateApprenticeshipRecord(ApprenticeshipDTO app)
+                {
+                    using (var client = cosmosDbHelper.GetClient())
+                    {
+                        var s = UriFactory.CreateDocumentUri(databaseId, apprenticeshipCollectionId, app.id);
+                        Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, apprenticeshipCollectionId);
+                        var res = await client.UpsertDocumentAsync(collectionUri, app);
+                    }
+                }
+
+                RecordStatus MapApprenticeshipRecordStatus(IList<ApprenticeshipLocationDTO> mappedLocation)
+                {
+                    //if there are any errors with apprenticeshipREcord, set record to migration pending.
+                    if (apprenticeshipErrors.Any())
+                        return RecordStatus.MigrationPending;
+                    else
+                        return RecordStatus.Live;
+                }
+
+                //Taken entirely from previous migration logic.
+                ApprenticeshipLocationType GetApprenticeshipLocationType(ApprenticeshipLocationResult lo)
+                {
+                    var deliveryModes = lo.DeliveryModes;
+                    if ((deliveryModes.Contains(1) && !deliveryModes.Contains(2) && deliveryModes.Contains(3)) ||
+                        (deliveryModes.Contains(1) && deliveryModes.Contains(2) && !deliveryModes.Contains(3)) ||
+                        (deliveryModes.Contains(1) && deliveryModes.Contains(2) && deliveryModes.Contains(3)))
+                    {
+                        return (ApprenticeshipLocationType.ClassroomBasedAndEmployerBased);
+                    }
+                    else if ((!deliveryModes.Contains(1) && !deliveryModes.Contains(2) && deliveryModes.Contains(3)) ||
+                             (!deliveryModes.Contains(1) && deliveryModes.Contains(2) && !deliveryModes.Contains(3)) ||
+                             (!deliveryModes.Contains(1) && deliveryModes.Contains(2) && deliveryModes.Contains(3)))
+                    {
+                        return (ApprenticeshipLocationType.ClassroomBased);
+                    }
+                    else if (deliveryModes.Contains(1) && !deliveryModes.Contains(2) && !deliveryModes.Contains(3))
+                    {
+                        return (ApprenticeshipLocationType.EmployerBased);
+                    }
+                    else
+                    {
+                        return (ApprenticeshipLocationType.Undefined);
+                    }
+                }
+
+                ApprenticeshipType MapApprenticeshipType(ApprenticeshipResult tribalRecord)
+                {
+                    if (tribalRecord.StandardCode.HasValue)
+                        return ApprenticeshipType.StandardCode;
+                    else if (tribalRecord.FrameworkCode.HasValue)
+                        return ApprenticeshipType.FrameworkCode;
+                    else
+                    {
+                        apprenticeshipErrors.Add($"ApprenticeshipId: {tribalRecord.ApprenticeshipID} has undefined apprenticeshipType");
+                        return ApprenticeshipType.Undefined;
+                    }
+                }
+
+                IList<ApprenticeshipLocationDTO> MapLocations(IList<ApprenticeshipLocationResult> locations, IList<Dfc.CourseDirectory.Models.Models.Venues.Venue> venues)
+                {
+                    var locationBasedApprenticeshipLocation = new List<ApprenticeshipLocationDTO>();
+                    var regionBasedApprenticeshipLocation = new List<ApprenticeshipLocationDTO>();
+
+                    //no need to proceed
+                    if (locations == null)
+                        return null;
+
+
+                    //employer based apprenticeships - group all locations into regions/subregions
+                    foreach (var location in locations)
+                    {
+                        var type = GetApprenticeshipLocationType(location);
+                        if (type == ApprenticeshipLocationType.EmployerBased)
+                        {
+                            var allRegionsWithSubRegions = new SelectRegionModel();
+                            var onspdRegionSubregion = onspdService.GetOnspdData(new OnspdSearchCriteria(location.Postcode));
+                            if (onspdRegionSubregion.IsFailure)
+                                apprenticeshipErrors.Add($"LocationId: {location.LocationId} - Querying onspd failed");
+                        else if (!onspdRegionSubregion.HasValue)
+                                    {
+                                        apprenticeshipErrors.Add($"Location:{location.LocationId} - Did not find a record for postcode: {location.Postcode}");
+                                        continue;
+                                    }
+
+                            var selectedSubRegion = allRegionsWithSubRegions.RegionItems.SelectMany(sr => sr.SubRegion.Where(sb =>
+                                                                                                    sb.SubRegionName == onspdRegionSubregion.Value.Value.LocalAuthority ||
+                                                                                                    sb.SubRegionName == onspdRegionSubregion.Value.Value.County ||
+                                                                                                    onspdRegionSubregion.Value.Value.LocalAuthority.Contains(sb.SubRegionName)
+                            )).FirstOrDefault();
+
+                            if (selectedSubRegion == null)
+                            {
+                                apprenticeshipErrors.Add($"Location:{location.LocationId} Unable to match region with ons data api, location skipped");
+                                continue;
+                            }
+                            else
+                            {
+                                var appLocation = new ApprenticeshipLocationDTO()
+                                {
+                                    Id = Guid.NewGuid().ToString(),
+                                    VenueId = Guid.Empty.ToString(),
+                                    TribalId = location.ApprenticeshipLocationId,
+                                    DeliveryModes = location.DeliveryModes,
+                                    LocationId = selectedSubRegion.ApiLocationId,
+                                    Name = location.LocationName,
+                                    ProviderId = location.ProviderId,
+                                    ProviderUKPRN = location.UKPRN,
+                                    Radius = location.Radius,
+                                    ApprenticeshipLocationType = type,
+                                    LocationType = LocationType.SubRegion,
+                                    LocationGuidId = null,
+                                    Regions = new List<string> { selectedSubRegion.Id },
+                                    RecordStatus = VenueStatus.Live,
+                                    CreatedBy = createdBy,
+                                    CreatedDate = createdDate,
+                                    UpdatedBy = createdBy,
+                                    UpdatedDate = createdDate
+                                };
+
+                                //region based apprenticeships
+                                regionBasedApprenticeshipLocation.Add(appLocation);
+                            }
+                        }
+                        else if (type == ApprenticeshipLocationType.ClassroomBased || type == ApprenticeshipLocationType.ClassroomBasedAndEmployerBased)
+                        {
+                            //venue based (location based apprenticeships)
+                            var cosmosVenueItem = venues.FirstOrDefault(x => x.LocationId == location.LocationId);
+                            var status = default(VenueStatus);
+
+                            //set status be that of what the venue status is, otherwise if venue is not found
+                            //set status to pending.
+                            if (cosmosVenueItem != null)
+                                status = cosmosVenueItem.Status;
+                            else
+                            {
+                                apprenticeshipErrors.Add($"LocationId: {location.LocationId} did not find a venue in cosmos, record marked as pending");
+                                status = VenueStatus.Pending;
+                            }
+
+                            var appLocation = new ApprenticeshipLocationDTO()
+                            {
+                                Id = Guid.NewGuid().ToString(),
+                                VenueId = Guid.Empty.ToString(),
+                                TribalId = location.ApprenticeshipLocationId,
+                                Address = new Dfc.CourseDirectory.Models.Models.Apprenticeships.Address()
+                                {
+                                    Address1 = cosmosVenueItem?.Address1,
+                                    Address2 = cosmosVenueItem?.Address2,
+                                    County = cosmosVenueItem?.County,
+                                    Email = cosmosVenueItem?.Email,
+                                    Website = cosmosVenueItem?.Website,
+                                    Longitude = cosmosVenueItem?.Longitude,
+                                    Latitude = cosmosVenueItem?.Latitude,
+                                    Postcode = cosmosVenueItem?.PostCode,
+                                    Town = cosmosVenueItem?.Town,
+                                    Phone = cosmosVenueItem?.Telephone
+                                },
+                                DeliveryModes = location.DeliveryModes,
+                                LocationId = location.LocationId,
+                                Name = location.LocationName,
+                                ProviderId = location.ProviderId,
+                                ProviderUKPRN = location.UKPRN,
+                                Radius = location.Radius,
+                                ApprenticeshipLocationType = type,
+                                LocationType = LocationType.Venue,
+                                LocationGuidId = cosmosVenueItem?.ID,
+                                Regions = null,
+                                RecordStatus = status,
+                                CreatedBy = createdBy,
+                                CreatedDate = createdDate,
+                                UpdatedBy = createdBy,
+                                UpdatedDate = createdDate
+                            };
+                            locationBasedApprenticeshipLocation.Add(appLocation);
+                        }
+                        else
+                        {
+                            //apprenticeshipErrors.Add($"LocationId: {location.LocationId} skipped as type was unknown {type}");
+                            continue;
+                        }
+                    }
+
+                    //add a new location with all distinct regions.
+                    if (regionBasedApprenticeshipLocation.Any(x => x.RecordStatus == VenueStatus.Live))
+                    {
+                        var regionLocation = regionBasedApprenticeshipLocation.FirstOrDefault(x => x.RecordStatus == VenueStatus.Live);
+                        regionLocation.Regions = regionBasedApprenticeshipLocation.Where(x => x.Regions != null).SelectMany(x => x.Regions).Distinct().ToList();
+                        locationBasedApprenticeshipLocation.Add(regionLocation);
+                    }
+
+                    return locationBasedApprenticeshipLocation;
+                }
+
+            }));
 
             //Log Results to blob storage
             var resultsObjBytes = GetResultAsByteArray(result);
@@ -199,140 +490,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             log.LogInformation("Migrating Apprenticeships Complete");
 
 
-            (string, string) MapAprenticeshipTitle(ApprenticeshipResult tribalRecord, ReferenceDataFramework refDataFramework, ReferenceDateStandard refDataStandard)
-            {
-                var apprenticeshipTitle = tribalRecord.FrameworkCode.HasValue ? refDataFramework?.NasTitle : refDataStandard?.StandardName;
-                var nvqLevel2 = refDataStandard?.NotionalEndLevel;
-
-                if (string.IsNullOrEmpty(apprenticeshipTitle))
-                    apprenticeshipErrors.Add($"Unable to determine Apprenticeship Title, framework code {tribalRecord.FrameworkCode}, pathway code: {tribalRecord.PathWayCode}, standard code: {tribalRecord.StandardCode}, version: {tribalRecord.Version}");
-
-                return (apprenticeshipTitle, nvqLevel2);
-            }
-
-            ApprenticeshipDTO MapApprenticeship(IList<ApprenticeshipLocationDTO> locs, string id, ApprenticeshipResult tribalRecord, ApprenticeshipType apprenticeshipTye,
-                RecordStatus recordStatus, string frameworkId, string standardId, string providerId, string apprenticeshipTitle, string notionalNVQLevelv2)
-            {
-                var cosmosApprenticeship = new ApprenticeshipDTO()
-                {
-                    id = id,
-                    ApprenticeshipId = tribalRecord.ApprenticeshipID,
-                    ApprenticeshipTitle = apprenticeshipTitle,
-                    ProviderId = providerId,
-                    PathWayCode = tribalRecord.PathWayCode,
-                    ProgType = tribalRecord.ProgType,
-                    ProviderUKPRN = tribalRecord.UKPRN,
-                    FrameworkId = frameworkId,
-                    StandardId = standardId,
-                    FrameworkCode = tribalRecord.FrameworkCode,
-                    StandardCode = tribalRecord.StandardCode,
-                    Version = tribalRecord.Version,
-                    MarketingInformation = tribalRecord.MarketingInformation,
-                    Url = tribalRecord.Url,
-                    ContactTelephone = tribalRecord.ContactTelephone,
-                    ContactEmail = tribalRecord.ContactEmail,
-                    ContactWebsite = tribalRecord.ContactWebsite,
-                    CreatedBy = createdBy,
-                    CreatedDate = createdDate,
-                    NotionalNVQLevelv2 = notionalNVQLevelv2,
-                    ApprenticeshipLocations = locs,
-                    ApprenticeshipType = apprenticeshipTye,
-                    RecordStatus = recordStatus
-                };
-                return cosmosApprenticeship;
-            }
-
-            async Task<IList<Dfc.CourseDirectory.Models.Models.Venues.Venue>> GetCosmosVenues(IList<ApprenticeshipLocationResult> locations)
-            {
-                IList<Dfc.CourseDirectory.Models.Models.Venues.Venue> lst = new List<Dfc.CourseDirectory.Models.Models.Venues.Venue>();
-                foreach (var s in locations)
-                {
-                    var venue = await venueCollectionService.GetDocumentByLocationId(s.LocationId);
-                    if (venue != null)
-                    {
-                        lst.Add(venue);
-                    }
-                }
-                return lst;
-            }
-
-            async Task<Provider> GetProvider(ApprenticeshipResult item)
-            {
-                return await providerCollectionService.GetDocumentByUkprn(item.UKPRN);
-            }
-
-            async Task<List<ApprenticeshipLocationResult>> GetLocations(ApprenticeshipResult item)
-            {
-                using (var sqlConnection = new SqlConnection(connectionString))
-                {
-                    var lst = await sqlConnection.QueryAsync<ApprenticeshipLocationResult>(apprenticeshipLocationsSQL, new { apprenticeshipId = item.ApprenticeshipID }, commandType: CommandType.Text);
-                    return lst.ToList();
-                }
-            }
-
-            async Task<ReferenceDateStandard> GetReferenceDataStandard(ApprenticeshipResult item)
-            {
-                var apprenticeship = await apprenticeReferenceDataService.GetStandardById(item.StandardCode ?? 0, item.Version ?? 0);
-                return apprenticeship?.Value?.Value;
-            }
-
-            async Task<ReferenceDataFramework> GetReferenceDataFramework(ApprenticeshipResult item)
-            {
-                //checks for framework apprenticeship
-                var apprenticeship = await apprenticeReferenceDataService.GetFrameworkByCode(item.FrameworkCode ?? 0, item.ProgType ?? 0, item.PathWayCode ?? 0);
-                return apprenticeship?.Value?.Value;
-            }
-
-            async Task<Apprenticeship> GetExistingApprenticeship(ApprenticeshipResult item)
-            {
-                //fetch existing apprenticeship row.
-                return await apprenticeshipService.GetApprenticeshipByApprenticeshipID(item.ApprenticeshipID);
-            }
-
-            async Task CreateOrUpdateApprenticeshipRecord(ApprenticeshipDTO apprenticeship)
-            {
-                using (var client = cosmosDbHelper.GetClient())
-                {
-                    var s = UriFactory.CreateDocumentUri(databaseId, apprenticeshipCollectionId, apprenticeship.id);
-                    Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, apprenticeshipCollectionId);
-                    var res = await client.UpsertDocumentAsync(collectionUri, apprenticeship);
-                }
-            }
-
-            RecordStatus MapApprenticeshipRecordStatus(IList<ApprenticeshipLocationDTO> mappedLocation)
-            {
-                //if there are any errors with apprenticeshipREcord, set record to migration pending.
-                if (apprenticeshipErrors.Any())
-                    return RecordStatus.MigrationPending;
-                else
-                    return RecordStatus.Live;
-            }
-
-            //Taken entirely from previous migration logic.
-            ApprenticeshipLocationType GetApprenticeshipLocationType(ApprenticeshipLocationResult lo)
-            {
-                var deliveryModes = lo.DeliveryModes;
-                if ((deliveryModes.Contains(1) && !deliveryModes.Contains(2) && deliveryModes.Contains(3)) ||
-                    (deliveryModes.Contains(1) && deliveryModes.Contains(2) && !deliveryModes.Contains(3)) ||
-                    (deliveryModes.Contains(1) && deliveryModes.Contains(2) && deliveryModes.Contains(3)))
-                {
-                    return (ApprenticeshipLocationType.ClassroomBasedAndEmployerBased);
-                }
-                else if ((!deliveryModes.Contains(1) && !deliveryModes.Contains(2) && deliveryModes.Contains(3)) ||
-                         (!deliveryModes.Contains(1) && deliveryModes.Contains(2) && !deliveryModes.Contains(3)) ||
-                         (!deliveryModes.Contains(1) && deliveryModes.Contains(2) && deliveryModes.Contains(3)))
-                {
-                    return (ApprenticeshipLocationType.ClassroomBased);
-                }
-                else if (deliveryModes.Contains(1) && !deliveryModes.Contains(2) && !deliveryModes.Contains(3))
-                {
-                    return (ApprenticeshipLocationType.EmployerBased);
-                }
-                else
-                {
-                    return (ApprenticeshipLocationType.Undefined);
-                }
-            }
+            
 
             async Task<IList<int>> GetProviderWhiteList()
             {
@@ -359,8 +517,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             void AddResultMessage(int apprenticeshipId, int ukprn, string status, string apprenticeshipTitle, string message = "")
             {
-                var validateResult = new ApprenticeshipResultMessage() { ApprenticeshipID = apprenticeshipId, Status = status, Message = message, UKPRN = ukprn, ApprenticeshipTitle = apprenticeshipTitle };
-                result.Add(validateResult);
+                lock (result)
+                {
+                    var validateResult = new ApprenticeshipResultMessage() { ApprenticeshipID = apprenticeshipId, Status = status, Message = message, UKPRN = ukprn, ApprenticeshipTitle = apprenticeshipTitle };
+                    result.Add(validateResult);
+                }
             }
 
             byte[] GetResultAsByteArray(IList<ApprenticeshipResultMessage> ob)
@@ -371,7 +532,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     using (var csvWriter = new CsvWriter(streamWriter, CultureInfo.InvariantCulture))
                     {
                         csvWriter.WriteRecords<ApprenticeshipResultMessage>(ob);
+                        csvWriter.Flush();
                     }
+                    
                     return memoryStream.ToArray();
                 }
             }
@@ -384,153 +547,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     return true;
             }
 
-            ApprenticeshipType MapApprenticeshipType(ApprenticeshipResult tribalRecord)
-            {
-                if (tribalRecord.StandardCode.HasValue)
-                    return ApprenticeshipType.StandardCode;
-                else if (tribalRecord.FrameworkCode.HasValue)
-                    return ApprenticeshipType.FrameworkCode;
-                else
-                {
-                    apprenticeshipErrors.Add($"ApprenticeshipId: {tribalRecord.ApprenticeshipID} has undefined apprenticeshipType");
-                    return ApprenticeshipType.Undefined;
-                }
-            }
-
-            IList<ApprenticeshipLocationDTO> MapLocations(IList<ApprenticeshipLocationResult> locations, IList<Dfc.CourseDirectory.Models.Models.Venues.Venue> venues)
-            {
-                var locationBasedApprenticeshipLocation = new List<ApprenticeshipLocationDTO>();
-                var regionBasedApprenticeshipLocation = new List<ApprenticeshipLocationDTO>();
-
-                //no need to proceed
-                if (locations == null)
-                    return null;
-
-
-                //employer based apprenticeships - group all locations into regions/subregions
-                foreach (var location in locations)
-                {
-                    var type = GetApprenticeshipLocationType(location);
-                    if (type == ApprenticeshipLocationType.EmployerBased)
-                    {
-                        var allRegionsWithSubRegions = new SelectRegionModel();
-                        var onspdRegionSubregion = onspdService.GetOnspdData(new OnspdSearchCriteria(location.Postcode));
-                        if (onspdRegionSubregion.IsFailure)
-                            apprenticeshipErrors.Add($"LocationId: {location.LocationId} - Querying onspd failed");
-                        else if (!onspdRegionSubregion.HasValue)
-                        {
-                            apprenticeshipErrors.Add($"Location:{location.LocationId} - Did not find a record for postcode: {location.Postcode}");
-                            continue;
-                        }
-
-                        var selectedSubRegion = allRegionsWithSubRegions.RegionItems.SelectMany(sr => sr.SubRegion.Where(sb =>
-                                                                                                sb.SubRegionName == onspdRegionSubregion.Value.Value.LocalAuthority ||
-                                                                                                sb.SubRegionName == onspdRegionSubregion.Value.Value.County ||
-                                                                                                onspdRegionSubregion.Value.Value.LocalAuthority.Contains(sb.SubRegionName)
-                        )).FirstOrDefault();
-
-                        if (selectedSubRegion == null)
-                        {
-                            apprenticeshipErrors.Add($"Location:{location.LocationId} Unable to match region with ons data api, location skipped");
-                            continue;
-                        }
-                        else
-                        {
-                            var appLocation = new ApprenticeshipLocationDTO()
-                            {
-                                Id = Guid.NewGuid().ToString(),
-                                VenueId = Guid.Empty.ToString(),
-                                TribalId = location.ApprenticeshipLocationId,
-                                DeliveryModes = location.DeliveryModes,
-                                LocationId = selectedSubRegion.ApiLocationId,
-                                Name = location.LocationName,
-                                ProviderId = location.ProviderId,
-                                ProviderUKPRN = location.UKPRN,
-                                Radius = location.Radius,
-                                ApprenticeshipLocationType = type,
-                                LocationType = LocationType.SubRegion,
-                                LocationGuidId = null,
-                                Regions = new List<string> { selectedSubRegion.Id },
-                                RecordStatus = VenueStatus.Live,
-                                CreatedBy = createdBy,
-                                CreatedDate = createdDate,
-                                UpdatedBy = createdBy,
-                                UpdatedDate = createdDate
-                            };
-
-                            //region based apprenticeships
-                            regionBasedApprenticeshipLocation.Add(appLocation);
-                        }
-                    }
-                    else if (type == ApprenticeshipLocationType.ClassroomBased || type == ApprenticeshipLocationType.ClassroomBasedAndEmployerBased)
-                    {
-                        //venue based (location based apprenticeships)
-                        var cosmosVenueItem = venues.FirstOrDefault(x => x.LocationId == location.LocationId);
-                        var status = default(VenueStatus);
-
-                        //set status be that of what the venue status is, otherwise if venue is not found
-                        //set status to pending.
-                        if (cosmosVenueItem != null)
-                            status = cosmosVenueItem.Status;
-                        else
-                        {
-                            apprenticeshipErrors.Add($"LocationId: {location.LocationId} did not find a venue in cosmos, record marked as pending");
-                            status = VenueStatus.Pending;
-                        }
-
-                        var appLocation = new ApprenticeshipLocationDTO()
-                        {
-                            Id = Guid.NewGuid().ToString(),
-                            VenueId = Guid.Empty.ToString(),
-                            TribalId = location.ApprenticeshipLocationId,
-                            Address = new Dfc.CourseDirectory.Models.Models.Apprenticeships.Address()
-                            {
-                                Address1 = cosmosVenueItem?.Address1,
-                                Address2 = cosmosVenueItem?.Address2,
-                                County = cosmosVenueItem?.County,
-                                Email = cosmosVenueItem?.Email,
-                                Website = cosmosVenueItem?.Website,
-                                Longitude = cosmosVenueItem?.Longitude,
-                                Latitude = cosmosVenueItem?.Latitude,
-                                Postcode = cosmosVenueItem?.PostCode,
-                                Town = cosmosVenueItem?.Town,
-                                Phone = cosmosVenueItem?.Telephone
-                            },
-                            DeliveryModes = location.DeliveryModes,
-                            LocationId = location.LocationId,
-                            Name = location.LocationName,
-                            ProviderId = location.ProviderId,
-                            ProviderUKPRN = location.UKPRN,
-                            Radius = location.Radius,
-                            ApprenticeshipLocationType = type,
-                            LocationType = LocationType.Venue,
-                            LocationGuidId = cosmosVenueItem?.ID,
-                            Regions = null,
-                            RecordStatus = status,
-                            CreatedBy = createdBy,
-                            CreatedDate = createdDate,
-                            UpdatedBy = createdBy,
-                            UpdatedDate = createdDate
-                        };
-                        locationBasedApprenticeshipLocation.Add(appLocation);
-                    }
-                    else
-                    {
-                        apprenticeshipErrors.Add($"LocationId: {location.LocationId} skipped as type was unknown {type}");
-                        continue;
-                    }
-                }
-
-                //add a new location with all distinct regions.
-                if (regionBasedApprenticeshipLocation.Any(x => x.RecordStatus == VenueStatus.Live))
-                {
-                    var regionLocation = regionBasedApprenticeshipLocation.FirstOrDefault(x => x.RecordStatus == VenueStatus.Live);
-                    regionLocation.Regions = regionBasedApprenticeshipLocation.Where(x => x.Regions != null).SelectMany(x => x.Regions).Distinct().ToList();
-                    locationBasedApprenticeshipLocation.Add(regionLocation);
-                }
-
-                return locationBasedApprenticeshipLocation;
-            }
+            
         }
     }
 
