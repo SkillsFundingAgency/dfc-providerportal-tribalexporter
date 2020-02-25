@@ -62,7 +62,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var apprenticeshipList = new List<ApprenticeshipResult>();
             var createdBy = "ApprenticeshipMigrator";
             var createdDate = DateTime.Now;
-            SemaphoreSlim semaphore = new SemaphoreSlim(5); ;
+            SemaphoreSlim semaphore = new SemaphoreSlim(1); ;
 
             var apprenticeshipSQL = @"SELECT  a.ApprenticeshipId,
 	                                           p.ProviderId,
@@ -289,12 +289,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 async Task CreateOrUpdateApprenticeshipRecord(ApprenticeshipDTO app)
                 {
-                    using (var client = cosmosDbHelper.GetClient())
-                    {
-                        var s = UriFactory.CreateDocumentUri(databaseId, apprenticeshipCollectionId, app.id);
-                        Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, apprenticeshipCollectionId);
-                        var res = await client.UpsertDocumentAsync(collectionUri, app);
-                    }
+                    var client = cosmosDbHelper.GetClient();
+                    var s = UriFactory.CreateDocumentUri(databaseId, apprenticeshipCollectionId, app.id);
+                    Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, apprenticeshipCollectionId);
+                    var res = await client.UpsertDocumentAsync(collectionUri, app);
                 }
 
                 RecordStatus MapApprenticeshipRecordStatus(IList<ApprenticeshipLocationDTO> mappedLocation)

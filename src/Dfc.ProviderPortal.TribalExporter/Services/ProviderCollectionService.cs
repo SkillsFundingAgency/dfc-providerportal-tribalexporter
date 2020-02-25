@@ -19,6 +19,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
         private readonly ICosmosDbHelper _cosmosDbHelper;
         private readonly ICosmosDbSettings _cosmosDbSettings;
         private readonly ICosmosDbCollectionSettings _cosmosDbCollectionSettings;
+        private readonly DocumentClient _client;
 
         public ProviderCollectionService(
             ICosmosDbHelper cosmosDbHelper,
@@ -30,6 +31,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             Throw.IfNull(cosmosDbCollectionSettings, nameof(cosmosDbCollectionSettings));
 
             _cosmosDbHelper = cosmosDbHelper;
+            _client = cosmosDbHelper.GetClient();
             _cosmosDbSettings = cosmosDbSettings.Value;
             _cosmosDbCollectionSettings = cosmosDbCollectionSettings.Value;
         }
@@ -42,21 +44,20 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.ProvidersCollectionId);
             var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
 
-            using (var client = _cosmosDbHelper.GetClient())
+
+            if (ukprns.Any())
             {
-                if (ukprns.Any())
+                var commaDelimList = $"'{string.Join("','", ukprns)}'";
+                var sql = $"SELECT * FROM c WHERE c.Status = 1 AND c.UnitedKingdomProviderReferenceNumber IN ({commaDelimList})";
+                using (var query = _client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
                 {
-                    var commaDelimList = $"'{string.Join("','", ukprns)}'";
-                    var sql = $"SELECT * FROM c WHERE c.Status = 1 AND c.UnitedKingdomProviderReferenceNumber IN ({commaDelimList})";
-                    using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+                    while (query.HasMoreResults)
                     {
-                        while (query.HasMoreResults)
-                        {
-                            foreach (var document in await query.ExecuteNextAsync<Document>()) documents.Add(document);
-                        }
+                        foreach (var document in await query.ExecuteNextAsync<Document>()) documents.Add(document);
                     }
                 }
             }
+
 
             return JsonConvert.SerializeObject(documents, Formatting.Indented);
         }
@@ -69,17 +70,15 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             var sql = $"SELECT * FROM p WHERE p.UnitedKingdomProviderReferenceNumber = \"{ukprn}\"";
 
             var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
-            using (var client = _cosmosDbHelper.GetClient())
-            {
-                var providerList = new List<Provider>();
-                var query = client.CreateDocumentQuery<Document>(uri, sql, options).AsDocumentQuery();
-                while (query.HasMoreResults)
-                {
-                    foreach (var document in await query.ExecuteNextAsync<Provider>()) providerList.Add(document);
-                }
 
-                return providerList.OrderByDescending(x => x.DateUpdated).FirstOrDefault();
-            };
+            var providerList = new List<Provider>();
+            var query = _client.CreateDocumentQuery<Document>(uri, sql, options).AsDocumentQuery();
+            while (query.HasMoreResults)
+            {
+                foreach (var document in await query.ExecuteNextAsync<Provider>()) providerList.Add(document);
+            }
+
+            return providerList.OrderByDescending(x => x.DateUpdated).FirstOrDefault();
         }
 
         public async Task<bool> ProviderExists(int ukprn)
@@ -90,8 +89,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             var sql = $"SELECT * FROM c WHERE c.Status = 1 AND c.UnitedKingdomProviderReferenceNumber = '{ukprn}'";
             var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
 
-            using (var client = _cosmosDbHelper.GetClient())
-            using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+            using (var query = _client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
             {
                 while (query.HasMoreResults)
                 {

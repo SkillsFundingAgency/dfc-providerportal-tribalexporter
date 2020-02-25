@@ -34,22 +34,22 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             _cosmosDbCollectionSettings = cosmosDbCollectionSettings.Value;
         }
 
-        public async Task<List<Apprenticeship>>  GetAllApprenticeshipsAsync()
+        public async Task<List<Apprenticeship>> GetAllApprenticeshipsAsync()
         {
             var documents = new List<Apprenticeship>();
-            
-            var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.ApprenticeshipCollectionId);
-                var sql = $"SELECT * FROM a";
-                var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
 
-                using (var client = _cosmosDbHelper.GetClient())
-                using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+            var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.ApprenticeshipCollectionId);
+            var sql = $"SELECT * FROM a";
+            var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
+
+            var client = _cosmosDbHelper.GetClient();
+            using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+            {
+                while (query.HasMoreResults)
                 {
-                    while (query.HasMoreResults)
-                    {
-                        foreach (Apprenticeship document in await query.ExecuteNextAsync<Apprenticeship>()) documents.Add(document);
-                    }
+                    foreach (Apprenticeship document in await query.ExecuteNextAsync<Apprenticeship>()) documents.Add(document);
                 }
+            }
 
             return documents;
         }

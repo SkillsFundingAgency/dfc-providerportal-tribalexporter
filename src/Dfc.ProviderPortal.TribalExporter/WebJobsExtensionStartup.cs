@@ -35,6 +35,8 @@ using Dfc.CourseDirectory.Services.Interfaces.OnspdService;
 using Dfc.CourseDirectory.Services.OnspdService;
 using Microsoft.Extensions.Logging.Configuration;
 using ApprenticeshipServiceSettings = Dfc.ProviderPortal.TribalExporter.Settings.ApprenticeshipServiceSettings;
+using Microsoft.Azure.Documents;
+using Microsoft.Azure.Documents.Client;
 
 [assembly: WebJobsStartup(typeof(WebJobsExtensionStartup), "Web Jobs Extension Startup")]
 
@@ -59,6 +61,13 @@ namespace Dfc.ProviderPortal.TribalExporter
             //Update Settings for this
             builder.Services.Configure<BlobStorageDirectConnectionSettings>(configuration.GetSection(nameof(BlobStorageDirectConnectionSettings)));
             builder.Services.Configure<ApprenticeshipServiceSettings>(configuration.GetSection(nameof(ApprenticeshipServiceSettings)));
+
+            var documentClient = new DocumentClient(new Uri(configuration.GetValue<string>("CosmosDbSettings:EndpointUri")), configuration.GetValue<string>("CosmosDbSettings:PrimaryKey"), new ConnectionPolicy()
+            {
+                ConnectionMode = ConnectionMode.Direct,
+                ConnectionProtocol = Protocol.Tcp
+            });
+            builder.Services.AddSingleton<DocumentClient>(x => documentClient);
             builder.Services.AddScoped<ICosmosDbHelper, CosmosDbHelper>();
             builder.Services.AddScoped<IBlobStorageHelper, BlobStorageHelper>();
             builder.Services.AddScoped<IProviderCollectionService, ProviderCollectionService>();
@@ -68,7 +77,8 @@ namespace Dfc.ProviderPortal.TribalExporter
             builder.Services.AddScoped<IUkrlpApiService, UkrlpApiService>();
 
 
-            builder.Services.AddLogging(log => { 
+            builder.Services.AddLogging(log =>
+            {
                 log.SetMinimumLevel(LogLevel.Trace);
                 log.AddApplicationInsights(configuration.GetValue<string>("APPINSIGHTS_INSTRUMENTATIONKEY"));
             });
