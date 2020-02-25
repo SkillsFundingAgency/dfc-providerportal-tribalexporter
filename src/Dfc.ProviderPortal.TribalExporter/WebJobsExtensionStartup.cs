@@ -72,7 +72,7 @@ namespace Dfc.ProviderPortal.TribalExporter
                 log.SetMinimumLevel(LogLevel.Trace);
                 log.AddApplicationInsights(configuration.GetValue<string>("APPINSIGHTS_INSTRUMENTATIONKEY"));
             });
-            builder.Services.AddTransient((provider) => new HttpClient());
+            builder.Services.AddSingleton((provider) => new HttpClient());
             builder.Services.Configure<VenueServiceSettings>(venueServiceSettingsOptions =>
             {
                 venueServiceSettingsOptions.ApiUrl = configuration.GetValue<string>("VenueServiceSettings:ApiUrl");
