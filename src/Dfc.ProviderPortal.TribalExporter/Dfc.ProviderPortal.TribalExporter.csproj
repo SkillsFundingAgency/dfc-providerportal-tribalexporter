@@ -6,9 +6,11 @@
     <OldToolsVersion>2.0</OldToolsVersion>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="ArchiveCoursesForProvider.js" />
     <None Remove="VenueLookup.txt" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="ArchiveCoursesForProvider.js" />
     <EmbeddedResource Include="VenueLookup.txt" />
   </ItemGroup>
   <ItemGroup>

@@ -217,6 +217,7 @@ namespace Dfc.ProviderPortal.TribalExporter
             AddApprenticeshipMigration(builder, configuration);
             ConfigureExporter(builder, configuration);
 
+            StoredProcHelper.UpdateArchiveCoursesForProvider(documentClient).GetAwaiter().GetResult();
         }
 
         private void AddApprenticeshipMigration(IWebJobsBuilder builder, IConfigurationRoot configuration)
