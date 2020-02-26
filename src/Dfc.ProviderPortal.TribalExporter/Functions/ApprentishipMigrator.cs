@@ -79,9 +79,13 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 	                                           a.RecordStatusId,
 	                                           a.CreatedByUserId,
 	                                           a.CreatedDateTimeUtc,
-	                                           p.Ukprn
+	                                           p.Ukprn,
+											   coalesce(s.StandardName,f.NasTitle) as [ApprenticeshipTitle],
+                                               s.NotionalEndLevel
                                         FROM Apprenticeship a
                                         INNER JOIN Provider p on p.ProviderId = a.ProviderId
+										LEFT JOIN [Standard] s on (s.StandardCode = a.StandardCode and s.Version = a.Version)
+										LEFT jOIN [Framework] f on (f.FrameworkCode = a.FrameworkCode AND f.PathwayCode = a.PathwayCode AND f.ProgType = a.ProgType)
                                         WHERE a.recordStatusId=2
                                         ORDER BY ProviderId
                                         ";
@@ -144,7 +148,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             await Task.WhenAll(apprenticeshipList.Select(async apprenticeship =>
             {
-                var apprenticeshipErrors = new List<string>();
+                var apprenticeshipErrors = new List<string>();  //Errors Here cause apprenticeships to go into pending
+                var apprenticeshipWarning = new List<string>(); //informational messages
                 await semaphore.WaitAsync();
                 try
                 {
@@ -159,12 +164,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         var cosmosVenues = await GetCosmosVenues(locations);
                         var cosmosProvider = await GetProvider(apprenticeship);
 
-
                         //map objects for creating cosmos record
                         var locs = MapLocations(locations, cosmosVenues);
                         var id = exisitingApprenticeship?.id.ToString() ?? Guid.NewGuid().ToString();
                         var apprenticeType = MapApprenticeshipType(apprenticeship);
-                        var (MappedTitle, mappedNvqLevel) = MapAprenticeshipTitle(apprenticeship, referenceDataFramework, referenceDataStandard);
+
+                        //check to see if framework code/standard code is valid
+                        VerifiyIfStandardOrFramework(apprenticeship, referenceDataFramework, referenceDataStandard);
+
                         var mappedStatus = MapApprenticeshipRecordStatus(locs);
                         var mappedApprenticeship = MapApprenticeship(locs,
                                                                     id,
@@ -173,13 +180,19 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                                                     mappedStatus,
                                                                     referenceDataFramework?.Id.ToString(),
                                                                     referenceDataStandard?.id.ToString(),
-                                                                    cosmosProvider?.id.ToString(),
-                                                                    MappedTitle,
-                                                                    mappedNvqLevel);
+                                                                    cosmosProvider?.id.ToString());
 
                         //insert record into cosmos
                         await CreateOrUpdateApprenticeshipRecord(mappedApprenticeship);
-                        AddResultMessage(apprenticeship.ApprenticeshipID, apprenticeship.UKPRN, Enum.GetName(typeof(RecordStatus), mappedApprenticeship.RecordStatus), mappedApprenticeship.ApprenticeshipTitle, string.Join("\n", apprenticeshipErrors));
+                        
+                        //log message to output
+                        AddResultMessage(apprenticeship.ApprenticeshipID, 
+                                         apprenticeship.UKPRN, 
+                                         Enum.GetName(typeof(RecordStatus), 
+                                         mappedApprenticeship.RecordStatus), 
+                                         mappedApprenticeship.ApprenticeshipTitle, 
+                                         string.Join("\n", apprenticeshipErrors), 
+                                         string.Join("\n", apprenticeshipWarning));
                     }
                     else
                         AddResultMessage(apprenticeship.ApprenticeshipID, apprenticeship.UKPRN, "Skipped", null, $"PRN {apprenticeship.UKPRN} not whitelisted");
@@ -194,28 +207,22 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     semaphore.Release();
                 }
 
-                (string, string) MapAprenticeshipTitle(ApprenticeshipResult tribalRecord, ReferenceDataFramework refDataFramework, ReferenceDateStandard refDataStandard)
+                void VerifiyIfStandardOrFramework(ApprenticeshipResult tribalRecord, ReferenceDataFramework refDataFramework, ReferenceDateStandard refDataStandard)
                 {
-                    var apprenticeshipTitle = tribalRecord.FrameworkCode.HasValue ? refDataFramework?.NasTitle : refDataStandard?.StandardName;
-                    var nvqLevel2 = refDataStandard?.NotionalEndLevel;
-
-                    if (string.IsNullOrEmpty(apprenticeshipTitle))
+                    if (refDataFramework == null && refDataStandard == null)
                     {
-                        lock (apprenticeshipErrors)
-                            apprenticeshipErrors.Add($"Unable to determine Apprenticeship Title, framework code {tribalRecord.FrameworkCode}, pathway code: {tribalRecord.PathWayCode}, standard code: {tribalRecord.StandardCode}, version: {tribalRecord.Version}");
+                        apprenticeshipWarning.Add($"Standard/Framework code does not exist - framework code {tribalRecord.FrameworkCode}, pathway code: {tribalRecord.PathWayCode}, standard code: {tribalRecord.StandardCode}, version: {tribalRecord.Version}");
                     }
-
-                    return (apprenticeshipTitle, nvqLevel2);
                 }
 
                 ApprenticeshipDTO MapApprenticeship(IList<ApprenticeshipLocationDTO> locs, string id, ApprenticeshipResult tribalRecord, ApprenticeshipType apprenticeshipTye,
-                    RecordStatus recordStatus, string frameworkId, string standardId, string providerId, string apprenticeshipTitle, string notionalNVQLevelv2)
+                    RecordStatus recordStatus, string frameworkId, string standardId, string providerId)
                 {
                     var cosmosApprenticeship = new ApprenticeshipDTO()
                     {
                         id = id,
                         ApprenticeshipId = tribalRecord.ApprenticeshipID,
-                        ApprenticeshipTitle = apprenticeshipTitle,
+                        ApprenticeshipTitle = tribalRecord.ApprenticeshipTitle,
                         ProviderId = providerId,
                         PathWayCode = tribalRecord.PathWayCode,
                         ProgType = tribalRecord.ProgType,
@@ -232,7 +239,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         ContactWebsite = tribalRecord.ContactWebsite,
                         CreatedBy = createdBy,
                         CreatedDate = createdDate,
-                        NotionalNVQLevelv2 = notionalNVQLevelv2,
+                        NotionalNVQLevelv2 = tribalRecord.NotionalEndLevel,
                         ApprenticeshipLocations = locs,
                         ApprenticeshipType = apprenticeshipTye,
                         RecordStatus = recordStatus
@@ -338,7 +345,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         return ApprenticeshipType.FrameworkCode;
                     else
                     {
-                        apprenticeshipErrors.Add($"ApprenticeshipId: {tribalRecord.ApprenticeshipID} has undefined apprenticeshipType");
+                        apprenticeshipWarning.Add($"ApprenticeshipId: {tribalRecord.ApprenticeshipID} has undefined apprenticeshipType");
                         return ApprenticeshipType.Undefined;
                     }
                 }
@@ -363,12 +370,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             var onspdRegionSubregion = onspdService.GetOnspdData(new OnspdSearchCriteria(location.Postcode));
                             if (onspdRegionSubregion.IsFailure)
                             {
-                                apprenticeshipErrors.Add($"LocationId: {location.LocationId} - Querying onspd failed - {onspdRegionSubregion.Error}");
+                                apprenticeshipWarning.Add($"LocationId: {location.LocationId} - Querying onspd failed - {onspdRegionSubregion.Error}");
                                 continue;
                             }
                             else if (!onspdRegionSubregion.HasValue)
                             {
-                                apprenticeshipErrors.Add($"Location:{location.LocationId} - Did not find a record for postcode: {location.Postcode}");
+                                apprenticeshipWarning.Add($"Location:{location.LocationId} - Did not find a record for postcode: {location.Postcode}");
                                 continue;
                             }
 
@@ -380,7 +387,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                             if (selectedSubRegion == null)
                             {
-                                apprenticeshipErrors.Add($"Location:{location.LocationId} Unable to match region with ons data api, location skipped");
+                                apprenticeshipWarning.Add($"Location:{location.LocationId} Unable to match region with ons data api, location skipped");
                                 continue;
                             }
                             else
@@ -465,7 +472,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         }
                         else
                         {
-                            //apprenticeshipErrors.Add($"LocationId: {location.LocationId} skipped as type was unknown {type}");
+                            apprenticeshipWarning.Add($"LocationId: {location.LocationId} skipped as type was unknown {type}");
                             continue;
                         }
                     }
@@ -491,8 +498,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             log.LogInformation("Migrating Apprenticeships Complete");
 
 
-
-
             async Task<IList<int>> GetProviderWhiteList()
             {
                 var list = new List<int>();
@@ -516,11 +521,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 await blobhelper.UploadFile(blobContainer, venueExportFileName, data);
             }
 
-            void AddResultMessage(int apprenticeshipId, int ukprn, string status, string apprenticeshipTitle, string message = "")
+            void AddResultMessage(int apprenticeshipId, int ukprn, string status, string apprenticeshipTitle, string message = "", string warnings = "")
             {
                 lock (result)
                 {
-                    var validateResult = new ApprenticeshipResultMessage() { ApprenticeshipID = apprenticeshipId, Status = status, Message = message, UKPRN = ukprn, ApprenticeshipTitle = apprenticeshipTitle };
+                    var validateResult = new ApprenticeshipResultMessage() { ApprenticeshipID = apprenticeshipId, Status = status, Message = message, UKPRN = ukprn, ApprenticeshipTitle = apprenticeshipTitle, Warnings=warnings };
                     result.Add(validateResult);
                 }
             }
@@ -571,6 +576,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
         public int RecordStatusId { get; set; }
         public string CreatedByUserId { get; set; }
         public DateTime CreatedDateTimeUtc { get; set; }
+        public string ApprenticeshipTitle { get; set; }
+        public string NotionalEndLevel { get; set; }
 
 
         public static ApprenticeshipResult FromDataReader(SqlDataReader reader)
@@ -592,7 +599,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 ContactWebsite = reader["ContactWebsite"] as string,
                 RecordStatusId = (int)reader["RecordStatusId"],
                 CreatedByUserId = reader["CreatedByUserId"] as string,
-                CreatedDateTimeUtc = (DateTime)reader["CreatedDateTimeUtc"]
+                CreatedDateTimeUtc = (DateTime)reader["CreatedDateTimeUtc"],
+                ApprenticeshipTitle = reader["ApprenticeshipTitle"] as string,
+                NotionalEndLevel = reader["NotionalEndLevel"] as string
             };
             return result;
         }
@@ -629,6 +638,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
         public string ApprenticeshipTitle { get; set; }
         public string Status { get; set; }
         public string Message { get; set; }
+        public string Warnings { get; set; }
     }
 
     public class ApprenticeshipDTO
