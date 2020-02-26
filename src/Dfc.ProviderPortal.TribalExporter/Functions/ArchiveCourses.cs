@@ -25,6 +25,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var blobContainer = configuration["BlobStorageSettings:Container"];
             var databaseId = configuration["CosmosDbSettings:DatabaseId"];
             var coursesCollectionId = "courses";
+            var documentClient = cosmosDbHelper.GetClient();
 
             var logger = loggerFactory.CreateLogger(typeof(ArchiveCourses));
 
@@ -32,20 +33,17 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             var whitelist = await GetProviderWhiteList();
 
-            using (var documentClient = cosmosDbHelper.GetClient())
+            foreach (var ukprn in whitelist)
             {
-                foreach (var ukprn in whitelist)
-                {
-                    var response = await documentClient.ExecuteStoredProcedureAsync<int>(
-                        sprocLink,
-                        new RequestOptions()
-                        {
-                            PartitionKey = new Microsoft.Azure.Documents.PartitionKey(ukprn)
-                        },
-                        ukprn);
-                    var updated = response.Response;
-                    logger.LogInformation($"Archived {updated} courses for {ukprn}");
-                }
+                var response = await documentClient.ExecuteStoredProcedureAsync<int>(
+                    sprocLink,
+                    new RequestOptions()
+                    {
+                        PartitionKey = new Microsoft.Azure.Documents.PartitionKey(ukprn)
+                    },
+                    ukprn);
+                var updated = response.Response;
+                logger.LogInformation($"Archived {updated} courses for {ukprn}");
             }
 
             async Task<ISet<int>> GetProviderWhiteList()
