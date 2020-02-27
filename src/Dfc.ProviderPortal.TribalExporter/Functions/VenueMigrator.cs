@@ -58,6 +58,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             const string WHITE_LIST_FILE = "ProviderWhiteList.txt";
             var ukprnCache = new List<int>();
             var databaseId = configuration["CosmosDbSettings:DatabaseId"];
+            //update or insert records
+            var _cosmosClient = cosmosDbHelper.GetClient();
 
             using (var sqlConnection = new SqlConnection(connectionString))
             {
@@ -216,8 +218,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 }
             }
 
-            //update or insert records
-            var _cosmosClient = cosmosDbHelper.GetClient();
+
             foreach (var item in venueList)
             {
                 try
@@ -391,6 +392,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     return false;
                 }
 
+                if(!item.Address.Latitude.HasValue || !item.Address.Longitude.HasValue)
+                {
+                    AddResultMessage(item.UKPRN, item.VenueId, item.LocationID, "Skiped", $"Skipped Location because Lat/Long are missing,  {item.ProviderId} not on whitelist, ukprn {item.UKPRN}");
+                }
                 ////check to see if a record is already held for ukprn
                 //if (!ukprnCache.Contains(item.UKPRN))
                 //{
