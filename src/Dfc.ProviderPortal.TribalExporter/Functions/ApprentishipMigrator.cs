@@ -431,6 +431,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             else
                             {
                                 apprenticeshipWarning.Add($"LocationId: {location.LocationId} did not find a venue in cosmos, record marked as pending");
+                                continue;
                             }
 
                             var appLocation = new ApprenticeshipLocationDTO()
