@@ -430,8 +430,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 status = cosmosVenueItem.Status;
                             else
                             {
-                                apprenticeshipErrors.Add($"LocationId: {location.LocationId} did not find a venue in cosmos, record marked as pending");
-                                status = VenueStatus.Pending;
+                                apprenticeshipWarning.Add($"LocationId: {location.LocationId} did not find a venue in cosmos, record marked as pending");
                             }
 
                             var appLocation = new ApprenticeshipLocationDTO()
