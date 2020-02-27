@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace Dfc.ProviderPortal.TribalExporter.Services
 {
-    public class CourseCollectionService : ICourseCollectionService, IDisposable
+    public class CourseCollectionService : ICourseCollectionService
     {
         private readonly ICosmosDbHelper _cosmosDbHelper;
         private readonly ICosmosDbSettings _cosmosDbSettings;
@@ -35,8 +35,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             _cosmosDbCollectionSettings = cosmosDbCollectionSettings.Value;
             _documentClient = _cosmosDbHelper.GetClient();
         }
-
-        public void Dispose() => _documentClient.Dispose();
 
         public async Task<List<Course>> GetAllCoursesAsync()
         {
