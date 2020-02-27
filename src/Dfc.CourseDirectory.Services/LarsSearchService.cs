@@ -15,17 +15,18 @@ using System.Threading.Tasks;
 
 namespace Dfc.CourseDirectory.Services
 {
-    public class LarsSearchService : ILarsSearchService
+    public class LarsSearchService : ILarsSearchService, IDisposable
     {
         private readonly ILogger<LarsSearchService> _logger;
         private readonly HttpClient _httpClient;
         private readonly Uri _uri;
+        private HttpClient httpClient = new HttpClient();
 
         public LarsSearchService(
             ILogger<LarsSearchService> logger,
-            HttpClient httpClient,
             IOptions<LarsSearchSettings> settings)
         {
+
             Throw.IfNull(logger, nameof(logger));
             Throw.IfNull(httpClient, nameof(httpClient));
             Throw.IfNull(settings, nameof(settings));
@@ -33,6 +34,16 @@ namespace Dfc.CourseDirectory.Services
             _logger = logger;
             _httpClient = httpClient.Setup(settings.Value);
             _uri = settings.Value.ToUri();
+        }
+
+        public void Dispose()
+        {
+            if (httpClient != null)
+            {
+                httpClient.Dispose();
+                httpClient = null;
+            }
+           
         }
 
         public async Task<IResult<ILarsSearchResult>> SearchAsync(ILarsSearchCriteria criteria)
@@ -68,7 +79,7 @@ namespace Dfc.CourseDirectory.Services
                 }
                 else
                 {
-                    return Result.Fail<ILarsSearchResult>("Lars search service unsuccessfull http response.");
+                    return Result.Fail<ILarsSearchResult>($"Lars search service unsuccessfull http response. {response.StatusCode}");
                 }
             }
             catch (HttpRequestException hre)

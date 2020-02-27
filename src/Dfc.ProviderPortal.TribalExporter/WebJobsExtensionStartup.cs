@@ -108,7 +108,7 @@ namespace Dfc.ProviderPortal.TribalExporter
                 larsSearchSettingsOptions.PageParamName =
                     configuration.GetValue<string>("LarsSearchSettings:PageParamName");
             });
-            builder.Services.AddScoped<ILarsSearchService, LarsSearchService>();
+            builder.Services.AddSingleton<ILarsSearchService, LarsSearchService>();
             builder.Services.Configure<CourseForComponentSettings>(CourseForComponentSettingsOptions =>
             {
                 CourseForComponentSettingsOptions.TextFieldMaxChars =
