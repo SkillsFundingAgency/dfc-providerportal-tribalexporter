@@ -395,6 +395,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 if(!item.Address.Latitude.HasValue || !item.Address.Longitude.HasValue)
                 {
                     AddResultMessage(item.UKPRN, item.VenueId, item.LocationID, "Skiped", $"Skipped Location because Lat/Long are missing,  {item.ProviderId} not on whitelist, ukprn {item.UKPRN}");
+                    return false;
                 }
                 ////check to see if a record is already held for ukprn
                 //if (!ukprnCache.Contains(item.UKPRN))
