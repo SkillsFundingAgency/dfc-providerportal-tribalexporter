@@ -35,6 +35,8 @@ using Dfc.CourseDirectory.Services.Interfaces.OnspdService;
 using Dfc.CourseDirectory.Services.OnspdService;
 using Microsoft.Extensions.Logging.Configuration;
 using ApprenticeshipServiceSettings = Dfc.ProviderPortal.TribalExporter.Settings.ApprenticeshipServiceSettings;
+using Microsoft.Azure.Documents;
+using Microsoft.Azure.Documents.Client;
 
 [assembly: WebJobsStartup(typeof(WebJobsExtensionStartup), "Web Jobs Extension Startup")]
 
@@ -59,6 +61,13 @@ namespace Dfc.ProviderPortal.TribalExporter
             //Update Settings for this
             builder.Services.Configure<BlobStorageDirectConnectionSettings>(configuration.GetSection(nameof(BlobStorageDirectConnectionSettings)));
             builder.Services.Configure<ApprenticeshipServiceSettings>(configuration.GetSection(nameof(ApprenticeshipServiceSettings)));
+
+            var documentClient = new DocumentClient(new Uri(configuration.GetValue<string>("CosmosDbSettings:EndpointUri")), configuration.GetValue<string>("CosmosDbSettings:PrimaryKey"), new ConnectionPolicy()
+            {
+                ConnectionMode = ConnectionMode.Direct,
+                ConnectionProtocol = Protocol.Tcp
+            });
+            builder.Services.AddSingleton<DocumentClient>(x => documentClient);
             builder.Services.AddScoped<ICosmosDbHelper, CosmosDbHelper>();
             builder.Services.AddScoped<IBlobStorageHelper, BlobStorageHelper>();
             builder.Services.AddScoped<IProviderCollectionService, ProviderCollectionService>();
@@ -68,8 +77,12 @@ namespace Dfc.ProviderPortal.TribalExporter
             builder.Services.AddScoped<IUkrlpApiService, UkrlpApiService>();
 
 
-            builder.Services.AddLogging(log => log.SetMinimumLevel(LogLevel.Trace));
-            builder.Services.AddTransient((provider) => new HttpClient());
+            builder.Services.AddLogging(log =>
+            {
+                log.SetMinimumLevel(LogLevel.Trace);
+                log.AddApplicationInsights(configuration.GetValue<string>("APPINSIGHTS_INSTRUMENTATIONKEY"));
+            });
+            builder.Services.AddSingleton((provider) => new HttpClient());
             builder.Services.Configure<VenueServiceSettings>(venueServiceSettingsOptions =>
             {
                 venueServiceSettingsOptions.ApiUrl = configuration.GetValue<string>("VenueServiceSettings:ApiUrl");
@@ -95,7 +108,7 @@ namespace Dfc.ProviderPortal.TribalExporter
                 larsSearchSettingsOptions.PageParamName =
                     configuration.GetValue<string>("LarsSearchSettings:PageParamName");
             });
-            builder.Services.AddScoped<ILarsSearchService, LarsSearchService>();
+            builder.Services.AddSingleton<ILarsSearchService, LarsSearchService>();
             builder.Services.Configure<CourseForComponentSettings>(CourseForComponentSettingsOptions =>
             {
                 CourseForComponentSettingsOptions.TextFieldMaxChars =
@@ -203,7 +216,6 @@ namespace Dfc.ProviderPortal.TribalExporter
 
             AddApprenticeshipMigration(builder, configuration);
             ConfigureExporter(builder, configuration);
-
         }
 
         private void AddApprenticeshipMigration(IWebJobsBuilder builder, IConfigurationRoot configuration)

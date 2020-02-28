@@ -6,7 +6,15 @@
     <OldToolsVersion>2.0</OldToolsVersion>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="VenueLookup.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="VenueLookup.txt" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="CsvHelper" Version="13.0.0" />
+    <PackageReference Include="Dapper" Version="2.0.30" />
+    <PackageReference Include="FluentValidation" Version="8.6.1" />
     <PackageReference Include="System.Data.SqlClient" Version="4.5.1" />
     <PackageReference Include="Dfc.ProviderPortal.Packages" Version="0.1.1" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.7.1" />

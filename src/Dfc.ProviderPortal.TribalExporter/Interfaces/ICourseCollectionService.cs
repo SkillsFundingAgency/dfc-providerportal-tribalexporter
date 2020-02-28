@@ -1,10 +1,14 @@
-﻿using System;
+﻿using Dfc.CourseDirectory.Models.Models.Apprenticeships;
+using Dfc.CourseDirectory.Models.Models.Courses;
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Dfc.ProviderPortal.TribalExporter.Interfaces
 {
     public interface ICourseCollectionService
     {
+        Task<List<Course>> GetAllCoursesAsync();
         Task<string> GetAllLiveCoursesAsJsonForUkprnAsync(int ukprn);
         Task<bool> HasCoursesBeenCreatedSinceAsync(int ukprn, DateTime date);
         Task<bool> HasCourseRunsBeenCreatedSinceAsync(int ukprn, DateTime date);
