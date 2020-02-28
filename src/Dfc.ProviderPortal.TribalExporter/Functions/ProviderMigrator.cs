@@ -35,14 +35,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     )
         {
             const string WHITE_LIST_FILE = "ProviderWhiteList.txt";
-            const string ProviderAppName = "Provder.Migrator";
+            const string ProviderAppName = "Provider.Migrator";
 
             var stopWatch = new Stopwatch();
 
             // TODO : Change to correct collection below
             var databaseId = configuration["CosmosDbSettings:DatabaseId"];
             var providerCollectionId = configuration["CosmosDbCollectionSettings:ProvidersCollectionId"];
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
+            var connectionString = configuration.GetConnectionString("TribalRestore");
             var venueExportFileName = $"ProviderExport-{DateTime.Now.ToString("dd-MM-yy HHmm")}";
 
             var blobContainer = blobhelper.GetBlobContainer(configuration["BlobStorageSettings:Container"]);
@@ -56,7 +56,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             stopWatch.Reset();
             log.LogInformation($"UKRLApiService: Start getting data..");
             stopWatch.Start();
-            var ukrlpApiProviders = ukrlpApiService.GetAllProviders();
+            var ukrlpApiProviders = ukrlpApiService.GetAllProviders(whiteListProviders.Select(p => p.ToString()).ToList());
             stopWatch.Stop();
             log.LogInformation($"UKRLApiService: Finished getting datain {stopWatch.ElapsedMilliseconds / 1000}.");
 
@@ -73,23 +73,66 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 {
                     command.CommandType = CommandType.Text;
                     command.CommandText = @"SELECT 
-                                                    P.ProviderId,
-                                                    P.Ukprn,
-                                                    P.ProviderName,
-                                                    RS.RecordStatusId,
-                                                    RS.RecordStatusName,
-		                                            P.RoATPFFlag,
-		                                            P.RoATPProviderTypeId,
-		                                            P.RoATPStartDate,
-		                                            p.PassedOverallQAChecks,
-                                                    p.MarketingInformation,
-													p.NationalApprenticeshipProvider,
-													p.TradingName,
-													p.UPIN
-                                            FROM [Tribal].[Provider] P
-                                            JOIN [Tribal].[RecordStatus] RS
-                                            ON P.RecordStatusId = RS.RecordStatusId
-                                            WHERE P.RecordStatusId = 2
+                                                P.ProviderId,
+                                                P.Ukprn,
+                                                P.ProviderName,
+                                                RS.RecordStatusId,
+                                                RS.RecordStatusName,
+		                                        P.RoATPFFlag,
+		                                        P.RoATPProviderTypeId,
+		                                        P.RoATPStartDate,
+		                                        p.PassedOverallQAChecks,
+		                                        P.MarketingInformation,
+		                                        P.NationalApprenticeshipProvider,
+		                                        P.TradingName,
+		                                        P.UPIN,
+												Ar.AddressLine1,
+												Ar.AddressLine2,
+												Ar.Town,
+												Ar.County,
+												Ar.Postcode,
+												P.Email,
+												P.Website,
+												P.Telephone,
+		                                        CASE   
+		                                          WHEN Count(C.CourseId) > 0 THEN 1 
+		                                          WHEN Count(C.CourseId) = 0 THEN 0   
+	                                            END As HasCourse,
+				                                CASE   
+		                                          WHEN Count(A.ApprenticeshipId) > 0 THEN 1 
+		                                          WHEN Count(A.ApprenticeshipId) = 0 THEN 0   
+	                                            END As HasApprenticeship
+                                        FROM [Provider] P
+                                        JOIN [RecordStatus] RS
+                                        ON P.RecordStatusId = RS.RecordStatusId
+										JOIN [Address] Ar
+										ON P.AddressId = Ar.AddressId
+                                        LEFT JOIN [Course] C
+                                        ON P.ProviderId = C.ProviderId
+                                        LEFT JOIN [Apprenticeship] A
+                                        ON P.ProviderId = A.ProviderId
+                                        WHERE P.RecordStatusId = 2
+                                        GROUP BY P.ProviderId,
+                                                P.Ukprn,
+                                                P.ProviderName,
+                                                RS.RecordStatusId,
+                                                RS.RecordStatusName,
+		                                        P.RoATPFFlag,
+		                                        P.RoATPProviderTypeId,
+		                                        P.RoATPStartDate,
+		                                        p.PassedOverallQAChecks,
+		                                        P.MarketingInformation,
+		                                        P.NationalApprenticeshipProvider,
+		                                        P.TradingName,
+		                                        P.UPIN,
+												Ar.AddressLine1,
+												Ar.AddressLine2,
+												Ar.Town,
+												Ar.County,
+												Ar.Postcode,
+												P.Email,
+												P.Website,
+												P.Telephone
                                             ";
 
                     try
@@ -103,61 +146,61 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                         using (SqlDataReader dataReader = command.ExecuteReader())
                         {
-                            while (dataReader.Read())
+                            using (var _cosmosClient = cosmosDbHelper.GetClient())
                             {
-                                // 1) Read provider data from Tribal
-                                var item = ProviderSource.FromDataReader(dataReader);
-                                totalTribalCount++;
-
-                                log.LogInformation($"Processing Provider: {item.ProviderId} with Ukprn {item.UKPRN}.");
-
-                                try
+                                while (dataReader.Read())
                                 {
-                                    // 2) Check if in Whitelist
-                                    if (!whiteListProviders.Any(x => x == item.UKPRN))
+                                    // 1) Read provider data from Tribal
+                                    var item = ProviderSource.FromDataReader(dataReader);
+                                    totalTribalCount++;
+
+                                    try
                                     {
-                                        AddResultMessage(item.ProviderId, "SKIPPED-NotOnWhitelist", $"Provider {item.ProviderId} not on whitelist, ukprn {item.UKPRN}");
-                                        continue;
+                                        // 2) Check if in Whitelist
+                                        if (!whiteListProviders.Any(x => x == item.UKPRN))
+                                        {
+                                            AddResultMessage(item.ProviderId, "SKIPPED-NotOnWhitelist", $"Provider {item.ProviderId} not on whitelist, ukprn {item.UKPRN}");
+                                            continue;
+                                        }
+
+                                        totalAttemptedCount++;
+
+                                        // 3) Check againts API ? If no match Add to Result Message, skip next
+                                        var ukrlpProviderItem = ukrlpApiProviders.FirstOrDefault(p => p.UnitedKingdomProviderReferenceNumber.Trim() == item.UKPRN.ToString());
+                                        if (ukrlpProviderItem == null)
+                                        {
+                                            AddResultMessage(item.ProviderId, "SKIPPED-NotInUkrlpApi", $"Provider {item.ProviderId} cannot be found in UKRLP Api, ukprn {item.UKPRN}");
+                                            continue;
+                                        }
+
+                                        // 4) Build Cosmos collection record
+                                        var providerToUpsert = BuildNewCosmosProviderItem(ukrlpProviderItem, item);
+                                        var cosmosProviderItem = await providerCollectionService.GetDocumentByUkprn(item.UKPRN);
+
+                                        if (cosmosProviderItem != null)
+                                        {
+                                            Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, providerCollectionId);
+
+                                            await _cosmosClient.UpsertDocumentAsync(collectionUri, UpdateCosmosProviderItem(cosmosProviderItem, providerToUpsert));
+                                            totalUpdatedCount++;
+
+                                            AddResultMessage(item.ProviderId, "PROCESSED-Updated", $"Provider {item.ProviderId} updated in Cosmos Collection, ukprn {item.UKPRN}");
+                                        }
+                                        else
+                                        {
+                                            await cosmosDbHelper.CreateDocumentAsync(_cosmosClient, providerCollectionId, providerToUpsert);
+                                            totalInsertedCount++;
+
+                                            AddResultMessage(item.ProviderId, "PROCESSED-Inserted", $"Provider {item.ProviderId} inserted in Cosmos Collection, ukprn {item.UKPRN}");
+                                        }
                                     }
-
-                                    totalAttemptedCount++;
-
-                                    // 3) Check againts API ? If no match Add to Result Message, skip next
-                                    var ukrlpProviderItem = ukrlpApiProviders.FirstOrDefault(p => p.UnitedKingdomProviderReferenceNumber.Trim() == item.UKPRN.ToString());
-                                    if (ukrlpProviderItem == null)
+                                    catch (Exception ex)
                                     {
-                                        AddResultMessage(item.ProviderId, "SKIPPED-NotInUkrlpApi", $"Provider {item.ProviderId} cannot be found in UKRLP Api, ukprn {item.UKPRN}");
-                                        continue;
-                                    }
-
-                                    // 4) Build Cosmos collection record
-                                    var providerToUpsert = BuildNewCosmosProviderItem(ukrlpProviderItem, item);
-                                    var cosmosProviderItem = await providerCollectionService.GetDocumentByUkprn(item.UKPRN);
-
-                                    if (cosmosProviderItem != null)
-                                    {
-                                        Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, providerCollectionId);
-
-                                        await cosmosDbHelper.GetClient().UpsertDocumentAsync(collectionUri, UpdateCosmosProviderItem(cosmosProviderItem, providerToUpsert));
-                                        totalUpdatedCount++;
-
-                                        AddResultMessage(item.ProviderId, "PROCESSED-Updated", $"Provider {item.ProviderId} updated in Cosmos Collection, ukprn {item.UKPRN}");
-                                    }
-                                    else
-                                    {
-                                        await cosmosDbHelper.CreateDocumentAsync(cosmosDbHelper.GetClient(), providerCollectionId, providerToUpsert);
-                                        totalInsertedCount++;
-
-                                        AddResultMessage(item.ProviderId, "PROCESSED-Inserted", $"Provider {item.ProviderId} inserted in Cosmos Collection, ukprn {item.UKPRN}");
+                                        string errorMessage = $"Error processing Provider {item.ProviderId} with Ukprn {item.UKPRN}. {ex.Message}";
+                                        AddResultMessage(item.ProviderId, "ERRORED", errorMessage);
+                                        log.LogInformation(errorMessage);
                                     }
                                 }
-                                catch (Exception ex)
-                                {
-                                    AddResultMessage(item.ProviderId, "PROCESSED-Errored", $"Provider {item.ProviderId} updated in Cosmos Collection, ukprn {item.UKPRN}. {ex.Message}");
-                                    log.LogInformation($"Error processing Provider {item.ProviderId} with Ukprn {item.UKPRN}. {ex.Message}");
-                                }
-
-                                log.LogInformation($"Processed Provider {item.ProviderId} with Ukprn {item.UKPRN}.");
                             }
                             dataReader.Close();
                         }
@@ -165,8 +208,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         stopWatch.Stop();
                         log.LogInformation($"Tribal Data: Processing completed in {stopWatch.ElapsedMilliseconds / 1000}");
 
-                        // TODO : Add final result message to show, count of attempted, updated, inserted, failed, and time taken
-                        AddResultMessage(-1, "SUMMARY", $"Total Time : {stopWatch.ElapsedMilliseconds / 1000} seconds, Tribal : {totalTribalCount}, URLP : {ukrlpApiProviders.Count}, Processed : {totalAttemptedCount}, Updated : {totalUpdatedCount}, Inserted : {totalInsertedCount}");
+                        AddResultMessage(0, "SUMMARY", $"Total Time : {stopWatch.ElapsedMilliseconds / 1000} seconds, Tribal : {totalTribalCount}, URLP : {ukrlpApiProviders.Count}, Processed : {totalAttemptedCount}, Updated : {totalUpdatedCount}, Inserted : {totalInsertedCount}");
                     }
                     catch (Exception ex)
                     {
@@ -185,11 +227,18 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             }
 
             Provider BuildNewCosmosProviderItem(ProviderRecordStructure ukrlpData, ProviderSource tribalData)
-            {
+             {
                 // Build contacts
                 List<Providercontact> providercontacts = new List<Providercontact>();
-                foreach (ProviderContactStructure ukrlpContact in ukrlpData.ProviderContact)
+                var ukrlpDataContacts = ukrlpData.ProviderContact
+                                                    .Where(p => p.ContactType == "P")
+                                                    .OrderByDescending(c => c.LastUpdated);
+
+                // Load UKRLP api contacts if available
+                if(ukrlpDataContacts.Any())
                 {
+                    var ukrlpContact = ukrlpDataContacts.First();
+
                     // Build contact address
                     Contactaddress contactaddress = new Contactaddress()
                     {
@@ -201,7 +250,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         Locality = ukrlpContact.ContactAddress.Locality,
                         Items = ukrlpContact.ContactAddress.Items,
                         ItemsElementName = ukrlpContact.ContactAddress.ItemsElementName?.Select(i => (int)i).ToArray(),
-                        PostTown = ukrlpContact.ContactAddress.ItemsElementName,
+                        PostTown = ukrlpContact.ContactAddress.PostTown,
                         PostCode = ukrlpContact.ContactAddress.PostCode,
                     };
 
@@ -226,6 +275,36 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     providerContact.LastUpdated = ukrlpContact.LastUpdated;
 
                     providercontacts.Add(providerContact);
+
+                }
+                else
+                {
+                    // Check if valid Tribal Address exists
+                    if(tribalData.IsValidAddress)
+                    {
+                        // Build contact address
+                        Contactaddress tribalContactaddress = new Contactaddress()
+                        {
+                            StreetDescription = tribalData.AddressLine1,
+                            Locality = tribalData.County,
+                            PostTown = tribalData.Town,
+                            PostCode = tribalData.PostCode,
+                        };
+
+                        var tribalContact = new Providercontact(tribalContactaddress, null);
+                        tribalContact.ContactType = "P";
+                        tribalContact.ContactTelephone1 = tribalData.Telephone;
+                        tribalContact.ContactWebsiteAddress = tribalData.Website;
+                        tribalContact.ContactEmail = tribalData.Email;
+                        tribalContact.LastUpdated = DateTime.UtcNow;
+
+                        providercontacts.Add(tribalContact);
+                    }
+                    else
+                    {
+                        // Cannot find address in UKRLP api or tribal so raise alert
+                        AddResultMessage(tribalData.ProviderId, "WARNING", $"Cannot find contact address details in Api or Tribal data for Provider {tribalData.ProviderId}, ukprn {tribalData.UKPRN}.");
+                    }
                 }
 
                 // Build provider aliases
@@ -255,6 +334,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 providerToUpsert.ProviderId = tribalData.ProviderId;
                 providerToUpsert.id = Guid.NewGuid();
                 providerToUpsert.UnitedKingdomProviderReferenceNumber = tribalData.UKPRN.ToString();
+                providerToUpsert.ProviderType = GetProviderType(tribalData.HasCourse, tribalData.HasApprenticeship);
                 providerToUpsert.ProviderName = ukrlpData.ProviderName;
                 providerToUpsert.ProviderStatus = ukrlpData.ProviderStatus;
                 providerToUpsert.ProviderVerificationDate = ukrlpData.ProviderVerificationDate;
@@ -274,7 +354,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
 
                 providerToUpsert.LastUpdatedBy = ProviderAppName;
-                providerToUpsert.LastUpdatedOn = DateTime.UtcNow;
+                providerToUpsert.DateUpdated = DateTime.UtcNow;
 
                 return providerToUpsert;
             }
@@ -304,8 +384,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 cosmosProviderItem.UPIN = providerToUpsert.UPIN;
                 cosmosProviderItem.VerificationDetails = providerToUpsert.VerificationDetails;
 
-                providerToUpsert.LastUpdatedBy = ProviderAppName;
-                providerToUpsert.LastUpdatedOn = DateTime.UtcNow;
+                cosmosProviderItem.LastUpdatedBy = providerToUpsert.LastUpdatedBy;
+                cosmosProviderItem.DateUpdated = providerToUpsert.DateUpdated;
 
                 return cosmosProviderItem;
             }
@@ -345,6 +425,18 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             {
                 await blobhelper.UploadFile(blobContainer, venueExportFileName, data);
             }
+        }
+
+        private static ProviderType GetProviderType(int hasCourse, int hasApprenticeship)
+        {
+            if (hasCourse == 1 && hasApprenticeship ==1)
+                return ProviderType.Both;
+            else if (hasCourse == 1  && hasApprenticeship != 1)
+                return ProviderType.FE;
+            else if (hasCourse != 1 && hasApprenticeship == 1)
+                return ProviderType.Apprenticeship;
+            else
+                return ProviderType.Undefined;
         }
     }
 }

@@ -43,12 +43,16 @@ namespace Dfc.CourseDirectory.Services.OnspdService
                 ISearchIndexClient indexClientForQueries = CreateSearchIndexClient();
                 var onspdData = RunQuery(indexClientForQueries, criteria.Postcode);
 
-                var searchResult = new OnspdSearchResult(onspdData)
+                if (onspdData != null)
                 {
-                    Value = onspdData
-                };
+                    var searchResult = new OnspdSearchResult(onspdData)
+                    {
+                        Value = onspdData
+                    };
 
-                return Result.Ok<IOnspdSearchResult>(searchResult);
+                    return Result.Ok<IOnspdSearchResult>(searchResult);
+                }
+                return Result.Ok<IOnspdSearchResult>(null);
 
             }
             catch (Exception e)

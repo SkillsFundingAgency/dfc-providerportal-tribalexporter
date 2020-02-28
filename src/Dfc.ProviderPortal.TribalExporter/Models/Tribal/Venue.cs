@@ -37,7 +37,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Models.Tribal
         public static Venue FromDataReader(SqlDataReader reader)
         {
             var item = new Venue();
-            item.VenueId = (int) reader["VenueId"];
+            item.VenueId = (int)reader["VenueId"];
             item.ProviderId = (int)reader["ProviderId"];
             item.ProviderOwnVenueRef = reader["ProviderOwnVenueRef"] as string;
             item.VenueName = reader["VenueName"] as string;
@@ -53,7 +53,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Models.Tribal
             item.AddressId = (int)reader["AddressId"];
             item.Telephone = reader["Telephone"] as string;
             item.BulkUploadVenueId = reader["BulkUploadVenueId"] as string;
-            item.UKPRN = (int) reader["UKPRN"];
+            item.UKPRN = (int)reader["UKPRN"];
             item.LocationID = reader["LocationId"] as int?;
             item.Source = (VenueSource) Enum.Parse(typeof(VenueSource), reader["Source"].ToString());
             item.Address = new Address()
@@ -61,8 +61,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Models.Tribal
                 Address1 = reader["AddressLine1"] as string,
                 Address2 = reader["AddressLine2"] as string,
                 County = reader["County"] as string,
-                Latitude = reader["Latitude"] as double?,
-                Longitude = reader["Longitude"] as double?,
+                Latitude = reader["Latitude"] as decimal?,
+                Longitude = reader["Longitude"] as decimal?,
                 Postcode = reader["Postcode"] as string,
                 Town = reader["Town"] as string
             };

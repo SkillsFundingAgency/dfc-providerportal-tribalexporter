@@ -14,10 +14,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
     public class CosmosDbHelper : ICosmosDbHelper
     {
         private readonly ICosmosDbSettings _settings;
+        private readonly DocumentClient _client;
 
-        public CosmosDbHelper(IOptions<CosmosDbSettings> settings)
+        public CosmosDbHelper(IOptions<CosmosDbSettings> settings, DocumentClient cosmosClient)
         {
             Throw.IfNull(settings, nameof(settings));
+            _client = cosmosClient;
 
             _settings = settings.Value;
         }
@@ -74,15 +76,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
 
         public DocumentClient GetClient()
         {
-            return new DocumentClient(
-                new Uri(_settings.EndpointUri)
-                , _settings.PrimaryKey,
-                new ConnectionPolicy()
-                    {
-                        ConnectionMode = ConnectionMode.Direct,
-                        ConnectionProtocol = Protocol.Tcp
-                    }
-                );
+            return _client;
         }
 
         public Document GetDocumentById<T>(DocumentClient client, string collectionId, T id)

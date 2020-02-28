@@ -15,6 +15,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
     public static class ApprenticeshipDeltaExport
     {
         [FunctionName(nameof(ApprenticeshipDeltaExport))]
+        [Disable]
         public static async Task Run(
                     [TimerTrigger("%ApprenticeshipMigrationSchedule%")]TimerInfo myTimer,
                     ILogger log,

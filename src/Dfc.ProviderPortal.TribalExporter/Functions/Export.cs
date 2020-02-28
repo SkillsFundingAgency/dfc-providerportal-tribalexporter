@@ -20,6 +20,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
     public static class Export
     {
         [FunctionName(nameof(Export))]
+        [Disable]
         public static async Task Run(
             [TimerTrigger("%schedule%")]TimerInfo myTimer,
             ILogger log,
@@ -67,11 +68,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 var count = 0;
                 var total = providersForExport.Count();
 
-                await Task.WhenAll(providersForExport.Select(async provider =>
+                // N.B. Deliberately not doing these in parallel to avoid creating too many DocumentClients...
+                foreach (var provider in providersForExport)
                 {
                     count++;
 
-                    log.LogInformation($"[Export] checking {provider.Ukprn} [{count} of {total}]" );
+                    log.LogInformation($"[Export] checking {provider.Ukprn} [{count} of {total}]");
 
                     var export = await CheckForProviderUpdates(log, courseCollectionService,
                             venueCollectionService, logFile, provider, startDate, containerExporter,
@@ -79,7 +81,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         .ConfigureAwait(false);
 
                     fileNames.AddRange(export);
-                }));
+                }
 
                 var fileNamesFileName = $"{DateTime.Today.ToString("yyyyMMdd")}\\Generated\\FileNames.json";
                 var fileNamesBlob = containerExporter.GetBlockBlobReference(fileNamesFileName);
@@ -89,6 +91,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             {
                 logFile.AppendLine(e.Message);
                 logFile.AppendLine(e.ToString());
+                throw;
             }
             finally
             {

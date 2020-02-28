@@ -7,6 +7,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Interfaces
 {
     public interface IUkrlpApiService
     {
-        List<ProviderRecordStructure> GetAllProviders();
+        List<ProviderRecordStructure> GetAllProviders(List<string> ukprnList);
     }
 }

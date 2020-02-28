@@ -3,6 +3,7 @@ using Dfc.CourseDirectory.Models.Interfaces.Courses;
 using System.ComponentModel;
 using Dfc.CourseDirectory.Models.Enums;
 using System.Collections.Generic;
+using Dfc.CourseDirectory.Models.Models.Regions;
 
 namespace Dfc.CourseDirectory.Models.Models.Courses
 {
@@ -82,11 +83,13 @@ namespace Dfc.CourseDirectory.Models.Models.Courses
         public int? DurationValue { get; set; }
         public StudyMode StudyMode { get; set; }
         public AttendancePattern AttendancePattern { get; set; }
+        public bool? National { get; set; }
         public IEnumerable<string> Regions { get; set; }
         public RecordStatus RecordStatus { get; set; }
         public DateTime CreatedDate { get; set; }
         public string CreatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
         public string UpdatedBy { get; set; }
+        public IEnumerable<SubRegionItemModel> SubRegions { get; set; }
     }
 }
