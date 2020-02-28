@@ -417,7 +417,7 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
             {
                 if (!durationUnit.HasValue)
                 {
-                    hasError = false;
+                    hasError = true;
                     return (DurationUnit.Undefined, null);
                 }
 
