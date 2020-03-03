@@ -53,21 +53,15 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                     .Where(p => p.Latitude == null || p.Longitude == null)
                                     .AsDocumentQuery()
                                     .ExecuteNextAsync<Venue>();
-                try
+
+                foreach (var ven in queryResponse)
                 {
-                    foreach (var ven in queryResponse)
-                    {
-                        var item = UriFactory.CreateDocumentUri(databaseId, venueCollectionId, ven.ID);
-                        await documentClient.DeleteDocumentAsync(item);
-                        deleteCount++;
-                        logger.LogInformation($"Deleted venue: {ven.VenueID}");
-                    }
+                    var item = UriFactory.CreateDocumentUri(databaseId, venueCollectionId, ven.ID);
+                    await documentClient.DeleteDocumentAsync(item);
+                    deleteCount++;
+                    logger.LogInformation($"Deleted venue: {ven.VenueID}");
                 }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e.Message);
-                }
-            } 
+            }
             while (continuation != null);
 
             Console.WriteLine($"Deleted {deleteCount} venues with missing lat/long.");
