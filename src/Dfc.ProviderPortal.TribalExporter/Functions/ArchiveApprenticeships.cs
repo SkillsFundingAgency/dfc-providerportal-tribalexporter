@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading.Tasks;
 using System.Linq;
 using Dfc.CourseDirectory.Models.Models.Apprenticeships;
@@ -34,19 +33,15 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var databaseId = configuration["CosmosDbSettings:DatabaseId"];
             var apprenticeshipCollectionId = "apprenticeship";
             var documentClient = cosmosDbHelper.GetClient();
-            var result = new List<MigrationPendingCourseRunResult>();
-
-            var coursesCollectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, apprenticeshipCollectionId);
+            var apprenticeshipCollectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, apprenticeshipCollectionId);
             var logger = loggerFactory.CreateLogger(typeof(ArchiveCourses));
             int count = 0;
             var whitelist = await GetProviderWhiteList();
-
+            var updatedBy = "ArchiveApprenticeships";
 
 
             foreach (var ukprn in whitelist)
             {
-                var updated = 0;
-
                 string continuation = null;
                 do
                 {
@@ -56,10 +51,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         PartitionKey = new Microsoft.Azure.Documents.PartitionKey(ukprn)
                     };
 
+                    //try/catch required as there are Apprenticeship records that are not valid (venueId is null in cosmos).
                     try
                     {
-                        var queryResponse = await documentClient.CreateDocumentQuery<Apprenticeship>(coursesCollectionUri, feedOptions)
-                            .Where(p => p.ProviderUKPRN == ukprn && p.CreatedBy != "ApprenticeshipMigrator")
+                        var queryResponse = await documentClient.CreateDocumentQuery<Apprenticeship>(apprenticeshipCollectionUri, feedOptions)
+                            .Where(p => p.ProviderUKPRN == ukprn && p.CreatedBy != "ApprenticeshipMigrator" && p.RecordStatus == CourseDirectory.Models.Enums.RecordStatus.Live)
                             .AsDocumentQuery()
                             .ExecuteNextAsync<Apprenticeship>();
 
@@ -69,31 +65,29 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             foreach (var loc in doc.ApprenticeshipLocations)
                             {
                                 loc.RecordStatus = CourseDirectory.Models.Enums.RecordStatus.Archived;
+                                loc.UpdatedBy = updatedBy;
                             }
+                            doc.UpdatedBy = updatedBy;
 
-                            //var documentLink = UriFactory.CreateDocumentUri(databaseId, apprenticeshipCollectionId, doc.id.ToString());
+                            var documentLink = UriFactory.CreateDocumentUri(databaseId, apprenticeshipCollectionId, doc.id.ToString());
+                            await documentClient.ReplaceDocumentAsync(documentLink, doc, new RequestOptions()
+                            {
+                                PartitionKey = new Microsoft.Azure.Documents.PartitionKey(ukprn)
+                            });
 
-                            //await documentClient.ReplaceDocumentAsync(documentLink, doc, new RequestOptions()
-                            //{
-                            //    PartitionKey = new Microsoft.Azure.Documents.PartitionKey(ukprn)
-                            //});
-
-                            updated++;
                             count++;
                         }
-
-                        Console.WriteLine($"updated {updated} Apprenticeships");
                         continuation = queryResponse.ResponseContinuation;
                     }
                     catch (Exception e)
                     {
                         continuation = null;
-                        continue;
                     }
                 }
                 while (continuation != null);
             }
 
+            logger.LogInformation($"Archived {count} Apprenticeships");
             Console.WriteLine($"Archived {count} Apprenticeships");
 
             async Task<ISet<int>> GetProviderWhiteList()
