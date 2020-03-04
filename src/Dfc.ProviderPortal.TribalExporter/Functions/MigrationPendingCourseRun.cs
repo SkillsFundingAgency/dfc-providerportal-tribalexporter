@@ -33,7 +33,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
 
             var whitelistFileName = "ProviderWhiteList.txt";
-            var pendingCoursesFileName = "MigrationPendingCourses";
+            var pendingCoursesFileName = $"CoursesWithNoCostOrCostDecription-{DateTime.Now.ToString("dd-MM-yy HHmm")}";
             var blobContainer = configuration["BlobStorageSettings:Container"];
             var outputContainer = blobhelper.GetBlobContainer(configuration["BlobStorageSettings:Container"]);
             var databaseId = configuration["CosmosDbSettings:DatabaseId"];
