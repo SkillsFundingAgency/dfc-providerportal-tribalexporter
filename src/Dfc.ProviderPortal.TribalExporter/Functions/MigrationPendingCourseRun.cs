@@ -61,8 +61,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                     //find courses that do not have a cost desciption or cost.
                     var queryResponse = await documentClient.CreateDocumentQuery<Course>(coursesCollectionUri, feedOptions)
-                        .Where(p => p.CourseRuns.Any(x => x.Cost == null && (x.CostDescription == "" || x.CostDescription == null)) && 
-                                    p.CourseStatus == CourseDirectory.Models.Enums.RecordStatus.Live)
+                        .Where(p => p.CourseRuns.Any(x => x.Cost == null && (x.CostDescription == "" || x.CostDescription == null)))
                         .AsDocumentQuery()
                         .ExecuteNextAsync<Course>();
          
