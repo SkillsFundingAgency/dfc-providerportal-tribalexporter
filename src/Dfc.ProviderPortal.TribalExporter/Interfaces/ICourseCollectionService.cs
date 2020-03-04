@@ -9,6 +9,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Interfaces
     public interface ICourseCollectionService
     {
         Task<List<Course>> GetAllCoursesAsync();
+        Task<List<Course>> GetAllCoursesByUkprnAsync(int ukprn);
         Task<string> GetAllLiveCoursesAsJsonForUkprnAsync(int ukprn);
         Task<bool> HasCoursesBeenCreatedSinceAsync(int ukprn, DateTime date);
         Task<bool> HasCourseRunsBeenCreatedSinceAsync(int ukprn, DateTime date);

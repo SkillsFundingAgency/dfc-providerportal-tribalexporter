@@ -8,5 +8,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Interfaces
     public interface IApprenticeshipCollectionService
     {
         Task<List<Apprenticeship>> GetAllApprenticeshipsAsync();
+        Task<List<Apprenticeship>> GetAllApprenticeshipsByUkprnAsync(int ukprnt);
     }
 }
