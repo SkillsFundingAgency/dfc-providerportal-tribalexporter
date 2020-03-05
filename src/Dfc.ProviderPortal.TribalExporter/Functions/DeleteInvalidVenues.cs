@@ -38,7 +38,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var databaseId = configuration["CosmosDbSettings:DatabaseId"];
             var venueCollectionId = "venues";
             var documentClient = cosmosDbHelper.GetClient();
-            var coursesCollectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, venueCollectionId);
+            var venueCollectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, venueCollectionId);
             var deleteCount = 0;
             string continuation = null;
 
@@ -49,7 +49,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     RequestContinuation = continuation
                 };
 
-                var queryResponse = await documentClient.CreateDocumentQuery<Venue>(coursesCollectionUri, feedOptions)
+                var queryResponse = await documentClient.CreateDocumentQuery<Venue>(venueCollectionUri, feedOptions)
                                     .Where(p => p.Latitude == null || p.Longitude == null)
                                     .AsDocumentQuery()
                                     .ExecuteNextAsync<Venue>();
@@ -61,6 +61,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     deleteCount++;
                     logger.LogInformation($"Deleted venue: {ven.VenueID}");
                 }
+                continuation = queryResponse.ResponseContinuation;
             }
             while (continuation != null);
 
