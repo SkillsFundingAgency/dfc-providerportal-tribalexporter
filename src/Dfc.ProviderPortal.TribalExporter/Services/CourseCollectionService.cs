@@ -55,6 +55,25 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             return documents;
         }
 
+        public async Task<List<Course>> GetAllCoursesByUkprnAsync(int ukprn)
+        {
+            var documents = new List<Course>();
+
+            var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.CoursesCollectionId);
+            var sql = $"SELECT * FROM c WHERE c.ProviderUKPRN = {ukprn}";
+            var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
+
+            using (var query = _documentClient.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+            {
+                while (query.HasMoreResults)
+                {
+                    foreach (var document in await query.ExecuteNextAsync<Course>()) documents.Add(document);
+                }
+            }
+
+            return documents;
+        }
+
         public async Task<string> GetAllLiveCoursesAsJsonForUkprnAsync(int ukprn)
         {
             var documents = new List<Document>();
