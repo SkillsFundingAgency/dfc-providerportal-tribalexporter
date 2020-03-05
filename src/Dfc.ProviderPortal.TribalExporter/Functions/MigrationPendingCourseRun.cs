@@ -61,8 +61,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                     //find courses that do not have a cost desciption or cost.
                     var queryResponse = await documentClient.CreateDocumentQuery<Course>(coursesCollectionUri, feedOptions)
-                        .Where(p => p.CourseRuns.Any(x => x.Cost == null && (x.CostDescription == "" || x.CostDescription == null)) && 
-                                    p.CourseStatus == RecordStatus.Live)
+                        .Where(p => p.CourseRuns.Any(x => x.Cost == null && (x.CostDescription == "" || x.CostDescription == null)) &&
+                                   (p.CourseStatus == RecordStatus.Live || p.CourseStatus == RecordStatus.MigrationPendingAndLive))
                         .AsDocumentQuery()
                         .ExecuteNextAsync<Course>();
          
@@ -79,6 +79,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         doc.CourseRuns.Where(x => x.Cost == null && (x.CostDescription == "" || x.CostDescription == null))
                                       .ToList()
                                       .ForEach(x => x.RecordStatus = CourseDirectory.Models.Enums.RecordStatus.MigrationPending);
+
 
                         var documentLink = UriFactory.CreateDocumentUri(databaseId, coursesCollectionId, doc.id.ToString());
                         await documentClient.ReplaceDocumentAsync(documentLink, doc, new RequestOptions()
@@ -97,6 +98,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             //Log Results to blob storage
             var resultsObjBytes = GetResultAsByteArray(result);
             await WriteResultsToBlobStorage(resultsObjBytes);
+
 
             logger.LogInformation($"{count} courses Have been made pending");
 

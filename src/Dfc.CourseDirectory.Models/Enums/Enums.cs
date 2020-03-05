@@ -28,6 +28,8 @@ namespace Dfc.CourseDirectory.Models.Enums
         APIReadyToGoLive = 128,
         [Description("Migration Pending")]
         MigrationPending = 256,
+        [Description("Migration Pending & Live")]
+        MigrationPendingAndLive = 257,
         [Description("Migration Ready To Go Live")]
         MigrationReadyToGoLive = 512,
         [Description("LARSless")]
