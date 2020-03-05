@@ -48,9 +48,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             var whitelist = await GetProviderWhiteList();
 
-            int pendingCount = 0;
-            int migrationPendingAndLiveCount = 0;
-
             foreach (var ukprn in whitelist)
             {
                 do
@@ -103,8 +100,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             await WriteResultsToBlobStorage(resultsObjBytes);
 
 
-            Console.WriteLine($"{migrationPendingAndLiveCount} courses Have been made migration pending/live");
-            Console.WriteLine($"{pendingCount} courses Have been made pending");
             logger.LogInformation($"{count} courses Have been made pending");
 
             async Task<ISet<int>> GetProviderWhiteList()
