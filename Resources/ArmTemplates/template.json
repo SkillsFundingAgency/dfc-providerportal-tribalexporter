@@ -509,6 +509,18 @@
               {
                 "name": "ConnectionStrings__TribalRestore",
                 "value": "[parameters('tribalDatabaseConnectionString')]"
+              },
+              {
+                "name": "CosmosDbCollectionSettings__MigrationReportCoursesCollectionId",
+                "value": "DfcReport"
+              },
+              {
+                "name": "CosmosDbCollectionSettings__MigrationReportApprenticeshipCollectionId",
+                "value": "ApprenticeshipDfcReportCollection"
+              },
+              {
+                "name": "MigrationReportSchedule",
+                "value": "0 30 3 * * *"
               }
             ]
           },
