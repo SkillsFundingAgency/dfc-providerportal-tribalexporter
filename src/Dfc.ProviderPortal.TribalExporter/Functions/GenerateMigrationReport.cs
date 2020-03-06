@@ -69,7 +69,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 {
                     RecordStatus.Live,
                     RecordStatus.MigrationPending,
-                    RecordStatus.MigrationReadyToGoLive
                 };
 
             // Loop through whitelist
@@ -109,8 +108,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                             var apprenticeshipLocations = apprenticeships.Where(a => a.ApprenticeshipLocations != null).SelectMany(l => l.ApprenticeshipLocations);
                             appReportEntry.MigrationPendingCount = apprenticeshipLocations.Where(a => a.RecordStatus == RecordStatus.MigrationPending).Count();
-                            appReportEntry.MigrationReadyToGoLive = apprenticeshipLocations.Where(a => a?.RecordStatus == RecordStatus.MigrationReadyToGoLive).Count();
-                            appReportEntry.BulkUploadPendingcount = apprenticeshipLocations.Where(a => a?.RecordStatus == RecordStatus.BulkUloadPending).Count();
+                            appReportEntry.MigrationReadyToGoLive = apprenticeshipLocations.Where(a => a.RecordStatus == RecordStatus.MigrationReadyToGoLive).Count();
+                            appReportEntry.BulkUploadPendingcount = apprenticeshipLocations.Where(a => a.RecordStatus == RecordStatus.BulkUloadPending).Count();
                             appReportEntry.BulkUploadReadyToGoLiveCount = apprenticeshipLocations.Where(a => a.RecordStatus == RecordStatus.BulkUploadReadyToGoLive).Count();
                             appReportEntry.LiveCount = apprenticeshipLocations.Where(cr => cr.RecordStatus == RecordStatus.Live).Count();
                             appReportEntry.PendingCount = apprenticeshipLocations.Where(cr => cr.RecordStatus == RecordStatus.Pending).Count();
