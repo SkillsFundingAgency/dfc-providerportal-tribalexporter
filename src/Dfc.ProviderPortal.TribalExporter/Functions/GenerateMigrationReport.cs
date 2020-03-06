@@ -21,7 +21,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
     public static class GenerateMigrationReport
     {
         [FunctionName(nameof(GenerateMigrationReport))]
+        //[NoAutomaticTrigger]
         public static async Task Run(
+                    //string input,  // Work around https://github.com/Azure/azure-functions-vs-build-sdk/issues/168
                     [TimerTrigger("%MigrationReportSchedule%")]TimerInfo myTimer,
                     ILogger log,
                     [Inject] IConfigurationRoot configuration,
@@ -51,7 +53,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var databaseId = configuration["CosmosDbSettings:DatabaseId"];
             var migrationReportCoursesCollectionId = configuration["CosmosDbCollectionSettings:MigrationReportCoursesCollectionId"];
             var migrationReportApprenticeshipCollectionId = configuration["CosmosDbCollectionSettings:MigrationReportApprenticeshipCollectionId"];
-            var migrationReportLogFileName = $"MigrationReport_LogFile-{DateTime.Now.ToString("dd-MM-yy HHmm")}";
+            var migrationReportLogFileName = $"MigrationReport_LogFile-{DateTime.Now.ToString("dd-MM-yy HHmm")}.txt";
 
             var blobContainer = blobhelper.GetBlobContainer(configuration["BlobStorageSettings:Container"]);
 
@@ -63,10 +65,17 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             int courseReportEntryCount = 0;
             int appsReportEntryCount = 0;
 
+            var migratedStatusList = new List<RecordStatus>
+                {
+                    RecordStatus.Live,
+                    RecordStatus.MigrationPending,
+                    RecordStatus.MigrationReadyToGoLive
+                };
+
             // Loop through whitelist
             foreach (var ukprn in whiteListProviders)
             {
-                // Get provider
+                // Get provider 
                 var provider = await providerCollectionService.GetDocumentByUkprn(ukprn);
 
                 try
@@ -79,7 +88,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         // add to counter
                         migratedProviders.Add(provider.UnitedKingdomProviderReferenceNumber);
 
-                        // deal with Apprenticeship
+                        // deal with Apprenticeship, create one entry if provider = both or apprenticeship
                         if (provider.ProviderType == CourseDirectory.Models.Models.Providers.ProviderType.Both
                             || provider.ProviderType == CourseDirectory.Models.Models.Providers.ProviderType.Apprenticeship)
                         {
@@ -100,17 +109,16 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                             var apprenticeshipLocations = apprenticeships.Where(a => a.ApprenticeshipLocations != null).SelectMany(l => l.ApprenticeshipLocations);
                             appReportEntry.MigrationPendingCount = apprenticeshipLocations.Where(a => a.RecordStatus == RecordStatus.MigrationPending).Count();
-                            appReportEntry.MigrationPendingCount = apprenticeshipLocations.Where(a => a?.RecordStatus == RecordStatus.MigrationPending).Count();
                             appReportEntry.MigrationReadyToGoLive = apprenticeshipLocations.Where(a => a?.RecordStatus == RecordStatus.MigrationReadyToGoLive).Count();
                             appReportEntry.BulkUploadPendingcount = apprenticeshipLocations.Where(a => a?.RecordStatus == RecordStatus.BulkUloadPending).Count();
                             appReportEntry.BulkUploadReadyToGoLiveCount = apprenticeshipLocations.Where(a => a.RecordStatus == RecordStatus.BulkUploadReadyToGoLive).Count();
                             appReportEntry.LiveCount = apprenticeshipLocations.Where(cr => cr.RecordStatus == RecordStatus.Live).Count();
                             appReportEntry.PendingCount = apprenticeshipLocations.Where(cr => cr.RecordStatus == RecordStatus.Pending).Count();
+                            appReportEntry.MigratedCount = apprenticeshipLocations.Where(cr => migratedStatusList.Contains(cr.RecordStatus)).Count(); //everthing that came across.
 
                             appReportEntry.MigrationDate = provider.DateUpdated;
                             appReportEntry.ProviderType = (int)provider.ProviderType;
                             appReportEntry.ProviderName = provider.ProviderName;
-                            appReportEntry.MigratedCount = apprenticeships.Count();
                             appReportEntry.FailedMigrationCount = 0; // Can't determine this so leave as zero
                             appReportEntry.MigrationRate = ApprenticeshipMigrationRate(apprenticeships);
 
@@ -122,7 +130,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                         }
 
-                        // Deal with courses
+                        // Deal with courses, create one entry for course only
                         if (provider.ProviderType == CourseDirectory.Models.Models.Providers.ProviderType.Both)
                         {
                             MigrationReportEntry courseReportEntry = await migrationReportCollectionService.GetReportForCoursesByUkprn(ukprn);
@@ -138,16 +146,18 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             courseReportEntry.CreatedOn = DateTime.Now;
                             courseReportEntry.CreatedBy = AppName;
                             courseReportEntry.id = provider.UnitedKingdomProviderReferenceNumber;
+
                             courseReportEntry.MigrationPendingCount = courses.SelectMany(x => x.CourseRuns.Where(cr => cr.RecordStatus == RecordStatus.MigrationPending)).Count();
                             courseReportEntry.MigrationReadyToGoLive = courses.SelectMany(x => x.CourseRuns.Where(cr => cr.RecordStatus == RecordStatus.MigrationReadyToGoLive)).Count();
                             courseReportEntry.BulkUploadPendingcount = courses.SelectMany(x => x.CourseRuns.Where(cr => cr.RecordStatus == RecordStatus.BulkUloadPending)).Count();
                             courseReportEntry.BulkUploadReadyToGoLiveCount = courses.SelectMany(x => x.CourseRuns.Where(cr => cr.RecordStatus == RecordStatus.BulkUploadReadyToGoLive)).Count();
                             courseReportEntry.LiveCount = courses.SelectMany(c => c.CourseRuns.Where(cr => cr.RecordStatus == RecordStatus.Live)).Count();
                             courseReportEntry.PendingCount = courses.SelectMany(c => c.CourseRuns.Where(cr => cr.RecordStatus == RecordStatus.Pending)).Count();
+                            courseReportEntry.MigratedCount = courses.SelectMany(c => c.CourseRuns.Where(cr => migratedStatusList.Contains(cr.RecordStatus))).Count();
+
                             courseReportEntry.MigrationDate = provider.DateUpdated;
                             courseReportEntry.ProviderType = (int)provider.ProviderType;
                             courseReportEntry.ProviderName = provider.ProviderName;
-                            courseReportEntry.MigratedCount = courses.Count();
                             courseReportEntry.FailedMigrationCount = 0; // Can't determine this so leave as zero
                             courseReportEntry.MigrationRate = CourseMigrationRate(courses);
 
@@ -222,19 +232,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             decimal CourseMigrationRate(IList<Course> courses)
             {
-                var statusList = new List<RecordStatus>
-                {
-                    RecordStatus.Live,
-                    RecordStatus.MigrationPending,
-                    RecordStatus.MigrationReadyToGoLive
-                };
-
-                if (courses.SelectMany(c => c.CourseRuns.Where(cr => statusList.Contains(cr.RecordStatus))).Any())
+                if (courses.SelectMany(c => c.CourseRuns.Where(cr => migratedStatusList.Contains(cr.RecordStatus))).Any())
                 {
 
                     var liveCourses = (decimal)courses.SelectMany(c => c.CourseRuns.Where(cr => cr.RecordStatus == RecordStatus.Live)).Count();
-                    var migratedDataValue = ((decimal)courses
-                        .SelectMany(c => c.CourseRuns.Where(cr => statusList.Contains(cr.RecordStatus))).Count());
+                    var migratedDataValue = ((decimal)courses.SelectMany(c => c.CourseRuns.Where(cr => migratedStatusList.Contains(cr.RecordStatus))).Count());
 
                     return ((liveCourses / migratedDataValue) * 100);
                 }
@@ -244,19 +246,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             decimal ApprenticeshipMigrationRate(IList<Apprenticeship> apprenticeships)
             {
-                var statusList = new List<RecordStatus>
-            {
-                RecordStatus.Live,
-                RecordStatus.MigrationPending,
-                RecordStatus.MigrationReadyToGoLive
-            };
-
                 var locations = apprenticeships.Where(a => a.ApprenticeshipLocations != null).SelectMany(l => l.ApprenticeshipLocations);
 
-                if (locations.Where(cr => statusList.Contains(cr.RecordStatus)).Any())
+                if (locations.Where(cr => migratedStatusList.Contains(cr.RecordStatus)).Any())
                 {
                     var liveApprenticeship = (decimal)locations.Where(cr => cr.RecordStatus == RecordStatus.Live).Count();
-                    var migratedDataValue = (decimal)locations.Where(cr => statusList.Contains(cr.RecordStatus)).Count();
+                    var migratedDataValue = (decimal)locations.Where(cr => migratedStatusList.Contains(cr.RecordStatus)).Count();
 
                     return ((liveApprenticeship / migratedDataValue) * 100);
                 }
