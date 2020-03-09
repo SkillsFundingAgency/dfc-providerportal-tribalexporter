@@ -74,6 +74,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             // Loop through whitelist
             foreach (var ukprn in whiteListProviders)
             {
+
                 // Get provider 
                 var provider = await providerCollectionService.GetDocumentByUkprn(ukprn);
 
