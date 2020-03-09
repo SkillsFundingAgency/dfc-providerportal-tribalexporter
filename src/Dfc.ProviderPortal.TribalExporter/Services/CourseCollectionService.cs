@@ -60,7 +60,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             var documents = new List<Course>();
 
             var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.CoursesCollectionId);
-            var sql = $"SELECT * FROM c WHERE c.ProviderUKPRN = {ukprn}";
+            var sql = $"SELECT * FROM c WHERE c.ProviderUKPRN = {ukprn} AND a.RecordStatus <> {(int)CourseDirectory.Models.Enums.RecordStatus.Archived}";
             var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
 
             using (var query = _documentClient.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
