@@ -21,10 +21,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
     public static class GenerateMigrationReport
     {
         [FunctionName(nameof(GenerateMigrationReport))]
-        [NoAutomaticTrigger]
+        //[NoAutomaticTrigger]
         public static async Task Run(
-                    string input,  // Work around https://github.com/Azure/azure-functions-vs-build-sdk/issues/168
-                    //[TimerTrigger("%MigrationReportSchedule%")]TimerInfo myTimer,
+                    //string input,  // Work around https://github.com/Azure/azure-functions-vs-build-sdk/issues/168
+                    [TimerTrigger("%MigrationReportSchedule%")]TimerInfo myTimer,
                     ILogger log,
                     [Inject] IConfigurationRoot configuration,
                     [Inject] ICosmosDbHelper cosmosDbHelper,
@@ -34,7 +34,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     [Inject] IApprenticeshipCollectionService apprenticeshipCollectionService,
                     [Inject] IMigrationReportCollectionService migrationReportCollectionService)
         {
-            const string WHITE_LIST_FILE = "ProviderWhiteList.txt";
+
             const string AppName = "MigrationReport";
 
             const string ProviderMigrator_AppName = "Provider.Migrator";
@@ -49,7 +49,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var stopWatch = new Stopwatch();
             stopWatch.Start();
 
-            // TODO : Change to correct collection below
             var databaseId = configuration["CosmosDbSettings:DatabaseId"];
             var migrationReportCoursesCollectionId = configuration["CosmosDbCollectionSettings:MigrationReportCoursesCollectionId"];
             var migrationReportApprenticeshipCollectionId = configuration["CosmosDbCollectionSettings:MigrationReportApprenticeshipCollectionId"];
@@ -59,9 +58,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             var _cosmosClient = cosmosDbHelper.GetClient();
 
-            var whiteListProviders = await GetProviderWhiteList();
-            List<string> migratedProviders = new List<string>();
-            List<string> notMigratedProviders = new List<string>();
             int courseReportEntryCount = 0;
             int appsReportEntryCount = 0;
 
@@ -71,28 +67,24 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     RecordStatus.MigrationPending,
                 };
 
-            // Loop through whitelist
-            foreach (var ukprn in whiteListProviders)
-            {
-                // Get provider 
-                var provider = await providerCollectionService.GetDocumentByUkprn(ukprn);
+            // Get all migrated providers
+            var migratedProviders = providerCollectionService.GetAllMigratedProviders(ProviderMigrator_AppName).Result;
 
+            // Loop through 
+            foreach (var provider in migratedProviders)
+            {
                 try
                 {
-                    // Update only if migrated via the Migration process
-                    if (provider.LastUpdatedBy == ProviderMigrator_AppName)
-                    {
-                        logFile.AppendLine($"STARTED : Generating report for provider {ukprn}"); 
+                    int ukprn = Convert.ToInt32(provider.UnitedKingdomProviderReferenceNumber);
 
-                        // add to counter
-                        migratedProviders.Add(provider.UnitedKingdomProviderReferenceNumber);
+                        logFile.AppendLine($"STARTED : Generating report for provide. {provider.UnitedKingdomProviderReferenceNumber}"); 
 
                         // deal with Apprenticeship, create one entry if provider = both or apprenticeship
                         if (provider.ProviderType == CourseDirectory.Models.Models.Providers.ProviderType.Both
                             || provider.ProviderType == CourseDirectory.Models.Models.Providers.ProviderType.Apprenticeship)
                         {
                             // Get Apprenticeships
-                            var apprenticeships = await apprenticeshipCollectionService.GetAllApprenticeshipsByUkprnAsync(ukprn);
+                            var apprenticeships = await apprenticeshipCollectionService.GetAllApprenticeshipsByUkprnAsync(provider.UnitedKingdomProviderReferenceNumber);
 
                             MigrationReportEntry appReportEntry = await migrationReportCollectionService.GetReportForApprenticeshipByUkprn(ukprn);
                             if (appReportEntry == null)
@@ -166,18 +158,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             courseReportEntryCount++;
                         }
 
-                        logFile.AppendLine($"COMPLETED : Report for provider {ukprn}");
-
-                    }
-                    else
-                    {
-                        logFile.AppendLine($"SKIPPED : Not part of migration {ukprn}");
-                        notMigratedProviders.Add(provider.UnitedKingdomProviderReferenceNumber);
-                    }
+                        logFile.AppendLine($"COMPLETED : Report for provider {provider.UnitedKingdomProviderReferenceNumber}");
                 }
                 catch (Exception ex)
                 {
-                    logFile.AppendLine($"Error creating report for {ukprn}, {provider.ProviderType}. {ex.GetBaseException().Message}");
+                    logFile.AppendLine($"Error creating report for {provider.UnitedKingdomProviderReferenceNumber}, {provider.ProviderType}. {ex.GetBaseException().Message}");
                 }
             }
 
@@ -207,25 +192,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     writer.Flush();
                     return memoryStream.ToArray();
                 }
-            }
-
-            // Get list of providers to migrate
-            async Task<IList<int>> GetProviderWhiteList()
-            {
-                var list = new List<int>();
-                var whiteList = await blobhelper.ReadFileAsync(blobContainer, WHITE_LIST_FILE);
-                if (!string.IsNullOrEmpty(whiteList))
-                {
-                    var lines = whiteList.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
-                    foreach (string line in lines)
-                    {
-                        if (int.TryParse(line, out int id))
-                        {
-                            list.Add(id);
-                        }
-                    }
-                }
-                return list;
             }
 
             decimal CourseMigrationRate(IList<Course> courses)
