@@ -54,7 +54,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             return documents;
         }
 
-        public async Task<List<Apprenticeship>> GetAllApprenticeshipsByUkprnAsync(int ukprn)
+        public async Task<List<Apprenticeship>> GetAllApprenticeshipsByUkprnAsync(string ukprn)
         {
             var documents = new List<Apprenticeship>();
 
