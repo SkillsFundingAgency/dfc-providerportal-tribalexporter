@@ -21,10 +21,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
     public static class GenerateMigrationReport
     {
         [FunctionName(nameof(GenerateMigrationReport))]
-        //[NoAutomaticTrigger]
+        [NoAutomaticTrigger]
         public static async Task Run(
-                    //string input,  // Work around https://github.com/Azure/azure-functions-vs-build-sdk/issues/168
-                    [TimerTrigger("%MigrationReportSchedule%")]TimerInfo myTimer,
+                    string input,  // Work around https://github.com/Azure/azure-functions-vs-build-sdk/issues/168
+                    //[TimerTrigger("%MigrationReportSchedule%")]TimerInfo myTimer,
                     ILogger log,
                     [Inject] IConfigurationRoot configuration,
                     [Inject] ICosmosDbHelper cosmosDbHelper,
@@ -106,14 +106,13 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             appReportEntry.CreatedBy = AppName;
                             appReportEntry.id = provider.UnitedKingdomProviderReferenceNumber;
 
-                            var apprenticeshipLocations = apprenticeships.Where(a => a.ApprenticeshipLocations != null).SelectMany(l => l.ApprenticeshipLocations);
-                            appReportEntry.MigrationPendingCount = apprenticeshipLocations.Where(a => a.RecordStatus == RecordStatus.MigrationPending).Count();
-                            appReportEntry.MigrationReadyToGoLive = apprenticeshipLocations.Where(a => a.RecordStatus == RecordStatus.MigrationReadyToGoLive).Count();
-                            appReportEntry.BulkUploadPendingcount = apprenticeshipLocations.Where(a => a.RecordStatus == RecordStatus.BulkUloadPending).Count();
-                            appReportEntry.BulkUploadReadyToGoLiveCount = apprenticeshipLocations.Where(a => a.RecordStatus == RecordStatus.BulkUploadReadyToGoLive).Count();
-                            appReportEntry.LiveCount = apprenticeshipLocations.Where(cr => cr.RecordStatus == RecordStatus.Live).Count();
-                            appReportEntry.PendingCount = apprenticeshipLocations.Where(cr => cr.RecordStatus == RecordStatus.Pending).Count();
-                            appReportEntry.MigratedCount = apprenticeshipLocations.Where(cr => migratedStatusList.Contains(cr.RecordStatus)).Count(); //everthing that came across.
+                            appReportEntry.MigrationPendingCount = apprenticeships.Where(a => a.RecordStatus == RecordStatus.MigrationPending).Count();
+                            appReportEntry.MigrationReadyToGoLive = apprenticeships.Where(a => a.RecordStatus == RecordStatus.MigrationReadyToGoLive).Count();
+                            appReportEntry.BulkUploadPendingcount = apprenticeships.Where(a => a.RecordStatus == RecordStatus.BulkUloadPending).Count();
+                            appReportEntry.BulkUploadReadyToGoLiveCount = apprenticeships.Where(a => a.RecordStatus == RecordStatus.BulkUploadReadyToGoLive).Count();
+                            appReportEntry.LiveCount = apprenticeships.Where(cr => cr.RecordStatus == RecordStatus.Live).Count();
+                            appReportEntry.PendingCount = apprenticeships.Where(cr => cr.RecordStatus == RecordStatus.Pending).Count();
+                            appReportEntry.MigratedCount = apprenticeships.Where(cr => migratedStatusList.Contains(cr.RecordStatus)).Count(); //everthing that came across.
 
                             appReportEntry.MigrationDate = provider.DateUpdated;
                             appReportEntry.ProviderType = (int)provider.ProviderType;
@@ -231,31 +230,18 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             decimal CourseMigrationRate(IList<Course> courses)
             {
-                if (courses.SelectMany(c => c.CourseRuns.Where(cr => migratedStatusList.Contains(cr.RecordStatus))).Any())
-                {
+                var liveCourses = (decimal)courses.SelectMany(c => c.CourseRuns.Where(cr => cr.RecordStatus == RecordStatus.Live)).Count();
+                var migratedDataValue = ((decimal)courses.SelectMany(c => c.CourseRuns.Where(cr => migratedStatusList.Contains(cr.RecordStatus))).Count());
 
-                    var liveCourses = (decimal)courses.SelectMany(c => c.CourseRuns.Where(cr => cr.RecordStatus == RecordStatus.Live)).Count();
-                    var migratedDataValue = ((decimal)courses.SelectMany(c => c.CourseRuns.Where(cr => migratedStatusList.Contains(cr.RecordStatus))).Count());
-
-                    return ((liveCourses / migratedDataValue) * 100);
-                }
-
-                return 0;
+                return ((liveCourses / migratedDataValue) * 100);
             }
 
             decimal ApprenticeshipMigrationRate(IList<Apprenticeship> apprenticeships)
             {
-                var locations = apprenticeships.Where(a => a.ApprenticeshipLocations != null).SelectMany(l => l.ApprenticeshipLocations);
-
-                if (locations.Where(cr => migratedStatusList.Contains(cr.RecordStatus)).Any())
-                {
-                    var liveApprenticeship = (decimal)locations.Where(cr => cr.RecordStatus == RecordStatus.Live).Count();
-                    var migratedDataValue = (decimal)locations.Where(cr => migratedStatusList.Contains(cr.RecordStatus)).Count();
+                    var liveApprenticeship = (decimal)apprenticeships.Where(cr => cr.RecordStatus == RecordStatus.Live).Count();
+                    var migratedDataValue = (decimal)apprenticeships.Where(cr => migratedStatusList.Contains(cr.RecordStatus)).Count();
 
                     return ((liveApprenticeship / migratedDataValue) * 100);
-                }
-
-                return 0;
             }
         }
     }
