@@ -21,10 +21,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
     public static class GenerateMigrationReport
     {
         [FunctionName(nameof(GenerateMigrationReport))]
-        //[NoAutomaticTrigger]
+        [NoAutomaticTrigger]
         public static async Task Run(
-                    //string input,  // Work around https://github.com/Azure/azure-functions-vs-build-sdk/issues/168
-                    [TimerTrigger("%MigrationReportSchedule%")]TimerInfo myTimer,
+                    string input,  // Work around https://github.com/Azure/azure-functions-vs-build-sdk/issues/168
+                    //[TimerTrigger("%MigrationReportSchedule%")]TimerInfo myTimer,
                     ILogger log,
                     [Inject] IConfigurationRoot configuration,
                     [Inject] ICosmosDbHelper cosmosDbHelper,
@@ -36,8 +36,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
         {
 
             const string AppName = "MigrationReport";
-
             const string ProviderMigrator_AppName = "Provider.Migrator";
+            const string WHITE_LIST_FILE = "ProviderWhiteList.txt";
 
             StringBuilder logFile = new StringBuilder();
 
@@ -56,6 +56,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             var blobContainer = blobhelper.GetBlobContainer(configuration["BlobStorageSettings:Container"]);
 
+            var whiteListedProviders = await GetProviderWhiteList();
+
             var _cosmosClient = cosmosDbHelper.GetClient();
 
             int courseReportEntryCount = 0;
@@ -71,11 +73,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var migratedProviders = providerCollectionService.GetAllMigratedProviders(ProviderMigrator_AppName).Result;
 
             // Loop through 
-            foreach (var provider in migratedProviders)
-            {
+            foreach (var ukprn in whiteListedProviders)
+             {
                 try
                 {
-                    int ukprn = Convert.ToInt32(provider.UnitedKingdomProviderReferenceNumber);
+
+                        var provider = await providerCollectionService.GetDocumentByUkprn(ukprn);
 
                         logFile.AppendLine($"STARTED : Generating report for provide. {provider.UnitedKingdomProviderReferenceNumber}"); 
 
@@ -86,6 +89,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             // Get Apprenticeships
                             var apprenticeships = await apprenticeshipCollectionService.GetAllApprenticeshipsByUkprnAsync(provider.UnitedKingdomProviderReferenceNumber);
 
+                            // Get App report for the provider
                             MigrationReportEntry appReportEntry = await migrationReportCollectionService.GetReportForApprenticeshipByUkprn(ukprn);
                             if (appReportEntry == null)
                             {
@@ -162,7 +166,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 }
                 catch (Exception ex)
                 {
-                    logFile.AppendLine($"Error creating report for {provider.UnitedKingdomProviderReferenceNumber}, {provider.ProviderType}. {ex.GetBaseException().Message}");
+                    logFile.AppendLine($"Error creating report for {ukprn}. {ex.GetBaseException().Message}");
                 }
             }
 
@@ -180,6 +184,24 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             async Task WriteResultsToBlobStorage(byte[] data)
             {
                 await blobhelper.UploadFile(blobContainer, migrationReportLogFileName, data);
+            }
+
+            async Task<IList<int>> GetProviderWhiteList()
+            {
+                var list = new List<int>();
+                var whiteList = await blobhelper.ReadFileAsync(blobContainer, WHITE_LIST_FILE);
+                if (!string.IsNullOrEmpty(whiteList))
+                {
+                    var lines = whiteList.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+                    foreach (string line in lines)
+                    {
+                        if (int.TryParse(line, out int id))
+                        {
+                            list.Add(id);
+                        }
+                    }
+                }
+                return list;
             }
 
             byte[] GetResultAsByteArray(StringBuilder logData)
