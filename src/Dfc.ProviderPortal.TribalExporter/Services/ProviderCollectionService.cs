@@ -81,6 +81,25 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             return providerList.OrderByDescending(x => x.DateUpdated).FirstOrDefault();
         }
 
+        public async Task<List<Provider>> GetAllMigratedProviders(string udpatedBy)
+        {
+            var documents = new List<Document>();
+
+            var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.ProvidersCollectionId);
+            var sql = $"SELECT * FROM p WHERE p.LastUpdatedBy = \"{udpatedBy}\"";
+
+            var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
+
+            var providerList = new List<Provider>();
+            var query = _client.CreateDocumentQuery<Document>(uri, sql, options).AsDocumentQuery();
+            while (query.HasMoreResults)
+            {
+                foreach (var document in await query.ExecuteNextAsync<Provider>()) providerList.Add(document);
+            }
+
+            return providerList;
+        }
+
         public async Task<bool> ProviderExists(int ukprn)
         {
             var documents = new List<Document>();
