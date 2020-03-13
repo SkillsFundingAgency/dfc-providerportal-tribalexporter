@@ -1,7 +1,6 @@
 ﻿using Dfc.CourseDirectory.Models.Models.Venues;
 using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Dfc.CourseDirectory.Models.Helpers
 {
@@ -22,7 +21,7 @@ namespace Dfc.CourseDirectory.Models.Helpers
 
         public int GetHashCode(Venue obj)
         {
-            return obj.ToString().ToLower().GetHashCode();
+            return HashCode.Combine(obj.VenueName, obj.ID, obj.Address1, obj.PostCode)
         }
     }
 }
