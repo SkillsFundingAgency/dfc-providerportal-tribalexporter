@@ -21,7 +21,7 @@ namespace Dfc.CourseDirectory.Models.Helpers
 
         public int GetHashCode(Venue obj)
         {
-            return HashCode.Combine(obj.VenueName, obj.ID, obj.Address1, obj.PostCode)
+            return HashCode.Combine(obj.VenueName, obj.ID, obj.Address1, obj.PostCode);
         }
     }
 }
