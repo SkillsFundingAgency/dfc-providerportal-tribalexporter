@@ -59,6 +59,71 @@ namespace Dfc.ProviderPortal.TribalExporter.Tests.Helpers
         }
 
         [Fact]
+        public void that_can_groupby_address_and_ukprn()
+        {
+
+            //lst1 - duplicate adddresses different ukprn are grouped
+            var lstDifferentUKPRN = new List<Venue>() {
+            new Venue()
+            {
+                 ID = Guid.NewGuid().ToString(),
+                Address1 = "address1",
+                VenueName = "address1",
+                PostCode = "postcode1",
+                UKPRN=1
+            },
+            new Venue()
+            {
+                ID = Guid.NewGuid().ToString(),
+                Address1 = "address1",
+                VenueName = "address1",
+                PostCode = "postcode1",
+                UKPRN=2
+            },
+            new Venue()
+            {
+                ID = Guid.NewGuid().ToString(),
+                Address1 = "address1",
+                VenueName = "address1",
+                PostCode = "postcode1",
+                UKPRN=3
+            }};
+
+            //lst2 - duplicate adddresses for same ukprn are grouped
+            var lst2SameUKPRN = new List<Venue>() {
+            new Venue()
+            {
+                 ID = Guid.NewGuid().ToString(),
+                Address1 = "address1",
+                VenueName = "address1",
+                PostCode = "postcode1",
+                UKPRN=1
+            },
+            new Venue()
+            {
+                ID = Guid.NewGuid().ToString(),
+                Address1 = "address1",
+                VenueName = "address1",
+                PostCode = "postcode1",
+                UKPRN=1
+            },
+            new Venue()
+            {
+                ID = Guid.NewGuid().ToString(),
+                Address1 = "address1",
+                VenueName = "address1",
+                PostCode = "postcode1",
+                UKPRN=3
+            }};
+
+            var comp = new VenueEqualityComparer();
+            var uniqueGroupsDifferentUKPRN = lstDifferentUKPRN.GroupBy(x => x, comp);
+            var uniqueGroupsSameUKPRN = lst2SameUKPRN.GroupBy(x => x, comp);
+            Assert.True(uniqueGroupsDifferentUKPRN.Count() == 3, $"Expected 3 Groups but got {uniqueGroupsDifferentUKPRN.Count()}");
+            Assert.True(uniqueGroupsSameUKPRN.Count() == 2, $"Expected 2 Groups but got {uniqueGroupsSameUKPRN.Count()}");
+        }
+
+        [Fact]
         public void that_there_are_two_distinct_addresses()
         {
             var lst = new List<Venue>() {

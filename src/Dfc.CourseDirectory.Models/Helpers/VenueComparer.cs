@@ -10,7 +10,8 @@ namespace Dfc.CourseDirectory.Models.Helpers
         {
             if ((x.VenueName?.ToLower() == y.VenueName?.ToLower() &&
                 (x.PostCode?.ToLower() == y.PostCode?.ToLower()) &&
-                (x.Address1?.ToLower() == y.Address1?.ToLower())))
+                (x.Address1?.ToLower() == y.Address1?.ToLower())) &&
+                (x.UKPRN == y.UKPRN))
                 return true;
 
             //not the same
@@ -19,7 +20,7 @@ namespace Dfc.CourseDirectory.Models.Helpers
 
         public int GetHashCode(Venue obj)
         {
-            return HashCode.Combine(obj.VenueName?.ToLower(), obj.ProviderID, obj.Address1?.ToLower(), obj.PostCode?.ToLower());
+            return HashCode.Combine(obj.VenueName?.ToLower(), obj.UKPRN, obj.Address1?.ToLower(), obj.PostCode?.ToLower());
         }
     }
 }
