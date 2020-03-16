@@ -72,6 +72,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 logCsvWriter.WriteField("Course Run Id");
                 logCsvWriter.WriteField("ApprenticeshipLocation Id");
                 logCsvWriter.WriteField("Message");
+                logCsvWriter.WriteField("Type");
 
                 logCsvWriter.NextRecord();
 
@@ -127,6 +128,20 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             foreach (var archivingVenue in nonCurrentVenues)
                             {
                                 await ArchiveVenue(archivingVenue, ukprn);
+
+                                logCsvWriter.WriteField(ukprn);
+                                logCsvWriter.WriteField(archivingVenue.ID);
+                                logCsvWriter.WriteField(archivingVenue.VenueName);
+                                logCsvWriter.WriteField($"{archivingVenue.Address1},{archivingVenue.Address2}, {archivingVenue.PostCode}");
+                                logCsvWriter.WriteField(currentVenue.ID);
+                                logCsvWriter.WriteField(currentVenue.VenueName);
+                                logCsvWriter.WriteField($"{currentVenue.Address1},{currentVenue.Address2}, {currentVenue.PostCode}");
+                                logCsvWriter.WriteField("");
+                                logCsvWriter.WriteField(""); //ApprenticeshipLocationId
+                                logCsvWriter.WriteField($"There were {nonCurrentVenues.Count()} duplicate Venues");
+                                logCsvWriter.WriteField("Venue");
+                                logCsvWriter.NextRecord();
+
                                 totalArchived++;
                                 totalArchivedForProvider++;
 
@@ -153,6 +168,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                                                                      logCsvWriter.WriteField(x.CourseInstanceId);
                                                                                      logCsvWriter.WriteField(""); //ApprenticeshipLocationId
                                                                                      logCsvWriter.WriteField($"There were {nonCurrentVenues.Count()} duplicate Venues");
+                                                                                     logCsvWriter.WriteField("Course");
                                                                                      logCsvWriter.NextRecord();
                                                                                  });
 
@@ -187,6 +203,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                                                                                           logCsvWriter.WriteField(""); //Course Instance
                                                                                                           logCsvWriter.WriteField(x.Id);
                                                                                                           logCsvWriter.WriteField($"There were {nonCurrentVenues.Count()} duplicate Venues");
+                                                                                                          logCsvWriter.WriteField("Apprenticeship");
                                                                                                           logCsvWriter.NextRecord();
                                                                                                       });
 
