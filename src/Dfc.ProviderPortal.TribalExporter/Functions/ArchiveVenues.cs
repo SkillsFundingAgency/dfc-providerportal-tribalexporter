@@ -93,10 +93,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         {
                             //tribal venues & trival locations when venues were migrated, both locations and & venues from tribal 
                             //were migrated as seperate records even though the address was the same. The below attempts to merge the two.
-                            var migratedVenues = item.ToList().Where(x => x.CreatedBy == "VenueMigrator"); //expecting more than one here.
+                            var migratedVenues = item.ToList().Where(x => x.CreatedBy == "VenueMigrator" && x.UpdatedBy != updatedBy); //expecting more than one here.
 
                             var tribalLocationVenue = migratedVenues.FirstOrDefault(x => x.LocationId != null);
-                            var tribalVenue = migratedVenues.FirstOrDefault(x => x.VenueID == 0);
+                            var tribalVenue = migratedVenues.FirstOrDefault(x => x.VenueID != 0);
                             var nonCurrentVenues = item.ToList().Where(x => x.CreatedBy != "VenueMigrator").ToList();
                             var currentVenue = MergeVenue(tribalLocationVenue, tribalVenue, out string venueType);
 
@@ -126,7 +126,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             //handle archiving venue
                             foreach (var archivingVenue in nonCurrentVenues)
                             {
-                                await ArchiveVenue(archivingVenue,ukprn);
+                                await ArchiveVenue(archivingVenue, ukprn);
                                 totalArchived++;
                                 totalArchivedForProvider++;
 
@@ -246,7 +246,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             Venue MergeVenue(Venue locationVenue, Venue venue, out string selectedVenue)
             {
-                
+
                 //default to first none null venue, location is chosen first.
                 var ven = locationVenue ?? venue;
 
@@ -261,7 +261,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 //if there are two venues, one with a venue id & one with a location id. 
                 //merge them.
-                if(locationVenue != null && venue != null) 
+                if (locationVenue != null && venue != null)
                 {
                     ven.VenueID = venue.VenueID;
                 }
