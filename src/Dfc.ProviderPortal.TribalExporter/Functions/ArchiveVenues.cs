@@ -96,7 +96,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             var migratedVenues = item.ToList().Where(x => x.CreatedBy == "VenueMigrator"); //expecting more than one here.
 
                             var tribalLocationVenue = migratedVenues.FirstOrDefault(x => x.LocationId != null);
-                            var tribalVenue = migratedVenues.FirstOrDefault(x => x.VenueID != 0);
+                            var tribalVenue = migratedVenues.FirstOrDefault(x => x.VenueID == 0);
                             var nonCurrentVenues = item.ToList().Where(x => x.CreatedBy != "VenueMigrator").ToList();
                             var currentVenue = MergeVenue(tribalLocationVenue, tribalVenue, out string venueType);
 
@@ -105,8 +105,13 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 continue;
 
                             //if there is a location venue & venue, add venue to list of non current venues
+                            //and update the currentVenue to indicate it has been merged.
                             if (venueType == "Both")
+                            {
                                 nonCurrentVenues.Add(tribalVenue);
+
+                                await ReplaceMergedREcord(currentVenue);
+                            }
 
                             //courses that have course runs with old venue references.
                             var courseRunsOldVenue = allCoursesForProvider.Where(p => p.CourseRuns.Any(x => nonCurrentVenues.Where(y => Guid.Parse(y.ID) == x.VenueId).Count() > 0)).ToList();
@@ -227,6 +232,15 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 archivingVenue.DateUpdated = DateTime.Now;
                 var documentLink = UriFactory.CreateDocumentUri(databaseId, venuesCollectionId, archivingVenue.ID.ToString());
                 await documentClient.ReplaceDocumentAsync(documentLink, archivingVenue, new RequestOptions());
+            }
+
+            async Task ReplaceMergedREcord(Venue mergedRecord)
+            {
+                //archive venue
+                mergedRecord.UpdatedBy = updatedBy;
+                mergedRecord.DateUpdated = DateTime.Now;
+                var documentLink = UriFactory.CreateDocumentUri(databaseId, venuesCollectionId, mergedRecord.ID.ToString());
+                await documentClient.ReplaceDocumentAsync(documentLink, mergedRecord, new RequestOptions());
             }
 
 
