@@ -72,6 +72,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 logCsvWriter.WriteField("Course Run Id");
                 logCsvWriter.WriteField("ApprenticeshipLocation Id");
                 logCsvWriter.WriteField("Message");
+                logCsvWriter.WriteField("Type");
 
                 logCsvWriter.NextRecord();
 
@@ -93,20 +94,25 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         {
                             //tribal venues & trival locations when venues were migrated, both locations and & venues from tribal 
                             //were migrated as seperate records even though the address was the same. The below attempts to merge the two.
-                            var migratedVenues = item.ToList().Where(x => x.CreatedBy == "VenueMigrator"); //expecting more than one here.
-
-                            var tribalLocationVenue = migratedVenues.FirstOrDefault(x => x.LocationId != null);
-                            var tribalVenue = migratedVenues.FirstOrDefault(x => x.VenueID != 0);
-                            var nonCurrentVenues = item.ToList().Where(x => x.CreatedBy != "VenueMigrator").ToList();
+                            var migratedVenues = item.ToList().Where(x => x.CreatedBy == "VenueMigrator" && x.UpdatedBy != updatedBy); //expecting more than one here.
+                            var tribalLocationVenue = migratedVenues.FirstOrDefault(x => x.LocationId != null);  //Migrated Location
+                            var tribalVenue = migratedVenues.FirstOrDefault(x => x.VenueID != 0);                //Migrated Venue
                             var currentVenue = MergeVenue(tribalLocationVenue, tribalVenue, out string venueType);
 
                             //skip group if there is no current venue
                             if (currentVenue == null)
                                 continue;
 
+                            var nonCurrentVenues = item.ToList().Where(x => x.ID != currentVenue.ID).ToList();  // All venues that will be archived 
+
                             //if there is a location venue & venue, add venue to list of non current venues
+                            //and update the currentVenue to indicate it has been merged.
                             if (venueType == "Both")
+                            {
                                 nonCurrentVenues.Add(tribalVenue);
+
+                                await ReplaceMergedREcord(currentVenue);
+                            }
 
                             //courses that have course runs with old venue references.
                             var courseRunsOldVenue = allCoursesForProvider.Where(p => p.CourseRuns.Any(x => nonCurrentVenues.Where(y => Guid.Parse(y.ID) == x.VenueId).Count() > 0)).ToList();
@@ -121,7 +127,21 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             //handle archiving venue
                             foreach (var archivingVenue in nonCurrentVenues)
                             {
-                                await ArchiveVenue(archivingVenue,ukprn);
+                                await ArchiveVenue(archivingVenue, ukprn);
+
+                                logCsvWriter.WriteField(ukprn);
+                                logCsvWriter.WriteField(archivingVenue.ID);
+                                logCsvWriter.WriteField(archivingVenue.VenueName);
+                                logCsvWriter.WriteField($"{archivingVenue.Address1},{archivingVenue.Address2}, {archivingVenue.PostCode}");
+                                logCsvWriter.WriteField(currentVenue.ID);
+                                logCsvWriter.WriteField(currentVenue.VenueName);
+                                logCsvWriter.WriteField($"{currentVenue.Address1},{currentVenue.Address2}, {currentVenue.PostCode}");
+                                logCsvWriter.WriteField("");
+                                logCsvWriter.WriteField(""); //ApprenticeshipLocationId
+                                logCsvWriter.WriteField($"There were {nonCurrentVenues.Count()} duplicate Venues");
+                                logCsvWriter.WriteField("Venue");
+                                logCsvWriter.NextRecord();
+
                                 totalArchived++;
                                 totalArchivedForProvider++;
 
@@ -148,6 +168,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                                                                      logCsvWriter.WriteField(x.CourseInstanceId);
                                                                                      logCsvWriter.WriteField(""); //ApprenticeshipLocationId
                                                                                      logCsvWriter.WriteField($"There were {nonCurrentVenues.Count()} duplicate Venues");
+                                                                                     logCsvWriter.WriteField("Course");
                                                                                      logCsvWriter.NextRecord();
                                                                                  });
 
@@ -182,6 +203,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                                                                                           logCsvWriter.WriteField(""); //Course Instance
                                                                                                           logCsvWriter.WriteField(x.Id);
                                                                                                           logCsvWriter.WriteField($"There were {nonCurrentVenues.Count()} duplicate Venues");
+                                                                                                          logCsvWriter.WriteField("Apprenticeship");
                                                                                                           logCsvWriter.NextRecord();
                                                                                                       });
 
@@ -229,10 +251,19 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 await documentClient.ReplaceDocumentAsync(documentLink, archivingVenue, new RequestOptions());
             }
 
+            async Task ReplaceMergedREcord(Venue mergedRecord)
+            {
+                //archive venue
+                mergedRecord.UpdatedBy = updatedBy;
+                mergedRecord.DateUpdated = DateTime.Now;
+                var documentLink = UriFactory.CreateDocumentUri(databaseId, venuesCollectionId, mergedRecord.ID.ToString());
+                await documentClient.ReplaceDocumentAsync(documentLink, mergedRecord, new RequestOptions());
+            }
+
 
             Venue MergeVenue(Venue locationVenue, Venue venue, out string selectedVenue)
             {
-                
+
                 //default to first none null venue, location is chosen first.
                 var ven = locationVenue ?? venue;
 
@@ -247,7 +278,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 //if there are two venues, one with a venue id & one with a location id. 
                 //merge them.
-                if(locationVenue != null && venue != null) 
+                if (locationVenue != null && venue != null)
                 {
                     ven.VenueID = venue.VenueID;
                 }
