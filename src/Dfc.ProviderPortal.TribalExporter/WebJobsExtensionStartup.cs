@@ -75,6 +75,7 @@ namespace Dfc.ProviderPortal.TribalExporter
             builder.Services.AddScoped<IVenueCollectionService, VenueCollectionService>();
             builder.Services.AddScoped<IApprenticeshipServiceWrapper, ApprenticeshipServiceWrapper>();
             builder.Services.AddScoped<IApprenticeshipCollectionService, ApprenticeshipCollectionService>();
+            builder.Services.AddScoped<IFEChoicesDataCollectionService, FEChoicesDataCollectionService>();
             builder.Services.AddScoped<IMigrationReportCollectionService, MigrationReportCollectionService>();
             builder.Services.AddScoped<IUkrlpApiService, UkrlpApiService>();
 
