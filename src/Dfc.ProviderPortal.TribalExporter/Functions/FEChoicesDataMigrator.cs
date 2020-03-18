@@ -3,6 +3,7 @@ using Dfc.CourseDirectory.Models.Models.Providers;
 using Dfc.ProviderPortal.Packages.AzureFunctions.DependencyInjection;
 using Dfc.ProviderPortal.TribalExporter.Interfaces;
 using Dfc.ProviderPortal.TribalExporter.Models.Tribal;
+using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
 using Microsoft.Azure.Storage.Blob;
 using Microsoft.Azure.WebJobs;
@@ -135,18 +136,13 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             }
                         }
 
-                        // Fix data already in desination which is NOT in source
+                        // Remove data that is not in source
                         foreach(var existingItem in destinationData.Where(d => !sourceData.Select(s => s.UKPRN).Contains(d.UKPRN)))
                         {
-                            existingItem.EmployerSatisfaction = FixData(existingItem.EmployerSatisfaction);
-                            existingItem.LearnerSatisfaction = FixData(existingItem.LearnerSatisfaction);
-                            existingItem.LastUpdatedBy = AppName;
-                            existingItem.LastUpdatedOn = DateTime.UtcNow;
+                            Uri docUri = UriFactory.CreateDocumentUri(databaseId, feChoicesCollectionId, existingItem.id.ToString());
+                            var deleteResult = await _cosmosClient.DeleteDocumentAsync(docUri, new RequestOptions() { PartitionKey = new PartitionKey(existingItem.UKPRN) });
 
-                            Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, feChoicesCollectionId);
-                            await _cosmosClient.UpsertDocumentAsync(collectionUri, existingItem);
-
-                            AddResultMessage(-1, "PROCESSED-Fixed", $"Provider {existingItem.UKPRN} fxied in Cosmos Collection");
+                            AddResultMessage(-1, "PROCESSED-Deleted", $"Provider {existingItem.UKPRN} delted in cosmos collection.");
                         }
 
                     }
