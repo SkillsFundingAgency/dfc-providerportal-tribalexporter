@@ -94,7 +94,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         {
                             //tribal venues & trival locations when venues were migrated, both locations and & venues from tribal 
                             //were migrated as seperate records even though the address was the same. The below attempts to merge the two.
-                            var migratedVenues = item.ToList().Where(x => x.CreatedBy == "VenueMigrator" && x.UpdatedBy != updatedBy); //expecting more than one here.
+                            var migratedVenues = item.ToList().Where(x => x.UpdatedBy != updatedBy); //expecting more than one here.
                             var tribalLocationVenue = migratedVenues.FirstOrDefault(x => x.LocationId != null);  //Migrated Location
                             var tribalVenue = migratedVenues.FirstOrDefault(x => x.VenueID != 0);                //Migrated Venue
                             var currentVenue = MergeVenue(tribalLocationVenue, tribalVenue, out string venueType);
