@@ -1,5 +1,6 @@
 ﻿using CsvHelper;
 using Dapper;
+using Dfc.CourseDirectory.Models.Models.Apprenticeships;
 using Dfc.CourseDirectory.Models.Models.Providers;
 using Dfc.ProviderPortal.Packages.AzureFunctions.DependencyInjection;
 using Dfc.ProviderPortal.TribalExporter.Interfaces;
@@ -36,6 +37,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var cosmosDbClient = cosmosDbHelper.GetClient();
             var databaseId = configuration["CosmosDbSettings:DatabaseId"];
             var ukrlp = "ukrlp";
+            var apprenticehipsUri = "apprenticeship";
             var logFileName = $"QAStatusMigrator-{DateTime.Now.ToString("dd-MM-yy HHmm")}";
             var blobContainer = configuration["BlobStorageSettings:Container"];
             var whitelistFileName = "ProviderWhiteList.txt";
@@ -57,19 +59,21 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     logCsvWriter.WriteField("UKPRN");
                     logCsvWriter.WriteField("CosmosID");
                     logCsvWriter.WriteField("PassedOverallQAChecks");
+                    logCsvWriter.WriteField("Message");
                     logCsvWriter.NextRecord();
 
                     using (var sqlConnection = new SqlConnection(defaultConnectionString))
                     {
                         foreach (var s in qaStatuses)
                         {
+                            var message = "";
                             if (!whitelist.Contains(s.UKPRN))
                             {
                                 continue;
                             }
 
-                            var provider = await GetExistingCourse(s.UKPRN.ToString(), cosmosDbClient);
-                            if (s.PassedOverallQAChecks)
+                            var provider = await GetExistingProvider(s.UKPRN.ToString(), cosmosDbClient);
+                            if (s.PassedOverallQAChecks && provider != null)
                             {
                                 var sql = @"IF NOT EXISTS (SELECT 1 FROM [Pttcd].[Providers] WHERE ProviderID = @ID) 
                                         BEGIN
@@ -81,10 +85,16 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                     Status = 16
                                 });
                             }
+                            else
+                            {
+                                var apprenticeships = await GetApprenticeships(s.UKPRN, cosmosDbClient);
+                                message = $"Found {apprenticeships.Count()} Apprenticeship that is either Live or PendingMigration";
+                            }
 
                             logCsvWriter.WriteField(s.UKPRN);
                             logCsvWriter.WriteField(provider?.id);
                             logCsvWriter.WriteField(s.PassedOverallQAChecks);
+                            logCsvWriter.WriteField(message);
                             logCsvWriter.NextRecord();
 
                         }
@@ -133,7 +143,33 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 return results;
             }
 
-            async Task<Provider> GetExistingCourse(string ukprn, DocumentClient documentClient)
+            async Task<List<Apprenticeship>> GetApprenticeships(int ukprn, DocumentClient documentClient)
+            {
+                var collectionLink = UriFactory.CreateDocumentCollectionUri(databaseId, apprenticehipsUri);
+                var apprenticeships = new List<Apprenticeship>();
+                string continuation = null;
+                do
+                {
+                    var feedOptions = new FeedOptions()
+                    {
+                        RequestContinuation = continuation
+                    };
+
+                    var queryResponse = await documentClient.CreateDocumentQuery<Apprenticeship>(collectionLink, feedOptions)
+                        .Where(p => p.ProviderUKPRN == ukprn && (p.RecordStatus == CourseDirectory.Models.Enums.RecordStatus.Live || p.RecordStatus == CourseDirectory.Models.Enums.RecordStatus.MigrationPending))
+                        .AsDocumentQuery()
+                        .ExecuteNextAsync<Apprenticeship>();
+
+                    apprenticeships.AddRange(queryResponse.ToList());
+
+                    continuation = queryResponse.ResponseContinuation;
+                }
+                while (continuation != null);
+
+                return apprenticeships;
+            }
+
+            async Task<Provider> GetExistingProvider(string ukprn, DocumentClient documentClient)
             {
                 var collectionLink = UriFactory.CreateDocumentCollectionUri(databaseId, ukrlp);
 
