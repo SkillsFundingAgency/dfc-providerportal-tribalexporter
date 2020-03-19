@@ -20,16 +20,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 {
     public static class QAStatusMigrator
     {
-        /// <summary>
-        /// This function is intended archive venues that are deemed duplicates, and update the the corressponding courses/apprenticeships to reference the
-        /// current verion of the venue.
-        /// </summary>
-        /// <param name="input"></param>
-        /// <param name="configuration"></param>
-        /// <param name="cosmosDbHelper"></param>
-        /// <param name="blobHelper"></param>
-        /// <param name="loggerFactory"></param>
-        /// <returns></returns>
         [FunctionName(nameof(QAStatusMigrator))]
         [NoAutomaticTrigger]
         public static async Task Run(
@@ -45,7 +35,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var qaStatuses = new List<ProviderQAStatus>();
             var cosmosDbClient = cosmosDbHelper.GetClient();
             var databaseId = configuration["CosmosDbSettings:DatabaseId"];
-            var coursesCollectionId = "ukrlp";
+            var ukrlp = "ukrlp";
             var logFileName = $"QAStatusMigrator-{DateTime.Now.ToString("dd-MM-yy HHmm")}";
             var blobContainer = configuration["BlobStorageSettings:Container"];
             var whitelistFileName = "ProviderWhiteList.txt";
@@ -145,7 +135,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             async Task<Provider> GetExistingCourse(string ukprn, DocumentClient documentClient)
             {
-                var collectionLink = UriFactory.CreateDocumentCollectionUri(databaseId, coursesCollectionId);
+                var collectionLink = UriFactory.CreateDocumentCollectionUri(databaseId, ukrlp);
 
                 var query = documentClient
                     .CreateDocumentQuery<Provider>(collectionLink, new FeedOptions()
