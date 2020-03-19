@@ -1,22 +1,20 @@
-﻿using Dfc.ProviderPortal.Packages.AzureFunctions.DependencyInjection;
+﻿using CsvHelper;
+using Dapper;
+using Dfc.CourseDirectory.Models.Models.Providers;
+using Dfc.ProviderPortal.Packages.AzureFunctions.DependencyInjection;
 using Dfc.ProviderPortal.TribalExporter.Interfaces;
+using Microsoft.Azure.Documents.Client;
+using Microsoft.Azure.Documents.Linq;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using Dapper;
 using System.Data.SqlClient;
-using System.Linq;
-using Dfc.CourseDirectory.Models.Models.Courses;
-using Microsoft.Azure.Documents.Client;
-using Microsoft.Azure.Documents.Linq;
-using Dfc.CourseDirectory.Models.Models.Providers;
-using System.IO;
-using CsvHelper;
 using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Dfc.ProviderPortal.TribalExporter.Functions
 {
@@ -62,14 +60,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             try
             {
-
                 using (var logStream = new MemoryStream())
                 using (var logStreamWriter = new StreamWriter(logStream))
                 using (var logCsvWriter = new CsvWriter(logStreamWriter, CultureInfo.InvariantCulture))
                 {
-
-
-                    // archived venues
                     logCsvWriter.WriteField("UKPRN");
                     logCsvWriter.WriteField("CosmosID");
                     logCsvWriter.WriteField("PassedOverallQAChecks");
@@ -98,7 +92,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 });
                             }
 
-                            // archived venues
                             logCsvWriter.WriteField(s.UKPRN);
                             logCsvWriter.WriteField(provider?.id);
                             logCsvWriter.WriteField(s.PassedOverallQAChecks);
@@ -120,7 +113,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Console.WriteLine(e.StackTrace);
             }
 
             async Task<ISet<int>> GetProviderWhiteList()
