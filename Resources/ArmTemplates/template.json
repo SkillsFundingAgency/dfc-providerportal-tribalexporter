@@ -521,6 +521,10 @@
               {
                 "name": "MigrationReportSchedule",
                 "value": "0 30 3 * * *"
+              },
+              {
+                "name": "CosmosDbCollectionSettings__FEChoicesDataCollectionId ",
+                "value": "fechoices"
               }
             ]
           },
