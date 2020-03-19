@@ -8,5 +8,7 @@
         string ApprenticeshipCollectionId { get; }
         string MigrationReportCoursesCollectionId { get; set; }
         string MigrationReportApprenticeshipCollectionId { get; set; }
+
+        string FEChoicesDataCollectionId { get; set; }
     }
 }
