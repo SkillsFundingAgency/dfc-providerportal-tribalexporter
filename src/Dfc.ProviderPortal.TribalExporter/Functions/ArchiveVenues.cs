@@ -218,9 +218,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                                                                                       .ToList()
                                                                                                       .ForEach(x =>
                                                                                                       {
+                                                                                                          
                                                                                                           //update apprenticeship location
                                                                                                           x.LocationGuidId = Guid.Parse(currentVenue.ID);
                                                                                                           x.UpdatedBy = updatedBy;
+                                                                                                          x.LocationId = currentVenue.LocationId;
 
                                                                                                           //log change
                                                                                                           logCsvWriter.WriteField(ukprn);
