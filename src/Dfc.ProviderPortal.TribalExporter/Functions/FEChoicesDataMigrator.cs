@@ -59,16 +59,18 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 {
                     command.CommandType = CommandType.Text;
                     command.CommandText = @"SELECT	P.ProviderId,
-		                                            P.Ukprn, 
-		                                            D.UPIN, 
-		                                            D.LearnerSatisfaction, 
-		                                            D.LearnerDestination, 
-		                                            D.EmployerSatisfaction,
-		                                            D.CreatedDateTimeUtc
+                                                    P.Ukprn, 
+		                                            P.RecordStatusId,
+                                                    D.UPIN, 
+                                                    D.LearnerSatisfaction, 
+                                                    D.LearnerDestination, 
+                                                    D.EmployerSatisfaction,
+                                                    D.CreatedDateTimeUtc
                                             FROM [Provider] P
                                             JOIN [FEChoices] D
                                             ON P.UPIN = D.UPIN
-                                            ORDER BY P.Ukprn
+                                            WHERE p.RecordStatusId = 2
+                                            ORDER BY D.CreatedDateTimeUtc desc, p.Ukprn
                                             ";
 
                     try
@@ -88,6 +90,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 // Read FE data from Tribal
                                 var item = FEChoicesSourceData.FromDataReader(dataReader);
                                 sourceData.Add(item);
+
                             }
 
                             dataReader.Close();
