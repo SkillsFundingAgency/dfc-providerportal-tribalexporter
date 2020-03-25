@@ -10,5 +10,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Settings
         public string ApprenticeshipCollectionId { get; set; }
         public string MigrationReportCoursesCollectionId { get; set; }
         public string MigrationReportApprenticeshipCollectionId { get; set; }
+        public string FEChoicesDataCollectionId { get; set; }
     }
 }

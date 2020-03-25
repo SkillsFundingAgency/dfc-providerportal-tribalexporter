@@ -99,9 +99,39 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             var tribalVenue = migratedVenues.FirstOrDefault(x => x.VenueID != 0);                //Migrated Venue
                             var currentVenue = MergeVenue(tribalLocationVenue, tribalVenue, out string venueType);
 
-                            //skip group if there is no current venue
+                            //If there is no current venue, it means that either the venue was created by a previous migration
+                            //e.g. CreatedBy != VenueMigrator and all Venues must be Archived
+                            //OR 
+                            //the Archiver has already archived this group e.g. UpdatedBy == "ArchiveVenues" and therefore we skip changing 
+                            //this record to archived, as the duplicates have already been removed.
                             if (currentVenue == null)
+                            {
+                                var venuesNotMigratedByMigrationProcess = item.ToList();
+                                foreach (var archivingVenue in venuesNotMigratedByMigrationProcess)
+                                {
+                                    //only archive venues that haven't already been processed by archiveVenues function
+                                    if (archivingVenue.UpdatedBy != updatedBy)
+                                    {
+                                        await ArchiveVenue(archivingVenue, ukprn);
+
+                                        logCsvWriter.WriteField(ukprn);
+                                        logCsvWriter.WriteField(archivingVenue.ID);
+                                        logCsvWriter.WriteField(archivingVenue.VenueName);
+                                        logCsvWriter.WriteField($"{archivingVenue.Address1},{archivingVenue.Address2}, {archivingVenue.PostCode}");
+                                        logCsvWriter.WriteField("");
+                                        logCsvWriter.WriteField("");
+                                        logCsvWriter.WriteField("");
+                                        logCsvWriter.WriteField("");
+                                        logCsvWriter.WriteField(""); //ApprenticeshipLocationId
+                                        logCsvWriter.WriteField($"All old Venues archived, there were {venuesNotMigratedByMigrationProcess.Count()} duplicate Venues.");
+                                        logCsvWriter.WriteField("Venue");
+                                        logCsvWriter.NextRecord();
+                                    }
+                                }
+
+                                //continue to next ukprn as per the above logic
                                 continue;
+                            }
 
                             var nonCurrentVenues = item.ToList().Where(x => x.ID != currentVenue.ID).ToList();  // All venues that will be archived 
 
@@ -188,9 +218,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                                                                                       .ToList()
                                                                                                       .ForEach(x =>
                                                                                                       {
+                                                                                                          
                                                                                                           //update apprenticeship location
                                                                                                           x.LocationGuidId = Guid.Parse(currentVenue.ID);
                                                                                                           x.UpdatedBy = updatedBy;
+                                                                                                          x.LocationId = currentVenue.LocationId;
 
                                                                                                           //log change
                                                                                                           logCsvWriter.WriteField(ukprn);
