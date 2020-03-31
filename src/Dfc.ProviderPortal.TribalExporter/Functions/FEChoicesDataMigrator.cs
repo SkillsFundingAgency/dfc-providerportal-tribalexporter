@@ -114,6 +114,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                         foreach (var ukprn in uniqueSourceUkprns)
                         {
+
                             // filter out duplicate form source
                             if(sourceData.Count(s => s.UKPRN == ukprn) > 1)
                             {
@@ -131,7 +132,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 var itemsToUpdate = destinationData.Where(s => s.UKPRN == sourceItem.UKPRN);
 
                                 // Update
-                                if (itemsToUpdate != null)
+                                if (itemsToUpdate != null && itemsToUpdate.Any())
                                 {
                                     var itemToUpdate = itemsToUpdate.First();
 
@@ -180,30 +181,51 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         var howManyToDelete = destinationData.Where(d => !sourceData.Select(s => s.UKPRN).Contains(d.UKPRN));
                         foreach (var existingItem in howManyToDelete)
                         {
-                            Uri docUri = UriFactory.CreateDocumentUri(databaseId, feChoicesCollectionId, existingItem.id.ToString());
-                            var deleteResult = await _cosmosClient.DeleteDocumentAsync(docUri, new RequestOptions() { PartitionKey = new PartitionKey(existingItem.UKPRN) });
+                            try
+                            {
+                                Uri docUri = UriFactory.CreateDocumentUri(databaseId, feChoicesCollectionId, existingItem.id.ToString());
+                                var deleteResult = await _cosmosClient.DeleteDocumentAsync(docUri, new RequestOptions() { PartitionKey = new PartitionKey(existingItem.UKPRN) });
 
-                            AddResultMessage(existingItem.UKPRN, "DELETE", $"Record {existingItem.id} with UKPRN {existingItem.UKPRN} deleted as not in source.");
+                                AddResultMessage(existingItem.UKPRN, "DELETE", $"Record {existingItem.id} with UKPRN {existingItem.UKPRN} deleted as not in source.");
+                            }
+                            catch (Exception ex)
+                            {
+                                AddResultMessage(existingItem.UKPRN, "ERROR", $"Error deleting in destination record {existingItem.id} with UKPRN {existingItem.UKPRN}.");
+                            }
                         }
 
-                        // Remove data that is duplicate in destination
+                        // Remove data that is duplicate in destination using Id
                         var duplicatesToDeleteByGuid = destinationData.Where(d => feDataRecordsToDeleteByGuid.Contains(d.id));
                         foreach (var existingItem in duplicatesToDeleteByGuid)
                         {
-                            Uri docUri = UriFactory.CreateDocumentUri(databaseId, feChoicesCollectionId, existingItem.id.ToString());
-                            var deleteResult = await _cosmosClient.DeleteDocumentAsync(docUri, new RequestOptions() { PartitionKey = new PartitionKey(existingItem.UKPRN) });
+                            try
+                            {
+                                Uri docUri = UriFactory.CreateDocumentUri(databaseId, feChoicesCollectionId, existingItem.id.ToString());
+                                var deleteResult = await _cosmosClient.DeleteDocumentAsync(docUri, new RequestOptions() { PartitionKey = new PartitionKey(existingItem.UKPRN) });
 
-                            AddResultMessage(existingItem.UKPRN, "DELETE", $"Record {existingItem.id} with UKPRN {existingItem.UKPRN} deleted as duplicate in Cosmos.");
+                                AddResultMessage(existingItem.UKPRN, "DELETE", $"Record {existingItem.id} with UKPRN {existingItem.UKPRN} deleted as duplicate in Cosmos.");
+                            }
+                            catch(Exception ex)
+                            {
+                                AddResultMessage(existingItem.UKPRN, "ERROR", $"Error deleting in destination record {existingItem.id} with UKPRN {existingItem.UKPRN}.");
+                            }
                         }
 
-                        // Remove data that is duplicate in source so needs to be removed from destination
+                        // Remove data that is duplicate in source so needs to be removed from destination using UKPRN
                         var duplicatesToDeleteByUkprn = destinationData.Where(d => feDataRecordsToDeleteByUkprn.Contains(d.UKPRN));
                         foreach (var existingItem in duplicatesToDeleteByUkprn)
                         {
-                            Uri docUri = UriFactory.CreateDocumentUri(databaseId, feChoicesCollectionId, existingItem.id.ToString());
-                            var deleteResult = await _cosmosClient.DeleteDocumentAsync(docUri, new RequestOptions() { PartitionKey = new PartitionKey(existingItem.UKPRN) });
+                            try
+                            {
+                                Uri docUri = UriFactory.CreateDocumentUri(databaseId, feChoicesCollectionId, existingItem.id.ToString());
+                                var deleteResult = await _cosmosClient.DeleteDocumentAsync(docUri, new RequestOptions() { PartitionKey = new PartitionKey(existingItem.UKPRN) });
 
-                            AddResultMessage(existingItem.UKPRN, "DELETE", $"Record {existingItem.id} with UKPRN {existingItem.UKPRN} deleted as duplicate in Cosmos.");
+                                AddResultMessage(existingItem.UKPRN, "DELETE", $"Record {existingItem.id} with UKPRN {existingItem.UKPRN} deleted as duplicate in Cosmos.");
+                            }
+                            catch(Exception ex)
+                            {
+                                AddResultMessage(existingItem.UKPRN, "ERROR", $"Error deleting in destination record {existingItem.id} with UKPRN {existingItem.UKPRN}.");
+                            }
                         }
 
                     }
