@@ -43,6 +43,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var connectionString = configuration.GetConnectionString("TribalRestore");
             var fechoicesDataMigrationLogFile = $"FEChoicesDataMigrator-{DateTime.Now.ToString("dd-MM-yy HHmm")}";
 
+            List<Guid> feDataRecordsToDeleteByGuid = new List<Guid>();
+            List<int> feDataRecordsToDeleteByUkprn = new List<int>();
+
             var blobContainer = blobhelper.GetBlobContainer(configuration["BlobStorageSettings:Container"]);
 
             var _cosmosClient = cosmosDbHelper.GetClient();
@@ -57,20 +60,30 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             {
                 using (var command = sqlConnection.CreateCommand())
                 {
+                    // Get non duplicate UKPRN data only
                     command.CommandType = CommandType.Text;
-                    command.CommandText = @"SELECT	P.ProviderId,
-                                                    P.Ukprn, 
-		                                            P.RecordStatusId,
-                                                    D.UPIN, 
-                                                    D.LearnerSatisfaction, 
-                                                    D.LearnerDestination, 
-                                                    D.EmployerSatisfaction,
-                                                    D.CreatedDateTimeUtc
-                                            FROM [Provider] P
-                                            JOIN [FEChoices] D
-                                            ON P.UPIN = D.UPIN
-                                            WHERE p.RecordStatusId = 2
-                                            ORDER BY D.CreatedDateTimeUtc desc, p.Ukprn
+                    command.CommandText = @"SELECT	P.Ukprn, 
+                                                        P.RecordStatusId,
+                                                        D.UPIN, 
+                                                        D.LearnerSatisfaction, 
+                                                        D.LearnerDestination, 
+                                                        D.EmployerSatisfaction,
+                                                        D.CreatedDateTimeUtc,
+                                                        Count(p.UKprn)
+                                                 FROM [Provider] P
+                                                 JOIN [FEChoices] D
+                                                 ON P.UPIN = D.UPIN
+                                                 WHERE p.RecordStatusId = 2
+                                                 GROUP BY 
+		                                                P.Ukprn, 
+                                                        P.RecordStatusId,
+                                                        D.UPIN, 
+                                                        D.LearnerSatisfaction, 
+                                                        D.LearnerDestination, 
+                                                        D.EmployerSatisfaction,
+                                                        D.CreatedDateTimeUtc
+                                                HAVING Count(P.Ukprn) = 1
+                                                ORDER BY D.CreatedDateTimeUtc DESC, p.Ukprn
                                             ";
 
                     try
@@ -90,7 +103,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 // Read FE data from Tribal
                                 var item = FEChoicesSourceData.FromDataReader(dataReader);
                                 sourceData.Add(item);
-
                             }
 
                             dataReader.Close();
@@ -98,60 +110,106 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                         var destinationData = await feChoicesDataCollectionService.GetAllDocument();
 
-                        foreach (var sourceItem in sourceData)
+                        var uniqueSourceUkprns = sourceData.Select(s => s.UKPRN).Distinct().ToList();
+
+                        foreach (var ukprn in uniqueSourceUkprns)
                         {
-                            // Check if item exists in both
-                            var itemToUpdate = destinationData.SingleOrDefault(s => s.UKPRN == sourceItem.UKPRN);
-
-                            // Update
-                            if (itemToUpdate != null)
+                            // filter out duplicate form source
+                            if(sourceData.Count(s => s.UKPRN == ukprn) > 1)
                             {
-                                itemToUpdate.EmployerSatisfaction = sourceItem.EmployerSatisfaction;
-                                itemToUpdate.LearnerSatisfaction = sourceItem.LearnerSatisfaction;
-                                itemToUpdate.CreatedDateTimeUtc = sourceItem.CreatedDateTimeUtc;
-                                itemToUpdate.LastUpdatedBy = AppName;
-                                itemToUpdate.LastUpdatedOn = DateTime.UtcNow;
-
-                                Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, feChoicesCollectionId);
-                                await _cosmosClient.UpsertDocumentAsync(collectionUri, itemToUpdate);
-
-                                AddResultMessage(sourceItem.ProviderId, "PROCESSED-Updated", $"Provider {sourceItem.UKPRN} updated in Cosmos Collection");
+                                // mark for removal from destination if exists
+                                feDataRecordsToDeleteByUkprn.Add(ukprn);
+                                continue;
                             }
-                            // Insert new entry
-                            else
+
+                            // pick the first as there might still be duplicates
+                            var sourceItem = sourceData.First(s => s.UKPRN == ukprn);
+
+                            try
                             {
-                                var newRecord = new FEChoicesData()
+                                // Check if item exists in both (could be duplicate in destination)
+                                var itemsToUpdate = destinationData.Where(s => s.UKPRN == sourceItem.UKPRN);
+
+                                // Update
+                                if (itemsToUpdate != null)
                                 {
-                                    id = Guid.NewGuid(),
-                                    UKPRN = sourceItem.UKPRN,
-                                    LearnerSatisfaction = sourceItem.LearnerSatisfaction,
-                                    EmployerSatisfaction = sourceItem.EmployerSatisfaction,
-                                    CreatedDateTimeUtc = sourceItem.CreatedDateTimeUtc,
-                                    CreatedBy = AppName,
-                                    CreatedOn = DateTime.UtcNow,
-                                    LastUpdatedBy = AppName,
-                                    LastUpdatedOn = DateTime.UtcNow,
-                                };
+                                    var itemToUpdate = itemsToUpdate.First();
 
-                                await cosmosDbHelper.CreateDocumentAsync(_cosmosClient, feChoicesCollectionId, newRecord);
+                                    itemToUpdate.EmployerSatisfaction = sourceItem.EmployerSatisfaction;
+                                    itemToUpdate.LearnerSatisfaction = sourceItem.LearnerSatisfaction;
+                                    itemToUpdate.CreatedDateTimeUtc = sourceItem.CreatedDateTimeUtc;
+                                    itemToUpdate.LastUpdatedBy = AppName;
+                                    itemToUpdate.LastUpdatedOn = DateTime.UtcNow;
 
-                                AddResultMessage(sourceItem.ProviderId, "PROCESSED-Created", $"Provider {sourceItem.UKPRN} updated in Cosmos Collection");
+                                    Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, feChoicesCollectionId);
+                                    await _cosmosClient.UpsertDocumentAsync(collectionUri, itemToUpdate);
+
+                                    feDataRecordsToDeleteByGuid.AddRange(itemsToUpdate.Where(i => i.id != itemToUpdate.id).Select(i => i.id).ToList());
+
+                                    AddResultMessage(sourceItem.UKPRN, "PROCESSED-Updated", $"Provider {sourceItem.UKPRN} updated in Cosmos Collection");
+                                }
+                                // Insert new entry
+                                else
+                                {
+                                    var newRecord = new FEChoicesData()
+                                    {
+                                        id = Guid.NewGuid(),
+                                        UKPRN = sourceItem.UKPRN,
+                                        LearnerSatisfaction = sourceItem.LearnerSatisfaction,
+                                        EmployerSatisfaction = sourceItem.EmployerSatisfaction,
+                                        CreatedDateTimeUtc = sourceItem.CreatedDateTimeUtc,
+                                        CreatedBy = AppName,
+                                        CreatedOn = DateTime.UtcNow,
+                                        LastUpdatedBy = AppName,
+                                        LastUpdatedOn = DateTime.UtcNow,
+                                    };
+
+                                    await cosmosDbHelper.CreateDocumentAsync(_cosmosClient, feChoicesCollectionId, newRecord);
+
+                                    AddResultMessage(sourceItem.UKPRN, "PROCESSED-Created", $"Provider {sourceItem.UKPRN} updated in Cosmos Collection");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                AddResultMessage(sourceItem.UKPRN, "ERRORED", $"Error while inserting/updating for provider {ex.Message}");
+                                log.LogError($"Tribal Data: Error processing data.", ex);
                             }
                         }
 
                         // Remove data that is not in source
-                        foreach(var existingItem in destinationData.Where(d => !sourceData.Select(s => s.UKPRN).Contains(d.UKPRN)))
+                        var howManyToDelete = destinationData.Where(d => !sourceData.Select(s => s.UKPRN).Contains(d.UKPRN));
+                        foreach (var existingItem in howManyToDelete)
                         {
                             Uri docUri = UriFactory.CreateDocumentUri(databaseId, feChoicesCollectionId, existingItem.id.ToString());
                             var deleteResult = await _cosmosClient.DeleteDocumentAsync(docUri, new RequestOptions() { PartitionKey = new PartitionKey(existingItem.UKPRN) });
 
-                            AddResultMessage(-1, "PROCESSED-Deleted", $"Provider {existingItem.UKPRN} delted in cosmos collection.");
+                            AddResultMessage(existingItem.UKPRN, "DELETE", $"Record {existingItem.id} with UKPRN {existingItem.UKPRN} deleted as not in source.");
+                        }
+
+                        // Remove data that is duplicate in destination
+                        var duplicatesToDeleteByGuid = destinationData.Where(d => feDataRecordsToDeleteByGuid.Contains(d.id));
+                        foreach (var existingItem in duplicatesToDeleteByGuid)
+                        {
+                            Uri docUri = UriFactory.CreateDocumentUri(databaseId, feChoicesCollectionId, existingItem.id.ToString());
+                            var deleteResult = await _cosmosClient.DeleteDocumentAsync(docUri, new RequestOptions() { PartitionKey = new PartitionKey(existingItem.UKPRN) });
+
+                            AddResultMessage(existingItem.UKPRN, "DELETE", $"Record {existingItem.id} with UKPRN {existingItem.UKPRN} deleted as duplicate in Cosmos.");
+                        }
+
+                        // Remove data that is duplicate in source so needs to be removed from destination
+                        var duplicatesToDeleteByUkprn = destinationData.Where(d => feDataRecordsToDeleteByUkprn.Contains(d.UKPRN));
+                        foreach (var existingItem in duplicatesToDeleteByUkprn)
+                        {
+                            Uri docUri = UriFactory.CreateDocumentUri(databaseId, feChoicesCollectionId, existingItem.id.ToString());
+                            var deleteResult = await _cosmosClient.DeleteDocumentAsync(docUri, new RequestOptions() { PartitionKey = new PartitionKey(existingItem.UKPRN) });
+
+                            AddResultMessage(existingItem.UKPRN, "DELETE", $"Record {existingItem.id} with UKPRN {existingItem.UKPRN} deleted as duplicate in Cosmos.");
                         }
 
                     }
                     catch (Exception ex)
                     {
-                        AddResultMessage(-1, "PROCESSED-Errored", $"{ex.Message}");
+                        AddResultMessage(-1, "ERRORED-Unknown", $"{ex.Message}");
                         log.LogError($"Tribal Data: Error processing data.", ex);
                     }
 

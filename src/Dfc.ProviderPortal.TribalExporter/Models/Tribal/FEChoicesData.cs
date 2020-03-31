@@ -8,7 +8,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Models.Tribal
 {
     public class FEChoicesSourceData
     {
-        public int ProviderId { get; set; }
         public int UKPRN { get; set; }
         public int UPIN { get; set; }
         public double? LearnerSatisfaction { get; set; }
@@ -21,7 +20,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Models.Tribal
         public static FEChoicesSourceData FromDataReader(SqlDataReader reader)
         {
             var item = new FEChoicesSourceData();
-            item.ProviderId = (int)reader["ProviderId"];
             item.UKPRN = (int)reader["Ukprn"];
             item.UPIN = (int)reader["UPIN"];
             item.LearnerSatisfaction = (reader["LearnerSatisfaction"] == DBNull.Value) ? null : (double?)reader["LearnerSatisfaction"];
