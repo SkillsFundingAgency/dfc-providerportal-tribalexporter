@@ -9,5 +9,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Interfaces
     {
         Task<List<Apprenticeship>> GetAllApprenticeshipsAsync();
         Task<List<Apprenticeship>> GetAllApprenticeshipsByUkprnAsync(string ukprnt);
+
+        Task<List<Apprenticeship>> GetArchivedApprenticeshipsAsync();
     }
 }

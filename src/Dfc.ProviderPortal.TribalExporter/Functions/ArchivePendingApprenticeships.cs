@@ -22,45 +22,39 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                         string input,  // Work around https://github.com/Azure/azure-functions-vs-build-sdk/issues/168
                                         [Inject] IConfigurationRoot configuration,
                                         [Inject] ICosmosDbHelper cosmosDbHelper,
-                                        [Inject] IBlobStorageHelper blobHelper,
                                         [Inject] ILoggerFactory loggerFactory,
-                                        [Inject] IBlobStorageHelper blobhelper)
+                                        [Inject] IApprenticeshipCollectionService apprenticeshipCollectionService)
         {
+           var databaseId = configuration["CosmosDbSettings:DatabaseId"]; 
+           var apprenticeshipCollectionId = "apprenticeship";
+           var documentClient = cosmosDbHelper.GetClient();
+           var logger = loggerFactory.CreateLogger(typeof(ArchivePendingApprenticeships));
+           int count = 0;
+           var updatedBy = "ArchivePendingApprenticeships";
 
-            var blobContainer = configuration["BlobStorageSettings:Container"];
-            var outputContainer = blobhelper.GetBlobContainer(configuration["BlobStorageSettings:Container"]);
-            var databaseId = configuration["CosmosDbSettings:DatabaseId"];
-            var apprenticeshipCollectionId = "apprenticeship";
-            var documentClient = cosmosDbHelper.GetClient();
-            var apprenticeshipCollectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, apprenticeshipCollectionId);
-            var logger = loggerFactory.CreateLogger(typeof(ArchivePendingApprenticeships));
-            int count = 0;
-            var updatedBy = "ArchivePendingApprenticeships";
-
-            var queryResponse = await documentClient.CreateDocumentQuery<Apprenticeship>(apprenticeshipCollectionUri)
-                            .Where(p => p.RecordStatus == CourseDirectory.Models.Enums.RecordStatus.MigrationPending)
-                            .AsDocumentQuery()
-                            .ExecuteNextAsync<Apprenticeship>();
+           var queryResponse = await apprenticeshipCollectionService.GetArchivedApprenticeshipsAsync();
 
            foreach (var doc in queryResponse)
            {
-               //mark every location as arhived
+               //mark every location as arhived regardless of their status
                foreach (var loc in doc.ApprenticeshipLocations)
                {
                    loc.RecordStatus = CourseDirectory.Models.Enums.RecordStatus.Archived;
                    loc.UpdatedBy = updatedBy;
-               }
+                   loc.UpdatedDate = DateTime.UtcNow;
+                }
+
                doc.UpdatedBy = updatedBy;
+               doc.UpdatedDate = DateTime.UtcNow;
 
                var documentLink = UriFactory.CreateDocumentUri(databaseId, apprenticeshipCollectionId, doc.id.ToString());
-               await documentClient.ReplaceDocumentAsync(documentLink, doc, new RequestOptions(){});
+               await documentClient.ReplaceDocumentAsync(documentLink, doc);
 
                count++;
            }
            
            logger.LogInformation($"Archived {count} Apprenticeships");
            Console.WriteLine($"Archived {count} Apprenticeships");
-
         }
     }
 }
