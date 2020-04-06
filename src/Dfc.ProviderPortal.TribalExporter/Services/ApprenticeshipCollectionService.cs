@@ -54,6 +54,26 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             return documents;
         }
 
+        public async Task<List<Apprenticeship>> GetArchivedApprenticeshipsAsync()
+        {
+            var documents = new List<Apprenticeship>();
+
+            var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.ApprenticeshipCollectionId);
+            var sql = $"SELECT * FROM a WHERE a.RecordStatus = {(int)CourseDirectory.Models.Enums.RecordStatus.MigrationPending}";
+            var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
+
+            var client = _cosmosDbHelper.GetClient();
+            using (var query = client.CreateDocumentQuery(uri, sql, options).AsDocumentQuery())
+            {
+                while (query.HasMoreResults)
+                {
+                    foreach (Apprenticeship document in await query.ExecuteNextAsync<Apprenticeship>()) documents.Add(document);
+                }
+            }
+
+            return documents;
+        }
+
         public async Task<List<Apprenticeship>> GetAllApprenticeshipsByUkprnAsync(string ukprn)
         {
             var documents = new List<Apprenticeship>();
