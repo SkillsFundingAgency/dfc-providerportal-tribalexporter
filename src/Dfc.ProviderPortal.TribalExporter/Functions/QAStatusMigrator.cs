@@ -81,7 +81,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                         END";
                                 var result = sqlConnection.Execute(sql, new
                                 {
-                                    ID = provider.id,
+                                    ID = provider.id.ToString().ToLower(),
                                     Status = 16
                                 });
                             }
