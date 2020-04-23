@@ -70,10 +70,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             doc.UpdatedBy = updatedBy;
 
                             var documentLink = UriFactory.CreateDocumentUri(databaseId, apprenticeshipCollectionId, doc.id.ToString());
-                            //await documentClient.ReplaceDocumentAsync(documentLink, doc, new RequestOptions()
-                            //{
-                            //    PartitionKey = new Microsoft.Azure.Documents.PartitionKey(ukprn)
-                            //});
+                            await documentClient.ReplaceDocumentAsync(documentLink, doc, new RequestOptions()
+                            {
+                                PartitionKey = new Microsoft.Azure.Documents.PartitionKey(ukprn)
+                            });
 
                             count++;
                         }
