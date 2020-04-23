@@ -42,6 +42,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var blobContainer = configuration["BlobStorageSettings:Container"];
             var whitelistFileName = "ProviderWhiteList.txt";
             var whitelist = await GetProviderWhiteList();
+            var logger = loggerFactory.CreateLogger(typeof(QAStatusMigrator));
 
             using (var sqlConnection = new SqlConnection(tribalConnectionString))
             {
@@ -113,7 +114,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.StackTrace);
+                logger.LogError(e.Message);
             }
 
             async Task<ISet<int>> GetProviderWhiteList()
