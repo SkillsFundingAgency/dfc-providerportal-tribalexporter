@@ -78,6 +78,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 var sql = @"IF NOT EXISTS (SELECT 1 FROM [Pttcd].[Providers] WHERE ProviderID = @ID) 
                                         BEGIN
                                             INSERT INTO [Pttcd].[Providers] (ProviderId,ApprenticeshipQAStatus) SELECT @ID,@Status
+                                        ELSE
+                                            UPDATE [Pttcd].[Providers] SET ApprenticeshipQAStatus = @Status WHERE ProviderId = @ID
                                         END";
                                 var result = sqlConnection.Execute(sql, new
                                 {
