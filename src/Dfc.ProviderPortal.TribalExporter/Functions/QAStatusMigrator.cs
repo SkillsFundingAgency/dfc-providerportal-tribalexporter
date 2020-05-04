@@ -114,6 +114,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             catch (Exception e)
             {
                 Console.WriteLine(e.StackTrace);
+                throw;
             }
 
             async Task<ISet<int>> GetProviderWhiteList()
