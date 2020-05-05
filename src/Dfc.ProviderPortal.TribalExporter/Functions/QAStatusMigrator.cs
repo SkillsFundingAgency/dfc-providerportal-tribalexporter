@@ -76,11 +76,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             if (s.PassedOverallQAChecks && provider != null)
                             {
                                 var sql = @"IF NOT EXISTS (SELECT 1 FROM [Pttcd].[Providers] WHERE ProviderID = @ID) 
-                                        BEGIN
                                             INSERT INTO [Pttcd].[Providers] (ProviderId,ApprenticeshipQAStatus) SELECT @ID,@Status
                                         ELSE
-                                            UPDATE [Pttcd].[Providers] SET ApprenticeshipQAStatus = @Status WHERE ProviderId = @ID
-                                        END";
+                                            UPDATE [Pttcd].[Providers] SET ApprenticeshipQAStatus = @Status WHERE ProviderId = @ID";
                                 var result = sqlConnection.Execute(sql, new
                                 {
                                     ID = provider.id,
@@ -116,6 +114,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             catch (Exception e)
             {
                 Console.WriteLine(e.StackTrace);
+                throw;
             }
 
             async Task<ISet<int>> GetProviderWhiteList()
