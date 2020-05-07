@@ -55,7 +55,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     try
                     {
                         var queryResponse = await documentClient.CreateDocumentQuery<Apprenticeship>(apprenticeshipCollectionUri, feedOptions)
-                            .Where(p => p.ProviderUKPRN == ukprn && p.CreatedBy == "DFC – Apprenticeship Migration Tool" && p.RecordStatus == CourseDirectory.Models.Enums.RecordStatus.MigrationPending)
+                            .Where(p => p.ProviderUKPRN == ukprn && p.CreatedBy == "DFC – Apprenticeship Migration Tool" && (p.RecordStatus == CourseDirectory.Models.Enums.RecordStatus.MigrationPending || p.RecordStatus == CourseDirectory.Models.Enums.RecordStatus.Live))
                             .AsDocumentQuery()
                             .ExecuteNextAsync<Apprenticeship>();
 
