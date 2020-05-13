@@ -48,24 +48,27 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 try
                 {
                     var queryResponse = await documentClient.CreateDocumentQuery<Apprenticeship>(apprenticeshipCollectionUri, feedOptions)
-                        .Where(p => p.CreatedBy == "DFC – Apprenticeship Migration Tool" && (p.RecordStatus == CourseDirectory.Models.Enums.RecordStatus.MigrationPending || p.RecordStatus == CourseDirectory.Models.Enums.RecordStatus.Live))
+                        .Where(p => p.CreatedBy == "DFC – Apprenticeship Migration Tool")
                         .AsDocumentQuery()
                         .ExecuteNextAsync<Apprenticeship>();
 
                     foreach (var doc in queryResponse)
                     {
-                        //mark every location as arhived
-                        foreach (var loc in doc.ApprenticeshipLocations)
+                        if (doc.RecordStatus.HasFlag(CourseDirectory.Models.Enums.RecordStatus.MigrationPending) || doc.RecordStatus == CourseDirectory.Models.Enums.RecordStatus.Live)
                         {
-                            loc.RecordStatus = CourseDirectory.Models.Enums.RecordStatus.Archived;
-                            loc.UpdatedBy = updatedBy;
+                            //mark every location as arhived
+                            foreach (var loc in doc.ApprenticeshipLocations)
+                            {
+                                loc.RecordStatus = CourseDirectory.Models.Enums.RecordStatus.Archived;
+                                loc.UpdatedBy = updatedBy;
+                            }
+                            doc.UpdatedBy = updatedBy;
+
+                            var documentLink = UriFactory.CreateDocumentUri(databaseId, apprenticeshipCollectionId, doc.id.ToString());
+                            await documentClient.ReplaceDocumentAsync(documentLink, doc, new RequestOptions());
+
+                            count++;
                         }
-                        doc.UpdatedBy = updatedBy;
-
-                        var documentLink = UriFactory.CreateDocumentUri(databaseId, apprenticeshipCollectionId, doc.id.ToString());
-                        await documentClient.ReplaceDocumentAsync(documentLink, doc, new RequestOptions());
-
-                        count++;
                     }
                     continuation = queryResponse.ResponseContinuation;
                 }
