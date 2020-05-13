@@ -56,7 +56,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     {
                         if (doc.RecordStatus.HasFlag(CourseDirectory.Models.Enums.RecordStatus.MigrationPending) || doc.RecordStatus == CourseDirectory.Models.Enums.RecordStatus.Live)
                         {
-
                             //mark every location as arhived
                             foreach (var loc in doc.ApprenticeshipLocations)
                             {
