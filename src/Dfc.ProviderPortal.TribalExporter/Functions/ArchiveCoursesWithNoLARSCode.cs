@@ -1,6 +1,5 @@
 ﻿using CsvHelper;
 using Dfc.CourseDirectory.Models.Models.Courses;
-using Dfc.CourseDirectory.Models.Models.Providers;
 using Dfc.ProviderPortal.Packages.AzureFunctions.DependencyInjection;
 using Dfc.ProviderPortal.TribalExporter.Interfaces;
 using Microsoft.Azure.Documents.Client;
@@ -67,7 +66,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     };
 
                     var queryResponse = await documentClient.CreateDocumentQuery<Course>(coursesCollectionUri, feedOptions)
-                        .Where(p => p.LearnAimRef == null)
+                        .Where(p => p.LearnAimRef == null || p.QualificationCourseTitle == null)
                         .AsDocumentQuery()
                         .ExecuteNextAsync<Course>();
 
