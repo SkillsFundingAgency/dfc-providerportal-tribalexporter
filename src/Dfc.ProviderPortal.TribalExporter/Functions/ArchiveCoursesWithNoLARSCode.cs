@@ -59,49 +59,58 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 do
                 {
-                    var feedOptions = new FeedOptions()
+                    try
                     {
-                        RequestContinuation = continuation,
-                        EnableCrossPartitionQuery = true
-                    };
-
-                    var queryResponse = await documentClient.CreateDocumentQuery<Course>(coursesCollectionUri, feedOptions)
-                        .Where(p => p.LearnAimRef == null || p.QualificationCourseTitle == null)
-                        .AsDocumentQuery()
-                        .ExecuteNextAsync<Course>();
-
-                    foreach (var doc in queryResponse)
-                    {
-
-                        var providers = ukrlpApiService.GetAllProviders(new List<string> { doc.ProviderUKPRN.ToString() });
-                        var provider = providers.FirstOrDefault();
-
-                        foreach (var courserun in doc.CourseRuns)
+                        var feedOptions = new FeedOptions()
                         {
-                            logCsvWriter.WriteField(doc.ProviderUKPRN);
-                            logCsvWriter.WriteField(provider?.ProviderName);
-                            logCsvWriter.WriteField(courserun.CourseInstanceId);
-                            logCsvWriter.WriteField(doc.CourseId);
-                            logCsvWriter.WriteField(courserun.CourseName);
-                            logCsvWriter.WriteField(courserun.StartDate);
-                            logCsvWriter.WriteField(courserun.Cost);
-                            logCsvWriter.WriteField(courserun.CostDescription);
-                            logCsvWriter.WriteField(courserun.DeliveryMode);
-                            logCsvWriter.WriteField(courserun.AttendancePattern);
-                            logCsvWriter.NextRecord();
+                            RequestContinuation = continuation,
+                            EnableCrossPartitionQuery = true
+                        };
 
-                            courserun.RecordStatus = CourseDirectory.Models.Enums.RecordStatus.Archived;
+                        var queryResponse = await documentClient.CreateDocumentQuery<Course>(coursesCollectionUri, feedOptions)
+                            .Where(p => (p.LearnAimRef == null || p.QualificationCourseTitle == null) && p.CourseStatus != CourseDirectory.Models.Enums.RecordStatus.Archived)
+                            .AsDocumentQuery()
+                            .ExecuteNextAsync<Course>();
+
+                        foreach (var doc in queryResponse)
+                        {
+
+                            var providers = ukrlpApiService.GetAllProviders(new List<string> { doc.ProviderUKPRN.ToString() });
+                            var provider = providers.FirstOrDefault();
+
+                            foreach (var courserun in doc.CourseRuns)
+                            {
+                                logCsvWriter.WriteField(doc.ProviderUKPRN);
+                                logCsvWriter.WriteField(provider?.ProviderName);
+                                logCsvWriter.WriteField(courserun.CourseInstanceId);
+                                logCsvWriter.WriteField(doc.CourseId);
+                                logCsvWriter.WriteField(courserun.CourseName);
+                                logCsvWriter.WriteField(courserun.StartDate);
+                                logCsvWriter.WriteField(courserun.Cost);
+                                logCsvWriter.WriteField(courserun.CostDescription);
+                                logCsvWriter.WriteField(courserun.DeliveryMode);
+                                logCsvWriter.WriteField(courserun.AttendancePattern);
+                                logCsvWriter.NextRecord();
+
+                                courserun.RecordStatus = CourseDirectory.Models.Enums.RecordStatus.Archived;
+                                count++;
+                            }
+
                             count++;
+                            var documentLink = UriFactory.CreateDocumentUri(databaseId, coursesCollectionId, doc.id.ToString());
+                            await documentClient.ReplaceDocumentAsync(documentLink, doc, new RequestOptions()
+                            {
+                                PartitionKey = new Microsoft.Azure.Documents.PartitionKey(doc.ProviderUKPRN)
+                            });
                         }
-
-                        var documentLink = UriFactory.CreateDocumentUri(databaseId, coursesCollectionId, doc.id.ToString());
-                        await documentClient.ReplaceDocumentAsync(documentLink, doc, new RequestOptions()
-                        {
-                            PartitionKey = new Microsoft.Azure.Documents.PartitionKey(doc.ProviderUKPRN)
-                        });
+                        continuation = queryResponse.ResponseContinuation;
                     }
-
-                    continuation = queryResponse.ResponseContinuation;
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                        logger.LogError(e.Message);
+                        continuation = null;
+                    }
                 }
                 while (continuation != null);
 
