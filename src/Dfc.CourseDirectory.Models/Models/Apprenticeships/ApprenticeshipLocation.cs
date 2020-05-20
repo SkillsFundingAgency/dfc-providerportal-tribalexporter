@@ -9,7 +9,7 @@ namespace Dfc.CourseDirectory.Models.Models.Apprenticeships
     public class ApprenticeshipLocation : IApprenticeshipLocation
     {
         public Guid Id { get; set; }
-        public Guid VenueId { get; set; }
+        public Guid? VenueId { get; set; }
         public int? TribalId { get; set; }
         public int ApprenticeshipLocationId { get; set; }
         public Guid? LocationGuidId { get; set; }
