@@ -95,11 +95,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             return lst.OrderByDescending(x => x.CreatedDate).FirstOrDefault();
         }
          
-        public async Task<Venue> GetDocumentByLocationId(int locationId)
+        public async Task<Venue> GetDocumentByLocationId(int locationId, int ukprn)
         {
             var lst = new List<Venue>();
             var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.VenuesCollectionId);
-            var sql = $"SELECT* FROM c WHERE c.LocationId = { locationId }";
+            var sql = $"SELECT* FROM c WHERE c.LocationId = { locationId } AND c.UKPRN={ukprn}";
             var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
             var query = _documentClient.CreateDocumentQuery<Venue>(uri, sql, options).AsDocumentQuery();
             while (query.HasMoreResults)
