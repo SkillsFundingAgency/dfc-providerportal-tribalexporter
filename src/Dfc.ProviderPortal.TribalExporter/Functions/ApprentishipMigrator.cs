@@ -252,7 +252,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     IList<Dfc.CourseDirectory.Models.Models.Venues.Venue> lst = new List<Dfc.CourseDirectory.Models.Models.Venues.Venue>();
                     foreach (var s in locations)
                     {
-                        var venue = await venueCollectionService.GetDocumentByLocationId(s.LocationId);
+                        var venue = await venueCollectionService.GetDocumentByLocationId(s.LocationId, s.UKPRN);
                         if (venue != null)
                         {
                             lst.Add(venue);

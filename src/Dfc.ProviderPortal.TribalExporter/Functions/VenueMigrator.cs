@@ -225,10 +225,16 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 {
                     if (Validate(item))
                     {
-                        var cosmosVenue = await GetVenue(item.Source, item.VenueId, item.LocationID);
+                        var cosmosVenue = await GetVenue(item.Source, item.VenueId, item.LocationID, item.UKPRN);
                         if (cosmosVenue != null)
                         {
                             //var s = UriFactory.CreateDocumentUri(databaseId, venuesCollectionId, cosmosVenue.ID.ToString());
+
+                            if (cosmosVenue.UKPRN != item.UKPRN)
+                            {
+                                continue;
+                            }
+
                             Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, venuesCollectionId);
                             var editedVenue = new Dfc.CourseDirectory.Models.Models.Venues.Venue()
                             {
@@ -310,14 +316,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             log.LogInformation("Migrating Venues Complete");
 
 
-            async Task<Dfc.CourseDirectory.Models.Models.Venues.Venue> GetVenue(VenueSource source, int? venueId, int? locationId)
+            async Task<Dfc.CourseDirectory.Models.Models.Venues.Venue> GetVenue(VenueSource source, int? venueId, int? locationId, int ukprn)
             {
                 switch (source)
                 {
                     case VenueSource.Venue:
                         return await venueCollectionService.GetDocumentByVenueId(venueId.Value);
                     case VenueSource.Location:
-                        return await venueCollectionService.GetDocumentByLocationId(locationId.Value);
+                        return await venueCollectionService.GetDocumentByLocationId(locationId.Value, ukprn);
                     default: return null;
                 }
             }
@@ -392,7 +398,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     return false;
                 }
 
-                if(!item.Address.Latitude.HasValue || !item.Address.Longitude.HasValue)
+                if (!item.Address.Latitude.HasValue || !item.Address.Longitude.HasValue)
                 {
                     AddResultMessage(item.UKPRN, item.VenueId, item.LocationID, "Skiped", $"Skipped Location because Lat/Long are missing,  {item.ProviderId} not on whitelist, ukprn {item.UKPRN}");
                     return false;
