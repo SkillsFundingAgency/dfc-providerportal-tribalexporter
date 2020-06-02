@@ -62,7 +62,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var apprenticeshipList = new List<ApprenticeshipResult>();
             var createdBy = "ApprenticeshipMigrator";
             var createdDate = DateTime.Now;
-            SemaphoreSlim semaphore = new SemaphoreSlim(5); ;
+            SemaphoreSlim semaphore = new SemaphoreSlim(5);
+            var client = cosmosDbHelper.GetClient();
 
             var apprenticeshipSQL = @"SELECT  a.ApprenticeshipId,
 	                                           p.ProviderId,
@@ -184,14 +185,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                         //insert record into cosmos
                         await CreateOrUpdateApprenticeshipRecord(mappedApprenticeship);
-                        
+
                         //log message to output
-                        AddResultMessage(apprenticeship.ApprenticeshipID, 
-                                         apprenticeship.UKPRN, 
-                                         Enum.GetName(typeof(RecordStatus), 
-                                         mappedApprenticeship.RecordStatus), 
-                                         mappedApprenticeship.ApprenticeshipTitle, 
-                                         string.Join("\n", apprenticeshipErrors), 
+                        AddResultMessage(apprenticeship.ApprenticeshipID,
+                                         apprenticeship.UKPRN,
+                                         Enum.GetName(typeof(RecordStatus),
+                                         mappedApprenticeship.RecordStatus),
+                                         mappedApprenticeship.ApprenticeshipTitle,
+                                         string.Join("\n", apprenticeshipErrors),
                                          string.Join("\n", apprenticeshipWarning));
                     }
                     else
@@ -296,7 +297,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                 async Task CreateOrUpdateApprenticeshipRecord(ApprenticeshipDTO app)
                 {
-                    var client = cosmosDbHelper.GetClient();
                     var s = UriFactory.CreateDocumentUri(databaseId, apprenticeshipCollectionId, app.id);
                     Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, apprenticeshipCollectionId);
                     var res = await client.UpsertDocumentAsync(collectionUri, app);
@@ -525,7 +525,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             {
                 lock (result)
                 {
-                    var validateResult = new ApprenticeshipResultMessage() { ApprenticeshipID = apprenticeshipId, Status = status, Message = message, UKPRN = ukprn, ApprenticeshipTitle = apprenticeshipTitle, Warnings=warnings };
+                    var validateResult = new ApprenticeshipResultMessage() { ApprenticeshipID = apprenticeshipId, Status = status, Message = message, UKPRN = ukprn, ApprenticeshipTitle = apprenticeshipTitle, Warnings = warnings };
                     result.Add(validateResult);
                 }
             }

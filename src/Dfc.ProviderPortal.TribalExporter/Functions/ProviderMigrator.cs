@@ -44,7 +44,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var providerCollectionId = configuration["CosmosDbCollectionSettings:ProvidersCollectionId"];
             var connectionString = configuration.GetConnectionString("TribalRestore");
             var venueExportFileName = $"ProviderExport-{DateTime.Now.ToString("dd-MM-yy HHmm")}";
-
+            var _cosmosClient = cosmosDbHelper.GetClient();
             var blobContainer = blobhelper.GetBlobContainer(configuration["BlobStorageSettings:Container"]);
 
             log.LogInformation($"WhitelistProviders : Start loading...");
@@ -64,7 +64,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             int totalAttemptedCount = 0;
             int totalUpdatedCount = 0;
             int totalInsertedCount = 0;
-       
+
             var result = new List<ProviderResultMessage>();
 
             using (var sqlConnection = new SqlConnection(connectionString))
@@ -146,62 +146,61 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                         using (SqlDataReader dataReader = command.ExecuteReader())
                         {
-                            using (var _cosmosClient = cosmosDbHelper.GetClient())
+
+                            while (dataReader.Read())
                             {
-                                while (dataReader.Read())
+                                // 1) Read provider data from Tribal
+                                var item = ProviderSource.FromDataReader(dataReader);
+                                totalTribalCount++;
+
+                                try
                                 {
-                                    // 1) Read provider data from Tribal
-                                    var item = ProviderSource.FromDataReader(dataReader);
-                                    totalTribalCount++;
-
-                                    try
+                                    // 2) Check if in Whitelist
+                                    if (!whiteListProviders.Any(x => x == item.UKPRN))
                                     {
-                                        // 2) Check if in Whitelist
-                                        if (!whiteListProviders.Any(x => x == item.UKPRN))
-                                        {
-                                            AddResultMessage(item.ProviderId, "SKIPPED-NotOnWhitelist", $"Provider {item.ProviderId} not on whitelist, ukprn {item.UKPRN}");
-                                            continue;
-                                        }
-
-                                        totalAttemptedCount++;
-
-                                        // 3) Check againts API ? If no match Add to Result Message, skip next
-                                        var ukrlpProviderItem = ukrlpApiProviders.FirstOrDefault(p => p.UnitedKingdomProviderReferenceNumber.Trim() == item.UKPRN.ToString());
-                                        if (ukrlpProviderItem == null)
-                                        {
-                                            AddResultMessage(item.ProviderId, "SKIPPED-NotInUkrlpApi", $"Provider {item.ProviderId} cannot be found in UKRLP Api, ukprn {item.UKPRN}");
-                                            continue;
-                                        }
-
-                                        // 4) Build Cosmos collection record
-                                        var providerToUpsert = BuildNewCosmosProviderItem(ukrlpProviderItem, item);
-                                        var cosmosProviderItem = await providerCollectionService.GetDocumentByUkprn(item.UKPRN);
-
-                                        if (cosmosProviderItem != null)
-                                        {
-                                            Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, providerCollectionId);
-
-                                            await _cosmosClient.UpsertDocumentAsync(collectionUri, UpdateCosmosProviderItem(cosmosProviderItem, providerToUpsert));
-                                            totalUpdatedCount++;
-
-                                            AddResultMessage(item.ProviderId, "PROCESSED-Updated", $"Provider {item.ProviderId} updated in Cosmos Collection, ukprn {item.UKPRN}");
-                                        }
-                                        else
-                                        {
-                                            await cosmosDbHelper.CreateDocumentAsync(_cosmosClient, providerCollectionId, providerToUpsert);
-                                            totalInsertedCount++;
-
-                                            AddResultMessage(item.ProviderId, "PROCESSED-Inserted", $"Provider {item.ProviderId} inserted in Cosmos Collection, ukprn {item.UKPRN}");
-                                        }
+                                        AddResultMessage(item.ProviderId, "SKIPPED-NotOnWhitelist", $"Provider {item.ProviderId} not on whitelist, ukprn {item.UKPRN}");
+                                        continue;
                                     }
-                                    catch (Exception ex)
+
+                                    totalAttemptedCount++;
+
+                                    // 3) Check againts API ? If no match Add to Result Message, skip next
+                                    var ukrlpProviderItem = ukrlpApiProviders.FirstOrDefault(p => p.UnitedKingdomProviderReferenceNumber.Trim() == item.UKPRN.ToString());
+                                    if (ukrlpProviderItem == null)
                                     {
-                                        string errorMessage = $"Error processing Provider {item.ProviderId} with Ukprn {item.UKPRN}. {ex.Message}";
-                                        AddResultMessage(item.ProviderId, "ERRORED", errorMessage);
-                                        log.LogInformation(errorMessage);
+                                        AddResultMessage(item.ProviderId, "SKIPPED-NotInUkrlpApi", $"Provider {item.ProviderId} cannot be found in UKRLP Api, ukprn {item.UKPRN}");
+                                        continue;
+                                    }
+
+                                    // 4) Build Cosmos collection record
+                                    var providerToUpsert = BuildNewCosmosProviderItem(ukrlpProviderItem, item);
+                                    var cosmosProviderItem = await providerCollectionService.GetDocumentByUkprn(item.UKPRN);
+
+                                    if (cosmosProviderItem != null)
+                                    {
+                                        Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, providerCollectionId);
+
+                                        await _cosmosClient.UpsertDocumentAsync(collectionUri, UpdateCosmosProviderItem(cosmosProviderItem, providerToUpsert));
+                                        totalUpdatedCount++;
+
+                                        AddResultMessage(item.ProviderId, "PROCESSED-Updated", $"Provider {item.ProviderId} updated in Cosmos Collection, ukprn {item.UKPRN}");
+                                    }
+                                    else
+                                    {
+                                        await cosmosDbHelper.CreateDocumentAsync(_cosmosClient, providerCollectionId, providerToUpsert);
+                                        totalInsertedCount++;
+
+                                        AddResultMessage(item.ProviderId, "PROCESSED-Inserted", $"Provider {item.ProviderId} inserted in Cosmos Collection, ukprn {item.UKPRN}");
                                     }
                                 }
+                                catch (Exception ex)
+                                {
+                                    string errorMessage = $"Error processing Provider {item.ProviderId} with Ukprn {item.UKPRN}. {ex.Message}";
+                                    AddResultMessage(item.ProviderId, "ERRORED", errorMessage);
+                                    log.LogInformation(errorMessage);
+                                }
                             }
+
                             dataReader.Close();
                         }
 
@@ -227,7 +226,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             }
 
             Provider BuildNewCosmosProviderItem(ProviderRecordStructure ukrlpData, ProviderSource tribalData)
-             {
+            {
                 // Build contacts
                 List<Providercontact> providercontacts = new List<Providercontact>();
                 var ukrlpDataContacts = ukrlpData.ProviderContact
@@ -235,7 +234,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                                     .OrderByDescending(c => c.LastUpdated);
 
                 // Load UKRLP api contacts if available
-                if(ukrlpDataContacts.Any())
+                if (ukrlpDataContacts.Any())
                 {
                     var ukrlpContact = ukrlpDataContacts.First();
 
@@ -280,7 +279,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 else
                 {
                     // Check if valid Tribal Address exists
-                    if(tribalData.IsValidAddress)
+                    if (tribalData.IsValidAddress)
                     {
                         // Build contact address
                         Contactaddress tribalContactaddress = new Contactaddress()
@@ -363,8 +362,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             {
                 cosmosProviderItem.Alias = providerToUpsert.Alias;
                 cosmosProviderItem.ExpiryDateSpecified = providerToUpsert.ExpiryDateSpecified;
-                cosmosProviderItem.MarketingInformation = providerToUpsert.MarketingInformation; 
-                cosmosProviderItem.NationalApprenticeshipProvider = providerToUpsert.NationalApprenticeshipProvider; 
+                cosmosProviderItem.MarketingInformation = providerToUpsert.MarketingInformation;
+                cosmosProviderItem.NationalApprenticeshipProvider = providerToUpsert.NationalApprenticeshipProvider;
                 cosmosProviderItem.PassedOverallQAChecks = providerToUpsert.PassedOverallQAChecks;
                 cosmosProviderItem.ProviderAliases = providerToUpsert.ProviderAliases;
                 cosmosProviderItem.ProviderAssociations = providerToUpsert.ProviderAssociations;
@@ -379,7 +378,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 cosmosProviderItem.RoATPProviderTypeId = providerToUpsert.RoATPProviderTypeId;
                 cosmosProviderItem.RoATPStartDate = providerToUpsert.RoATPStartDate;
                 cosmosProviderItem.Status = providerToUpsert.Status;
-                cosmosProviderItem.TradingName = providerToUpsert.TradingName; 
+                cosmosProviderItem.TradingName = providerToUpsert.TradingName;
                 cosmosProviderItem.UnitedKingdomProviderReferenceNumber = providerToUpsert.UnitedKingdomProviderReferenceNumber;
                 cosmosProviderItem.UPIN = providerToUpsert.UPIN;
                 cosmosProviderItem.VerificationDetails = providerToUpsert.VerificationDetails;
@@ -429,9 +428,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
         private static ProviderType GetProviderType(int hasCourse, int hasApprenticeship)
         {
-            if (hasCourse == 1 && hasApprenticeship ==1)
+            if (hasCourse == 1 && hasApprenticeship == 1)
                 return ProviderType.Both;
-            else if (hasCourse == 1  && hasApprenticeship != 1)
+            else if (hasCourse == 1 && hasApprenticeship != 1)
                 return ProviderType.FE;
             else if (hasCourse != 1 && hasApprenticeship == 1)
                 return ProviderType.Apprenticeship;
