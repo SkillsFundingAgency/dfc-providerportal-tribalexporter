@@ -1,16 +1,14 @@
-﻿using Dfc.ProviderPortal.Packages.AzureFunctions.DependencyInjection;
+﻿using Dfc.CourseDirectory.Models.Models.Apprenticeships;
+using Dfc.ProviderPortal.Packages.AzureFunctions.DependencyInjection;
 using Dfc.ProviderPortal.TribalExporter.Interfaces;
 using Microsoft.Azure.Documents.Client;
+using Microsoft.Azure.Documents.Linq;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
 using System.Linq;
-using Dfc.CourseDirectory.Models.Models.Apprenticeships;
-using Microsoft.Azure.Documents.Linq;
+using System.Threading.Tasks;
 
 namespace Dfc.ProviderPortal.TribalExporter.Functions
 {
@@ -26,8 +24,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                         [Inject] ILoggerFactory loggerFactory,
                                         [Inject] IBlobStorageHelper blobhelper)
         {
-            var whitelistFileName = "ProviderWhiteList.txt";
-            var pendingCoursesFileName = $"CoursesWithNoCostOrCostDecription-{DateTime.Now.ToString("dd-MM-yy HHmm")}";
             var blobContainer = configuration["BlobStorageSettings:Container"];
             var outputContainer = blobhelper.GetBlobContainer(configuration["BlobStorageSettings:Container"]);
             var databaseId = configuration["CosmosDbSettings:DatabaseId"];
@@ -36,30 +32,29 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var apprenticeshipCollectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, apprenticeshipCollectionId);
             var logger = loggerFactory.CreateLogger(typeof(ArchiveOldMigratedApprenticeships));
             int count = 0;
-            var whitelist = await GetProviderWhiteList();
             var updatedBy = "ArchiveOldMigratedApprenticeships";
 
 
-            foreach (var ukprn in whitelist)
+            string continuation = null;
+            do
             {
-                string continuation = null;
-                do
+                var feedOptions = new FeedOptions()
                 {
-                    var feedOptions = new FeedOptions()
-                    {
-                        RequestContinuation = continuation,
-                        PartitionKey = new Microsoft.Azure.Documents.PartitionKey(ukprn)
-                    };
+                    RequestContinuation = continuation,
+                    EnableCrossPartitionQuery = true
+                };
 
-                    //try/catch required as there are Apprenticeship records that are not valid (venueId is null in cosmos).
-                    try
-                    {
-                        var queryResponse = await documentClient.CreateDocumentQuery<Apprenticeship>(apprenticeshipCollectionUri, feedOptions)
-                            .Where(p => p.ProviderUKPRN == ukprn && p.CreatedBy == "DFC – Apprenticeship Migration Tool" && p.RecordStatus == CourseDirectory.Models.Enums.RecordStatus.MigrationPending)
-                            .AsDocumentQuery()
-                            .ExecuteNextAsync<Apprenticeship>();
+                //try/catch required as there are Apprenticeship records that are not valid (venueId is null in cosmos).
+                try
+                {
+                    var queryResponse = await documentClient.CreateDocumentQuery<Apprenticeship>(apprenticeshipCollectionUri, feedOptions)
+                        .Where(p => p.CreatedBy == "DFC – Apprenticeship Migration Tool")
+                        .AsDocumentQuery()
+                        .ExecuteNextAsync<Apprenticeship>();
 
-                        foreach (var doc in queryResponse)
+                    foreach (var doc in queryResponse)
+                    {
+                        if (doc.RecordStatus.HasFlag(CourseDirectory.Models.Enums.RecordStatus.MigrationPending) || doc.RecordStatus == CourseDirectory.Models.Enums.RecordStatus.Live)
                         {
                             //mark every location as arhived
                             foreach (var loc in doc.ApprenticeshipLocations)
@@ -70,51 +65,23 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             doc.UpdatedBy = updatedBy;
 
                             var documentLink = UriFactory.CreateDocumentUri(databaseId, apprenticeshipCollectionId, doc.id.ToString());
-                            await documentClient.ReplaceDocumentAsync(documentLink, doc, new RequestOptions()
-                            {
-                                PartitionKey = new Microsoft.Azure.Documents.PartitionKey(ukprn)
-                            });
+                            await documentClient.ReplaceDocumentAsync(documentLink, doc, new RequestOptions());
 
                             count++;
                         }
-                        continuation = queryResponse.ResponseContinuation;
                     }
-                    catch (Exception e)
-                    {
-                        continuation = null;
-                    }
+                    continuation = queryResponse.ResponseContinuation;
                 }
-                while (continuation != null);
+                catch (Exception e)
+                {
+                    continuation = null;
+                }
             }
+            while (continuation != null);
 
             logger.LogInformation($"Archived {count} Apprenticeships");
             Console.WriteLine($"Archived {count} Apprenticeships");
 
-            async Task<ISet<int>> GetProviderWhiteList()
-            {
-                var blob = blobHelper.GetBlobContainer(blobContainer).GetBlockBlobReference(whitelistFileName);
-
-                var ms = new MemoryStream();
-                await blob.DownloadToStreamAsync(ms);
-                ms.Seek(0L, SeekOrigin.Begin);
-
-                var results = new HashSet<int>();
-                string line;
-                using (var reader = new StreamReader(ms))
-                {
-                    while ((line = reader.ReadLine()) != null)
-                    {
-                        if (string.IsNullOrEmpty(line))
-                        {
-                            continue;
-                        }
-
-                        var ukprn = int.Parse(line);
-                        results.Add(ukprn);
-                    }
-                }
-                return results;
-            }
         }
     }
 }
