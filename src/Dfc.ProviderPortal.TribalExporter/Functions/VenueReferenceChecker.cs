@@ -174,7 +174,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     }
                     catch (Exception e)
                     {
-                        //do nothing as not interested in error
+                        log.LogError(e.Message, e);
                     }
                 }
 
@@ -190,6 +190,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     {
                         ukprnsThatFailedToFetchVenues++;
                         Console.WriteLine($"{ukprn} - failed to fetch venues");
+                        log.LogError(e.Message, e);
                     }
                 }
 

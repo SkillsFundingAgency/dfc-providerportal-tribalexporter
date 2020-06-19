@@ -149,6 +149,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     }
                     catch (Exception e)
                     {
+                        log.LogError(e.Message, e);
                         Console.WriteLine("error occurred while fetching data");
                     }
 
