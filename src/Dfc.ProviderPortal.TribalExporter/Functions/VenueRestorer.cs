@@ -34,8 +34,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     [Inject] IBlobStorageHelper blobhelper
                     )
         {
-            var venuesCollectionId = configuration["CosmosDbCollectionSettings:VenuesCollectionId"];
             var connectionString = configuration.GetConnectionString("TribalRestore");
+            var venuesCollectionId = configuration["CosmosDbCollectionSettings:VenuesCollectionId"];
             var blobContainer = configuration["BlobStorageSettings:Container"];
             var container = configuration["BlobStorageSettings:Container"];
             var whiteListProviders = await GetProviderWhiteList();
@@ -57,8 +57,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var invalidCourseRunReferences = 0;
             var totalInvalidCourseRunReferences = 0;
             var uniqueInvalidVenues = new HashSet<string>();
-            var replacedInvalidVenues = new HashSet<string>();
+            var replacedInvalidVenues = new HashSet<Venue>();
             var providerList = new HashSet<int>();
+            var rereferencedApprenticeshipLocations = 0;
 
             //provider scoped totals
             var totalInvalidApprenticeshipLocationReferences = 0;
@@ -104,7 +105,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                         if (oldVenue != null && oldVenue.UKPRN == course.ProviderUKPRN)
                                         {
                                             await ReplaceVenue(currentVenue.ID, oldVenue);
-                                            replacedInvalidVenues.Add(currentVenue.ID);
+
+                                            //the venue that was referenced needs to be inserted again but with a new id.
+                                            await ReplaceVenue(Guid.NewGuid().ToString(), currentVenue);
+
+                                            //reload venues as we have just replaced a venue
+                                            venues = await GetVenues(ukprn);
+
+                                            replacedInvalidVenues.Add(currentVenue);
                                         }
 
                                         //invalid references
@@ -130,16 +138,27 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 {
                                     var currentVenue = await GetVenueById(location.VenueId?.ToString());
 
-                                    if (currentVenue != null && currentVenue.UKPRN != location.ProviderUKPRN)
+                                    if (currentVenue != null && currentVenue.UKPRN != apprenticeship.ProviderUKPRN)
                                     {
-                                        var oldVenue = old_venues.FirstOrDefault(x => x.ID == currentVenue.ID);
+                                        var oldVenue = old_venues.FirstOrDefault(x => new Guid(x.ID) == location.VenueId);
 
                                         //replace existing venue with old venue if a match is found
                                         if (oldVenue != null && oldVenue.UKPRN == apprenticeship.ProviderUKPRN)
                                         {
                                             Console.WriteLine($"Invalid Apprenticeship location, apprenticeship should reference {oldVenue.VenueName}");
+                                            
+                                            //old venue from json backup is the correct venue that should be referenced
+                                            //swap venues
                                             await ReplaceVenue(currentVenue.ID, oldVenue);
-                                            replacedInvalidVenues.Add(currentVenue.ID);
+
+                                            //the venue that was referenced needs to be inserted again but with a new id.
+                                            await ReplaceVenue(Guid.NewGuid().ToString(), currentVenue);
+
+                                            //reload venues as we have just replaced a venue
+                                            venues = await GetVenues(ukprn);
+
+                                            //keep a track of the incorrect venue, these will be inserted with a new id.
+                                            replacedInvalidVenues.Add(currentVenue);
                                         }
                                     }
                                 }
@@ -157,8 +176,10 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     Console.WriteLine($"{invalidCourseRunReferences} invalid venue references for {ukprn}");
                     Console.WriteLine($"{invalidApprenticeshipLocationReferences} invalid apprenticeship references for {ukprn}");
                     Console.WriteLine($"{providerList.Count()} providers affected");
+                    Console.WriteLine($"{rereferencedApprenticeshipLocations} apprenticeship locations were rereferenced");
                 }
 
+                //write csv file
                 foreach (var id in providerList)
                 {
                     logCsvWriter.WriteField(id);

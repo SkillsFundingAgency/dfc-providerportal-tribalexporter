@@ -130,7 +130,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                     //venue exists in cosmos
                                     if (currentVenue != null)
                                     {
-                                        if (location.ProviderUKPRN != currentVenue.UKPRN)
+                                        if (location.ProviderId != currentVenue.ProviderID)
                                         {
                                             uniqueInvalidVenues.Add(location.VenueId.ToString());
                                             invalidApprenticeshipLocationReferences++;
@@ -138,14 +138,14 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                                         result.Add(new VenueReference()
                                         {
-                                            UKPRN = location.ProviderUKPRN,
+                                            UKPRN = apprenticeship.ProviderUKPRN,
                                             VenueId = location.VenueId.ToString(),
                                             VenueUKPRN = currentVenue.UKPRN,
                                             Address1 = currentVenue.Address1,
                                             Postcode = currentVenue.PostCode,
                                             VenueName = currentVenue.VenueName,
-                                            UKPRNMatched = (location.ProviderUKPRN == currentVenue.UKPRN),
-                                            Message = (location.ProviderUKPRN == currentVenue.UKPRN) ? "Venue UKPRN Matches Course UKPRN" : "Venue UKPRN Does not match Course UKPRN",
+                                            UKPRNMatched = (location.ProviderId == currentVenue.ProviderID),
+                                            Message = (apprenticeship.ProviderUKPRN == currentVenue.UKPRN) ? "Venue UKPRN Matches Apprenticeship UKPRN" : "Venue UKPRN Does not match Apprenticeship UKPRN",
                                             Type = "Apprenticeship"
                                         });
                                     }
@@ -153,7 +153,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                     {
                                         result.Add(new VenueReference()
                                         {
-                                            UKPRN = location.ProviderUKPRN,
+                                            UKPRN = apprenticeship.ProviderUKPRN,
                                             UKPRNMatched = false,
                                             VenueUKPRN = -1,
                                             VenueId = location.VenueId.ToString(),
@@ -188,9 +188,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     }
                     catch (Exception e)
                     {
-                        ukprnsThatFailedToFetchVenues++;
-                        Console.WriteLine($"{ukprn} - failed to fetch venues");
                         log.LogError(e.Message, e);
+                        Console.WriteLine($"{ukprn} - failed to fetch venues");
+                        ukprnsThatFailedToFetchVenues++;
                     }
                 }
 
