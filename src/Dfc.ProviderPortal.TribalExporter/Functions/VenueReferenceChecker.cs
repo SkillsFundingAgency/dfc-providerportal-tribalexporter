@@ -50,7 +50,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
             var result = new List<VenueReference>();
             const string WHITE_LIST_FILE = "ProviderWhiteList.txt";
-            
+
             //counters
             var ukprnsThatFailedToFetchVenues = 0;
             var uniqueInvalidVenues = new HashSet<string>();
@@ -103,11 +103,34 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                             invalidCourseRunReferences++;
                                         }
 
-                                        result.Add(new VenueReference() { UKPRN = course.ProviderUKPRN, VenueId = courserun.VenueId.ToString(), VenueUKPRN = currentVenue.UKPRN, Address1 = currentVenue.Address1, Postcode = currentVenue.PostCode, VenueName = currentVenue.VenueName, UKPRNMatched = (course.ProviderUKPRN == currentVenue.UKPRN), Message = (course.ProviderUKPRN == currentVenue.UKPRN) ? "Venue UKPRN Matches Course UKPRN" : "Venue UKPRN Does not match Course UKPRN", Type = "Course" });
+                                        result.Add(new VenueReference()
+                                        {
+                                            UKPRN = course.ProviderUKPRN,
+                                            VenueId = courserun.VenueId.ToString(),
+                                            VenueUKPRN = currentVenue.UKPRN,
+                                            Address1 = currentVenue.Address1,
+                                            Postcode = currentVenue.PostCode,
+                                            VenueName = currentVenue.VenueName,
+                                            UKPRNMatched = (course.ProviderUKPRN == currentVenue.UKPRN),
+                                            Message = (course.ProviderUKPRN == currentVenue.UKPRN) ? "Venue UKPRN Matches Course UKPRN" : "Venue UKPRN Does not match Course UKPRN",
+                                            Type = "Course",
+                                            CourseId = course.id,
+                                            CourseRunId = courserun.id
+                                        });
                                     }
                                     else
                                     {
-                                        result.Add(new VenueReference() { UKPRN = course.ProviderUKPRN, UKPRNMatched = false, VenueUKPRN = -1, VenueId = courserun.VenueId.ToString(), Message = "VenueId does not exist in venues", Type = "Course" });
+                                        result.Add(new VenueReference()
+                                        {
+                                            UKPRN = course.ProviderUKPRN,
+                                            UKPRNMatched = false,
+                                            VenueUKPRN = -1,
+                                            VenueId = courserun.VenueId.ToString(),
+                                            Message = "VenueId does not exist in venues",
+                                            Type = "Course",
+                                            CourseId = course.id,
+                                            CourseRunId = courserun.id
+                                        });
                                     }
                                 }
                             }
@@ -136,6 +159,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                             invalidApprenticeshipLocationReferences++;
                                         }
 
+                                        //apprenticeshipId
                                         result.Add(new VenueReference()
                                         {
                                             UKPRN = apprenticeship.ProviderUKPRN,
@@ -146,7 +170,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                             VenueName = currentVenue.VenueName,
                                             UKPRNMatched = (location.ProviderId == currentVenue.ProviderID),
                                             Message = (apprenticeship.ProviderUKPRN == currentVenue.UKPRN) ? "Venue UKPRN Matches Apprenticeship UKPRN" : "Venue UKPRN Does not match Apprenticeship UKPRN",
-                                            Type = "Apprenticeship"
+                                            Type = "Apprenticeship",
+                                            ApprenticeshipId = apprenticeship.id
                                         });
                                     }
                                     else
@@ -158,7 +183,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                             VenueUKPRN = -1,
                                             VenueId = location.VenueId.ToString(),
                                             Type = "Apprenticeship",
-                                            Message = "VenueId does not exist in venues"
+                                            Message = "VenueId does not exist in venues",
+                                            ApprenticeshipId = apprenticeship.id
                                         });
                                     }
                                 }
@@ -380,5 +406,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
         public bool UKPRNMatched { get; set; }
         public string Message { get; set; }
         public string Type { get; set; }
+        public Guid? ApprenticeshipId { get; set; }
+        public Guid? CourseRunId { get; set; }
+        public Guid? CourseId { get; set; }
     }
 }
