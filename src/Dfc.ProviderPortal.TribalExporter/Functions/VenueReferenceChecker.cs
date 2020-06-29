@@ -397,17 +397,17 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
     public class VenueReference
     {
+        public Guid? ApprenticeshipId { get; set; }
+        public Guid? CourseRunId { get; set; }
+        public Guid? CourseId { get; set; }
         public int UKPRN { get; set; }
         public string VenueId { get; set; }
         public int VenueUKPRN { get; set; }
         public string VenueName { get; set; }
         public string Address1 { get; set; }
         public string Postcode { get; set; }
-        public bool UKPRNMatched { get; set; }
         public string Message { get; set; }
         public string Type { get; set; }
-        public Guid? ApprenticeshipId { get; set; }
-        public Guid? CourseRunId { get; set; }
-        public Guid? CourseId { get; set; }
+        public bool UKPRNMatched { get; set; }
     }
 }
