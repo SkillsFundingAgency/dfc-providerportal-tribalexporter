@@ -153,7 +153,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                     //venue exists in cosmos
                                     if (currentVenue != null)
                                     {
-                                        if (location.ProviderId != currentVenue.ProviderID)
+                                        if (location.ProviderUKPRN != currentVenue.UKPRN)
                                         {
                                             uniqueInvalidVenues.Add(location.VenueId.ToString());
                                             invalidApprenticeshipLocationReferences++;
@@ -163,12 +163,13 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                         result.Add(new VenueReference()
                                         {
                                             UKPRN = apprenticeship.ProviderUKPRN,
+                                            ApprenticeshipLocationUKPRN = location.ProviderUKPRN,
                                             VenueId = location.VenueId.ToString(),
                                             VenueUKPRN = currentVenue.UKPRN,
                                             Address1 = currentVenue.Address1,
                                             Postcode = currentVenue.PostCode,
                                             VenueName = currentVenue.VenueName,
-                                            UKPRNMatched = (location.ProviderId == currentVenue.ProviderID),
+                                            UKPRNMatched = (location.ProviderUKPRN == currentVenue.UKPRN),
                                             Message = (apprenticeship.ProviderUKPRN == currentVenue.UKPRN) ? "Venue UKPRN Matches Apprenticeship UKPRN" : "Venue UKPRN Does not match Apprenticeship UKPRN",
                                             Type = "Apprenticeship",
                                             ApprenticeshipId = apprenticeship.id
@@ -179,6 +180,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                         result.Add(new VenueReference()
                                         {
                                             UKPRN = apprenticeship.ProviderUKPRN,
+                                            ApprenticeshipLocationUKPRN = location.ProviderUKPRN,
                                             UKPRNMatched = false,
                                             VenueUKPRN = -1,
                                             VenueId = location.VenueId.ToString(),
@@ -400,6 +402,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
         public Guid? ApprenticeshipId { get; set; }
         public Guid? CourseRunId { get; set; }
         public Guid? CourseId { get; set; }
+        public int? ApprenticeshipLocationUKPRN { get; set; }
         public int UKPRN { get; set; }
         public string VenueId { get; set; }
         public int VenueUKPRN { get; set; }
