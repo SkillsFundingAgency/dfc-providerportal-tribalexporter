@@ -53,6 +53,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var result = new List<ResultMessage>();
             const string WHITE_LIST_FILE = "ProviderWhiteList.txt";
             var ukprnCache = new List<int>();
+            var updatedBy = "VenueRestorer";
 
             //grand totals
             var invalidCourseRunReferences = 0;
@@ -105,11 +106,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                         //replace existing venue with old venue if a match is found
                                         if (oldVenue != null && oldVenue.UKPRN == course.ProviderUKPRN)
                                         {
-                                            await ReplaceVenue(currentVenue.ID, oldVenue);
+                                            await ReplaceVenue(currentVenue.ID, oldVenue, updatedBy);
 
                                             //the venue that was referenced needs to be inserted again but with a new id.
                                             var newId = Guid.NewGuid();
-                                            await ReplaceVenue(newId.ToString(), currentVenue);
+                                            await ReplaceVenue(newId.ToString(), currentVenue, updatedBy);
 
                                             //reload venues as we have just replaced a venue
                                             venues = await GetVenues(ukprn);
@@ -173,25 +174,25 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             foreach (var location in apprenticeship.ApprenticeshipLocations)
                             {
                                 //only apprenticeshiplocations that references a venue (classroom based or both)
-                                if (location.VenueId.HasValue && location.VenueId != Guid.Empty)
+                                if (location.VenueId.HasValue && location.LocationGuidId.HasValue && location.LocationGuidId != Guid.Empty)
                                 {
                                     var currentVenue = await GetVenueById(location.VenueId?.ToString());
 
                                     if (currentVenue != null && currentVenue.UKPRN != apprenticeship.ProviderUKPRN)
                                     {
-                                        var oldVenue = old_venues.FirstOrDefault(x => new Guid(x.ID) == location.VenueId);
+                                        var oldVenue = old_venues.FirstOrDefault(x => new Guid(x.ID) == location.LocationGuidId);
 
                                         //replace existing venue with old venue if a match is found
                                         if (oldVenue != null && oldVenue.UKPRN == apprenticeship.ProviderUKPRN)
                                         {
                                             Console.WriteLine($"Invalid Apprenticeship location, apprenticeship should reference {oldVenue.VenueName}");
-                                            
+
                                             //old venue from json backup is the correct venue that should be referenced
                                             //swap venues
-                                            await ReplaceVenue(currentVenue.ID, oldVenue);
+                                            await ReplaceVenue(currentVenue.ID, oldVenue, updatedBy);
 
                                             //the venue that was referenced needs to be inserted again but with a new id.
-                                            await ReplaceVenue(Guid.NewGuid().ToString(), currentVenue);
+                                            await ReplaceVenue(Guid.NewGuid().ToString(), currentVenue, updatedBy);
 
                                             //reload venues as we have just replaced a venue
                                             venues = await GetVenues(ukprn);
@@ -203,7 +204,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                             {
                                                 UKPRN = apprenticeship.ProviderUKPRN,
                                                 ApprenticeshipLocationUKPRN = location.ProviderUKPRN,
-                                                VenueId = location.VenueId.ToString(),
+                                                VenueId = location.LocationGuidId.ToString(),
                                                 CurrentVenueUKPRN = currentVenue.UKPRN,
                                                 CurrentAddress1 = currentVenue.Address1,
                                                 CurrentPostcode = currentVenue.PostCode,
@@ -226,7 +227,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                                 ApprenticeshipLocationUKPRN = location.ProviderUKPRN,
                                                 UKPRNMatched = false,
                                                 CurrentVenueUKPRN = -1,
-                                                VenueId = location.VenueId.ToString(),
+                                                VenueId = location.LocationGuidId.ToString(),
                                                 Type = "Apprenticeship",
                                                 Message = "Unable to replace Venue, as old venue was not found in backup",
                                                 ApprenticeshipId = apprenticeship.id
@@ -401,7 +402,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 return results;
             }
 
-            async Task ReplaceVenue(string id, Venue matchedVenue)
+            async Task ReplaceVenue(string id, Venue matchedVenue, string updatedby)
             {
                 Uri collectionUri = UriFactory.CreateDocumentCollectionUri(databaseId, venuesCollectionId);
                 var editedVenue = new Dfc.CourseDirectory.Models.Models.Venues.Venue()
@@ -417,7 +418,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     Latitude = matchedVenue.Latitude,
                     Longitude = matchedVenue.Longitude,
                     Status = matchedVenue.Status,
-                    UpdatedBy = matchedVenue.UpdatedBy,
+                    UpdatedBy = updatedBy,
                     DateUpdated = matchedVenue.DateUpdated,
                     VenueID = matchedVenue.VenueID,
                     ProviderID = matchedVenue.ProviderID,
