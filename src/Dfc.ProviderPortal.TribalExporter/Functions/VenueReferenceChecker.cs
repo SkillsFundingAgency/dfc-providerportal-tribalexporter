@@ -169,7 +169,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                             Address1 = currentVenue.Address1,
                                             Postcode = currentVenue.PostCode,
                                             VenueName = currentVenue.VenueName,
-                                            UKPRNMatched = (location.ProviderUKPRN == currentVenue.UKPRN),
+                                            UKPRNMatched = (apprenticeship.ProviderUKPRN == currentVenue.UKPRN),
                                             Message = (apprenticeship.ProviderUKPRN == currentVenue.UKPRN) ? "Venue UKPRN Matches Apprenticeship UKPRN" : "Venue UKPRN Does not match Apprenticeship UKPRN",
                                             Type = "Apprenticeship",
                                             ApprenticeshipId = apprenticeship.id
