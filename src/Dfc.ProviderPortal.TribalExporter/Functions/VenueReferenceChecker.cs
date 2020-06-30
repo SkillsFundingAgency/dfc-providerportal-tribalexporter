@@ -147,9 +147,9 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                             foreach (var location in apprenticeship.ApprenticeshipLocations)
                             {
                                 //only apprenticeshiplocations that references a venue (classroom based or both)
-                                if (location.VenueId.HasValue && location.VenueId != Guid.Empty)
+                                if (location.VenueId.HasValue && location.LocationGuidId.HasValue && location.LocationGuidId != Guid.Empty)
                                 {
-                                    var currentVenue = await GetVenueById(location.VenueId?.ToString());
+                                    var currentVenue = await GetVenueById(location.LocationGuidId.ToString());
 
                                     //venue exists in cosmos
                                     if (currentVenue != null)
@@ -165,7 +165,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                         {
                                             UKPRN = apprenticeship.ProviderUKPRN,
                                             ApprenticeshipLocationUKPRN = location.ProviderUKPRN,
-                                            VenueId = location.VenueId.ToString(),
+                                            VenueId = location.LocationGuidId.ToString(),
                                             VenueUKPRN = currentVenue.UKPRN,
                                             Address1 = currentVenue.Address1,
                                             Postcode = currentVenue.PostCode,
@@ -184,7 +184,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                             ApprenticeshipLocationUKPRN = location.ProviderUKPRN,
                                             UKPRNMatched = false,
                                             VenueUKPRN = -1,
-                                            VenueId = location.VenueId.ToString(),
+                                            VenueId = location.LocationGuidId.ToString(),
                                             Type = "Apprenticeship",
                                             Message = "VenueId does not exist in venues",
                                             ApprenticeshipId = apprenticeship.id
