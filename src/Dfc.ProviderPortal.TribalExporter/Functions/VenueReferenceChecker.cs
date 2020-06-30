@@ -4,6 +4,7 @@ using Dfc.CourseDirectory.Models.Models.Courses;
 using Dfc.CourseDirectory.Models.Models.Venues;
 using Dfc.ProviderPortal.Packages.AzureFunctions.DependencyInjection;
 using Dfc.ProviderPortal.TribalExporter.Interfaces;
+using Dfc.ProviderPortal.TribalExporter.Models.Dfc;
 using Microsoft.Azure.Documents.Client;
 using Microsoft.Azure.Documents.Linq;
 using Microsoft.Azure.WebJobs;
@@ -395,22 +396,5 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 return list;
             }
         }
-    }
-
-    public class VenueReference
-    {
-        public Guid? ApprenticeshipId { get; set; }
-        public Guid? CourseRunId { get; set; }
-        public Guid? CourseId { get; set; }
-        public int? ApprenticeshipLocationUKPRN { get; set; }
-        public int UKPRN { get; set; }
-        public string VenueId { get; set; }
-        public int VenueUKPRN { get; set; }
-        public string VenueName { get; set; }
-        public string Address1 { get; set; }
-        public string Postcode { get; set; }
-        public string Message { get; set; }
-        public string Type { get; set; }
-        public bool UKPRNMatched { get; set; }
     }
 }

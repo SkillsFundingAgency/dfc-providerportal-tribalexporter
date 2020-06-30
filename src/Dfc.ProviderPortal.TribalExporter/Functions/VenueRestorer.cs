@@ -4,6 +4,7 @@ using Dfc.CourseDirectory.Models.Models.Courses;
 using Dfc.CourseDirectory.Models.Models.Venues;
 using Dfc.ProviderPortal.Packages.AzureFunctions.DependencyInjection;
 using Dfc.ProviderPortal.TribalExporter.Interfaces;
+using Dfc.ProviderPortal.TribalExporter.Models.Dfc;
 using Microsoft.Azure.Documents.Client;
 using Microsoft.Azure.Documents.Linq;
 using Microsoft.Azure.WebJobs;
@@ -58,7 +59,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var totalInvalidCourseRunReferences = 0;
             var uniqueInvalidVenues = new HashSet<string>();
             var replacedInvalidVenues = new HashSet<Venue>();
-            var providerList = new HashSet<int>();
+            var references = new List<VenueRestorerReference>();
             var rereferencedApprenticeshipLocations = 0;
 
             //provider scoped totals
@@ -107,16 +108,54 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                             await ReplaceVenue(currentVenue.ID, oldVenue);
 
                                             //the venue that was referenced needs to be inserted again but with a new id.
-                                            await ReplaceVenue(Guid.NewGuid().ToString(), currentVenue);
+                                            var newId = Guid.NewGuid();
+                                            await ReplaceVenue(newId.ToString(), currentVenue);
 
                                             //reload venues as we have just replaced a venue
                                             venues = await GetVenues(ukprn);
 
                                             replacedInvalidVenues.Add(currentVenue);
+
+                                            //log changes
+                                            references.Add(new VenueRestorerReference()
+                                            {
+                                                UKPRN = course.ProviderUKPRN,
+                                                VenueId = courserun.VenueId.ToString(),
+                                                CurrentVenueUKPRN = currentVenue.UKPRN,
+                                                CurrentAddress1 = currentVenue.Address1,
+                                                CurrentPostcode = currentVenue.PostCode,
+                                                CurrentVenueName = currentVenue.VenueName,
+                                                RestoredAddress1 = oldVenue.Address1,
+                                                RestoredVenueName = oldVenue.VenueName,
+                                                RestoredPostcode = oldVenue.PostCode,
+                                                RestoredVenueUKPRN = oldVenue.UKPRN,
+                                                UKPRNMatched = (course.ProviderUKPRN == currentVenue.UKPRN),
+                                                Message = "Replaced Venue",
+                                                Type = "Course",
+                                                CourseId = course.id,
+                                                CourseRunId = courserun.id,
+
+                                            });
+                                        }
+                                        else
+                                        {
+                                            references.Add(new VenueRestorerReference()
+                                            {
+                                                UKPRN = course.ProviderUKPRN,
+                                                VenueId = courserun.VenueId.ToString(),
+                                                CurrentVenueUKPRN = currentVenue.UKPRN,
+                                                CurrentAddress1 = currentVenue.Address1,
+                                                CurrentPostcode = currentVenue.PostCode,
+                                                CurrentVenueName = currentVenue.VenueName,
+                                                UKPRNMatched = (course.ProviderUKPRN == currentVenue.UKPRN),
+                                                Message = "Unable to replace Venue, as old venue was not found in backup",
+                                                Type = "Course",
+                                                CourseId = course.id,
+                                                CourseRunId = courserun.id,
+                                            });
                                         }
 
                                         //invalid references
-                                        providerList.Add(ukprn);
                                         uniqueInvalidVenues.Add(currentVenue.ID);
                                         invalidCourseRunReferences++;
                                     }
@@ -159,6 +198,39 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                                             //keep a track of the incorrect venue, these will be inserted with a new id.
                                             replacedInvalidVenues.Add(currentVenue);
+
+                                            references.Add(new VenueRestorerReference()
+                                            {
+                                                UKPRN = apprenticeship.ProviderUKPRN,
+                                                ApprenticeshipLocationUKPRN = location.ProviderUKPRN,
+                                                VenueId = location.VenueId.ToString(),
+                                                CurrentVenueUKPRN = currentVenue.UKPRN,
+                                                CurrentAddress1 = currentVenue.Address1,
+                                                CurrentPostcode = currentVenue.PostCode,
+                                                CurrentVenueName = currentVenue.VenueName,
+                                                RestoredVenueUKPRN = oldVenue.UKPRN,
+                                                RestoredAddress1 = oldVenue?.Address1,
+                                                RestoredPostcode = oldVenue?.PostCode,
+                                                RestoredVenueName = oldVenue.VenueName,
+                                                UKPRNMatched = (apprenticeship.ProviderUKPRN == currentVenue.UKPRN),
+                                                Message = "Replaced Venue",
+                                                Type = "Apprenticeship",
+                                                ApprenticeshipId = apprenticeship.id
+                                            });
+                                        }
+                                        else
+                                        {
+                                            references.Add(new VenueRestorerReference()
+                                            {
+                                                UKPRN = apprenticeship.ProviderUKPRN,
+                                                ApprenticeshipLocationUKPRN = location.ProviderUKPRN,
+                                                UKPRNMatched = false,
+                                                CurrentVenueUKPRN = -1,
+                                                VenueId = location.VenueId.ToString(),
+                                                Type = "Apprenticeship",
+                                                Message = "Unable to replace Venue, as old venue was not found in backup",
+                                                ApprenticeshipId = apprenticeship.id
+                                            });
                                         }
                                     }
                                 }
@@ -175,14 +247,15 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     //total for provider
                     Console.WriteLine($"{invalidCourseRunReferences} invalid venue references for {ukprn}");
                     Console.WriteLine($"{invalidApprenticeshipLocationReferences} invalid apprenticeship references for {ukprn}");
-                    Console.WriteLine($"{providerList.Count()} providers affected");
                     Console.WriteLine($"{rereferencedApprenticeshipLocations} apprenticeship locations were rereferenced");
                 }
 
                 //write csv file
-                foreach (var id in providerList)
+                logCsvWriter.WriteHeader(typeof(VenueRestorerReference));
+                logCsvWriter.NextRecord();
+                foreach (var reference in references)
                 {
-                    logCsvWriter.WriteField(id);
+                    logCsvWriter.WriteRecord(reference);
                     logCsvWriter.NextRecord();
                 }
 
