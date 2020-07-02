@@ -71,9 +71,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             using (var logStreamWriter = new StreamWriter(logStream))
             using (var logCsvWriter = new CsvWriter(logStreamWriter, CultureInfo.InvariantCulture))
             {
-
                 foreach (var ukprn in whiteListProviders)
                 {
+                    //reference for old venue so that courseruns & apprenticeship locations can be
+                    //rereferenced
+                    var venuesReplacedForProvider = new List<Tuple<Venue, Venue, Guid>>();
                     try
                     {
                         //reset counters
@@ -96,46 +98,48 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 if (courserun.VenueId != null && courserun.VenueId != Guid.Empty)
                                 {
                                     //current venue & old venue (pre migration)
-                                    var currentVenue = await GetVenueById(courserun.VenueId?.ToString());
-                                    var oldVenue = old_venues.FirstOrDefault(x => new Guid(x.ID) == courserun.VenueId);
+                                    var invalidReferencedVenue = await GetVenueById(courserun.VenueId?.ToString());
+                                    var restoredVenue = old_venues.FirstOrDefault(x => new Guid(x.ID) == courserun.VenueId);
 
                                     //if current venues provider is different to course then attempt to replace it with
                                     //old venue from cosmos backup.
-                                    if (currentVenue != null && currentVenue.UKPRN != course.ProviderUKPRN)
+                                    if (invalidReferencedVenue != null && invalidReferencedVenue.UKPRN != course.ProviderUKPRN)
                                     {
                                         //replace existing venue with old venue if a match is found
-                                        if (oldVenue != null && oldVenue.UKPRN == course.ProviderUKPRN)
+                                        if (restoredVenue != null && restoredVenue.UKPRN == course.ProviderUKPRN)
                                         {
-                                            await ReplaceVenue(currentVenue.ID, oldVenue, updatedBy);
+                                            await ReplaceVenue(invalidReferencedVenue.ID, restoredVenue, updatedBy);
 
                                             //the venue that was referenced needs to be inserted again but with a new id.
                                             var newId = Guid.NewGuid();
-                                            await ReplaceVenue(newId.ToString(), currentVenue, updatedBy);
+                                            await ReplaceVenue(newId.ToString(), invalidReferencedVenue, updatedBy);
 
                                             //reload venues as we have just replaced a venue
                                             venues = await GetVenues(ukprn);
 
-                                            replacedInvalidVenues.Add(currentVenue);
+                                            replacedInvalidVenues.Add(invalidReferencedVenue);
+
+                                            //store old venue so that apprenticeship locations can be rereferenced
+                                            venuesReplacedForProvider.Add(Tuple.Create(restoredVenue, invalidReferencedVenue, newId));
 
                                             //log changes
                                             references.Add(new VenueRestorerReference()
                                             {
                                                 UKPRN = course.ProviderUKPRN,
                                                 VenueId = courserun.VenueId.ToString(),
-                                                CurrentVenueUKPRN = currentVenue.UKPRN,
-                                                CurrentAddress1 = currentVenue.Address1,
-                                                CurrentPostcode = currentVenue.PostCode,
-                                                CurrentVenueName = currentVenue.VenueName,
-                                                RestoredAddress1 = oldVenue.Address1,
-                                                RestoredVenueName = oldVenue.VenueName,
-                                                RestoredPostcode = oldVenue.PostCode,
-                                                RestoredVenueUKPRN = oldVenue.UKPRN,
-                                                UKPRNMatched = (course.ProviderUKPRN == currentVenue.UKPRN),
+                                                CurrentVenueUKPRN = invalidReferencedVenue.UKPRN,
+                                                CurrentAddress1 = invalidReferencedVenue.Address1,
+                                                CurrentPostcode = invalidReferencedVenue.PostCode,
+                                                CurrentVenueName = invalidReferencedVenue.VenueName,
+                                                RestoredAddress1 = restoredVenue.Address1,
+                                                RestoredVenueName = restoredVenue.VenueName,
+                                                RestoredPostcode = restoredVenue.PostCode,
+                                                RestoredVenueUKPRN = restoredVenue.UKPRN,
+                                                UKPRNMatched = (course.ProviderUKPRN == invalidReferencedVenue.UKPRN),
                                                 Message = "Replaced Venue",
                                                 Type = "Course",
                                                 CourseId = course.id,
                                                 CourseRunId = courserun.id,
-
                                             });
                                         }
                                         else
@@ -144,11 +148,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                             {
                                                 UKPRN = course.ProviderUKPRN,
                                                 VenueId = courserun.VenueId.ToString(),
-                                                CurrentVenueUKPRN = currentVenue.UKPRN,
-                                                CurrentAddress1 = currentVenue.Address1,
-                                                CurrentPostcode = currentVenue.PostCode,
-                                                CurrentVenueName = currentVenue.VenueName,
-                                                UKPRNMatched = (course.ProviderUKPRN == currentVenue.UKPRN),
+                                                CurrentVenueUKPRN = invalidReferencedVenue.UKPRN,
+                                                CurrentAddress1 = invalidReferencedVenue.Address1,
+                                                CurrentPostcode = invalidReferencedVenue.PostCode,
+                                                CurrentVenueName = invalidReferencedVenue.VenueName,
+                                                UKPRNMatched = (course.ProviderUKPRN == invalidReferencedVenue.UKPRN),
                                                 Message = "Unable to replace Venue, as old venue was not found in backup",
                                                 Type = "Course",
                                                 CourseId = course.id,
@@ -157,7 +161,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                         }
 
                                         //invalid references
-                                        uniqueInvalidVenues.Add(currentVenue.ID);
+                                        uniqueInvalidVenues.Add(invalidReferencedVenue.ID);
                                         invalidCourseRunReferences++;
                                     }
                                 }
@@ -176,44 +180,48 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 //only apprenticeshiplocations that references a venue (classroom based or both)
                                 if (location.VenueId.HasValue && location.LocationGuidId.HasValue && location.LocationGuidId != Guid.Empty)
                                 {
-                                    var currentVenue = await GetVenueById(location.VenueId?.ToString());
+                                    var invalidReferencedVenue = await GetVenueById(location.LocationGuidId?.ToString());
 
-                                    if (currentVenue != null && currentVenue.UKPRN != apprenticeship.ProviderUKPRN)
+                                    if (invalidReferencedVenue != null && invalidReferencedVenue.UKPRN != apprenticeship.ProviderUKPRN)
                                     {
-                                        var oldVenue = old_venues.FirstOrDefault(x => new Guid(x.ID) == location.LocationGuidId);
+                                        var restoredVenue = old_venues.FirstOrDefault(x => new Guid(x.ID) == location.LocationGuidId);
 
                                         //replace existing venue with old venue if a match is found
-                                        if (oldVenue != null && oldVenue.UKPRN == apprenticeship.ProviderUKPRN)
+                                        if (restoredVenue != null && restoredVenue.UKPRN == apprenticeship.ProviderUKPRN)
                                         {
-                                            Console.WriteLine($"Invalid Apprenticeship location, apprenticeship should reference {oldVenue.VenueName}");
+                                            Console.WriteLine($"Invalid Apprenticeship location, apprenticeship should reference {restoredVenue.VenueName}");
 
                                             //old venue from json backup is the correct venue that should be referenced
-                                            //swap venues
-                                            await ReplaceVenue(currentVenue.ID, oldVenue, updatedBy);
+                                            //swap invalid venue, with restoredVenue
+                                            await ReplaceVenue(invalidReferencedVenue.ID, restoredVenue, updatedBy);
 
                                             //the venue that was referenced needs to be inserted again but with a new id.
-                                            await ReplaceVenue(Guid.NewGuid().ToString(), currentVenue, updatedBy);
+                                            var newId = Guid.NewGuid();
+                                            await ReplaceVenue(newId.ToString(), invalidReferencedVenue, updatedBy);
+
+                                            //store old venue so that apprenticeship locations can be rereferenced
+                                            venuesReplacedForProvider.Add(Tuple.Create(restoredVenue, invalidReferencedVenue, newId));
 
                                             //reload venues as we have just replaced a venue
                                             venues = await GetVenues(ukprn);
 
                                             //keep a track of the incorrect venue, these will be inserted with a new id.
-                                            replacedInvalidVenues.Add(currentVenue);
+                                            replacedInvalidVenues.Add(invalidReferencedVenue);
 
                                             references.Add(new VenueRestorerReference()
                                             {
                                                 UKPRN = apprenticeship.ProviderUKPRN,
                                                 ApprenticeshipLocationUKPRN = location.ProviderUKPRN,
                                                 VenueId = location.LocationGuidId.ToString(),
-                                                CurrentVenueUKPRN = currentVenue.UKPRN,
-                                                CurrentAddress1 = currentVenue.Address1,
-                                                CurrentPostcode = currentVenue.PostCode,
-                                                CurrentVenueName = currentVenue.VenueName,
-                                                RestoredVenueUKPRN = oldVenue.UKPRN,
-                                                RestoredAddress1 = oldVenue?.Address1,
-                                                RestoredPostcode = oldVenue?.PostCode,
-                                                RestoredVenueName = oldVenue.VenueName,
-                                                UKPRNMatched = (apprenticeship.ProviderUKPRN == currentVenue.UKPRN),
+                                                CurrentVenueUKPRN = invalidReferencedVenue.UKPRN,
+                                                CurrentAddress1 = invalidReferencedVenue.Address1,
+                                                CurrentPostcode = invalidReferencedVenue.PostCode,
+                                                CurrentVenueName = invalidReferencedVenue.VenueName,
+                                                RestoredVenueUKPRN = restoredVenue.UKPRN,
+                                                RestoredAddress1 = restoredVenue?.Address1,
+                                                RestoredPostcode = restoredVenue?.PostCode,
+                                                RestoredVenueName = restoredVenue.VenueName,
+                                                UKPRNMatched = (apprenticeship.ProviderUKPRN == invalidReferencedVenue.UKPRN),
                                                 Message = "Replaced Venue",
                                                 Type = "Apprenticeship",
                                                 ApprenticeshipId = apprenticeship.id
@@ -237,6 +245,32 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 }
                             }
                             totalInvalidApprenticeshipLocationReferences += invalidApprenticeshipLocationReferences;
+                        }
+
+                        //rereference apprenticeship locations
+                        //if there is a venue that has been replaced but is referenced by an apprenticeshiplocation then the apprenticeship 
+                        //record needs to be updated to point the the new venue record to save data loss.
+                        foreach (var apprenticeship in allApprenticeshipsForProvider)
+                        {
+                            var updated = false;
+                            foreach(var location in apprenticeship.ApprenticeshipLocations)
+                            {
+                                var replacedVenue = venuesReplacedForProvider.FirstOrDefault(x => new Guid(x.Item2.ID) == location.LocationGuidId);
+                                if(replacedVenue != null)
+                                {
+                                    updated = true;
+                                    location.LocationGuidId = replacedVenue.Item3;
+                                }
+                            } 
+
+                            if (updated)
+                            {
+                                var documentLink = UriFactory.CreateDocumentUri(databaseId, apprenticeshipCollectionId, apprenticeship.id.ToString());
+                                await documentClient.ReplaceDocumentAsync(documentLink, apprenticeship, new RequestOptions()
+                                {
+                                    PartitionKey = new Microsoft.Azure.Documents.PartitionKey(ukprn)
+                                });
+                            }
                         }
                     }
                     catch (Exception e)
