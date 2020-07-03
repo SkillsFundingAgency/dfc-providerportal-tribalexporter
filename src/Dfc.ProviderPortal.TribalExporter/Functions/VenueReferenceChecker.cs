@@ -62,7 +62,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var totalInvalidApprenticeshipLocationReferences = 0;
             var totalInvalidCourseRunReferences = 0;
 
-
             //provider scoped totals
             var invalidCourseRunReferences = 0;
             var invalidApprenticeshipLocationReferences = 0;
@@ -135,7 +134,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                     }
                                 }
                             }
-
                             //total for all providers
                             totalInvalidCourseRunReferences += invalidCourseRunReferences;
                         }
@@ -199,7 +197,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         Console.WriteLine($"{invalidCourseRunReferences} invalid venue references for {ukprn}");
                         Console.WriteLine($"{invalidApprenticeshipLocationReferences} invalid apprenticeship references for {ukprn}");
                         Console.WriteLine($"{uniqueInvalidVenues.Count()} unique venues");
-
                     }
                     catch (Exception e)
                     {
