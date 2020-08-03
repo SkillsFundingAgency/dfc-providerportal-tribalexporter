@@ -21,10 +21,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
     public static class GenerateMigrationReport
     {
         [FunctionName(nameof(GenerateMigrationReport))]
-        [NoAutomaticTrigger]
         public static async Task Run(
-                    string input,  // Work around https://github.com/Azure/azure-functions-vs-build-sdk/issues/168
-                    //[TimerTrigger("%MigrationReportSchedule%")]TimerInfo myTimer,
+                    [TimerTrigger("%MigrationReportSchedule%")]TimerInfo myTimer,
                     ILogger log,
                     [Inject] IConfigurationRoot configuration,
                     [Inject] ICosmosDbHelper cosmosDbHelper,
