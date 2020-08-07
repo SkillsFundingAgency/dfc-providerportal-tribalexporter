@@ -8,6 +8,7 @@ using Dfc.CourseDirectory.Models.Models.Courses;
 using Dfc.CourseDirectory.Models.Models.Providers;
 using Dfc.ProviderPortal.TribalExporter.Functions;
 using Dfc.ProviderPortal.TribalExporter.Interfaces;
+using Dfc.ProviderPortal.TribalExporter.Services;
 using FluentAssertions;
 using Microsoft.Azure.Documents;
 using Microsoft.Extensions.Configuration;
@@ -114,8 +115,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Tests.Functions
 
 
             // Act
-            GenerateMigrationReport.Run(
-                "",
+            new MigrationReportGeneratorService().Run(
                 NullLogger.Instance,
                 mockConfigurationRoot.Object,
                 mockCosmosDbHelper.Object,
