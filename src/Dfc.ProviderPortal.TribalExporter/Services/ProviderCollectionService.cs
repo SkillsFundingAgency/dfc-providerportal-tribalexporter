@@ -19,7 +19,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
         private readonly ICosmosDbHelper _cosmosDbHelper;
         private readonly ICosmosDbSettings _cosmosDbSettings;
         private readonly ICosmosDbCollectionSettings _cosmosDbCollectionSettings;
-        private readonly DocumentClient _client;
+        private readonly IDocumentClient _client;
 
         public ProviderCollectionService(
             ICosmosDbHelper cosmosDbHelper,

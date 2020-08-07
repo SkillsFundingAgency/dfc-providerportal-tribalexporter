@@ -19,7 +19,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
         private readonly ICosmosDbHelper _cosmosDbHelper;
         private readonly ICosmosDbSettings _cosmosDbSettings;
         private readonly ICosmosDbCollectionSettings _cosmosDbCollectionSettings;
-        private readonly DocumentClient _documentClient;
+        private readonly IDocumentClient _documentClient;
 
         public VenueCollectionService(
             ICosmosDbHelper cosmosDbHelper,
@@ -94,7 +94,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             }
             return lst.OrderByDescending(x => x.CreatedDate).FirstOrDefault();
         }
-         
+
         public async Task<Venue> GetDocumentByLocationId(int locationId, int ukprn)
         {
             var lst = new List<Venue>();

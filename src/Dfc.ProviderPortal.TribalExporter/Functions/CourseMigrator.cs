@@ -16,6 +16,7 @@ using Dfc.CourseDirectory.Services.Interfaces;
 using Dfc.ProviderPortal.Packages.AzureFunctions.DependencyInjection;
 using Dfc.ProviderPortal.TribalExporter.Helpers;
 using Dfc.ProviderPortal.TribalExporter.Interfaces;
+using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
 using Microsoft.Azure.Documents.Linq;
 using Microsoft.Azure.WebJobs;
@@ -283,7 +284,7 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                 return result.Value.Value.ToList();
             }
 
-            async Task<bool> UpsertCourse(Course course, DocumentClient documentClient)
+            async Task<bool> UpsertCourse(Course course, IDocumentClient documentClient)
             {
                 var collectionLink = UriFactory.CreateDocumentCollectionUri(databaseId, coursesCollectionId);
 
@@ -295,7 +296,7 @@ ORDER BY ci.CourseId, ci.OfferedByProviderId";
                 return result.StatusCode == HttpStatusCode.Created;
             }
 
-            async Task<Course> GetExistingCourse(int courseId, int ukprn, DocumentClient documentClient)
+            async Task<Course> GetExistingCourse(int courseId, int ukprn, IDocumentClient documentClient)
             {
                 var collectionLink = UriFactory.CreateDocumentCollectionUri(databaseId, coursesCollectionId);
 

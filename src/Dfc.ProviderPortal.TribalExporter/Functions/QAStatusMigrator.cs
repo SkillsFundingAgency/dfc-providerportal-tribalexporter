@@ -1,21 +1,23 @@
-﻿using CsvHelper;
-using Dapper;
-using Dfc.CourseDirectory.Models.Models.Apprenticeships;
-using Dfc.CourseDirectory.Models.Models.Providers;
-using Dfc.ProviderPortal.Packages.AzureFunctions.DependencyInjection;
-using Dfc.ProviderPortal.TribalExporter.Interfaces;
-using Microsoft.Azure.Documents.Client;
-using Microsoft.Azure.Documents.Linq;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using CsvHelper;
+using Dapper;
+using Dfc.CourseDirectory.Models.Enums;
+using Dfc.CourseDirectory.Models.Models.Apprenticeships;
+using Dfc.CourseDirectory.Models.Models.Providers;
+using Dfc.ProviderPortal.Packages.AzureFunctions.DependencyInjection;
+using Dfc.ProviderPortal.TribalExporter.Interfaces;
+using Microsoft.Azure.Documents;
+using Microsoft.Azure.Documents.Client;
+using Microsoft.Azure.Documents.Linq;
+using Microsoft.Azure.WebJobs;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Dfc.ProviderPortal.TribalExporter.Functions
 {
@@ -144,7 +146,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 return results;
             }
 
-            async Task<List<Apprenticeship>> GetApprenticeships(int ukprn, DocumentClient documentClient)
+            async Task<List<Apprenticeship>> GetApprenticeships(int ukprn, IDocumentClient documentClient)
             {
                 var collectionLink = UriFactory.CreateDocumentCollectionUri(databaseId, apprenticehipsUri);
                 var apprenticeships = new List<Apprenticeship>();
@@ -157,7 +159,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     };
 
                     var queryResponse = await documentClient.CreateDocumentQuery<Apprenticeship>(collectionLink, feedOptions)
-                        .Where(p => p.ProviderUKPRN == ukprn && (p.RecordStatus == CourseDirectory.Models.Enums.RecordStatus.Live || p.RecordStatus == CourseDirectory.Models.Enums.RecordStatus.MigrationPending))
+                        .Where(p => p.ProviderUKPRN == ukprn && (p.RecordStatus == RecordStatus.Live || p.RecordStatus == RecordStatus.MigrationPending))
                         .AsDocumentQuery()
                         .ExecuteNextAsync<Apprenticeship>();
 
@@ -170,7 +172,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 return apprenticeships;
             }
 
-            async Task<Provider> GetExistingProvider(string ukprn, DocumentClient documentClient)
+            async Task<Provider> GetExistingProvider(string ukprn, IDocumentClient documentClient)
             {
                 var collectionLink = UriFactory.CreateDocumentCollectionUri(databaseId, ukrlp);
 

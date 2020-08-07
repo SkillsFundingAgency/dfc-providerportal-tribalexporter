@@ -7,18 +7,18 @@ namespace Dfc.ProviderPortal.TribalExporter.Interfaces
 {
     public interface ICosmosDbHelper
     {
-        DocumentClient GetClient();
+        IDocumentClient GetClient();
 
-        Task<Database> CreateDatabaseIfNotExistsAsync(DocumentClient client);
+        Task<Database> CreateDatabaseIfNotExistsAsync(IDocumentClient client);
 
-        Task<DocumentCollection> CreateDocumentCollectionIfNotExistsAsync(DocumentClient client, string collectionId);
+        Task<DocumentCollection> CreateDocumentCollectionIfNotExistsAsync(IDocumentClient client, string collectionId);
 
-        Task<Document> CreateDocumentAsync(DocumentClient client, string collectionId, object document);
+        Task<Document> CreateDocumentAsync(IDocumentClient client, string collectionId, object document);
 
         T DocumentTo<T>(Document document);
 
         IEnumerable<T> DocumentsTo<T>(IEnumerable<Document> documents);
 
-        Document GetDocumentById<T>(DocumentClient client, string collectionId, T id);
+        Document GetDocumentById<T>(IDocumentClient client, string collectionId, T id);
     }
 }

@@ -14,7 +14,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
     public class CosmosDbHelper : ICosmosDbHelper
     {
         private readonly ICosmosDbSettings _settings;
-        private readonly DocumentClient _client;
+        private readonly IDocumentClient _client;
 
         public CosmosDbHelper(IOptions<CosmosDbSettings> settings, DocumentClient cosmosClient)
         {
@@ -24,7 +24,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
             _settings = settings.Value;
         }
 
-        public async Task<Database> CreateDatabaseIfNotExistsAsync(DocumentClient client)
+        public async Task<Database> CreateDatabaseIfNotExistsAsync(IDocumentClient client)
         {
             Throw.IfNull(client, nameof(client));
 
@@ -34,7 +34,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
         }
 
         public async Task<Document> CreateDocumentAsync(
-            DocumentClient client,
+            IDocumentClient client,
             string collectionId,
             object document)
         {
@@ -50,7 +50,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
         }
 
         public async Task<DocumentCollection> CreateDocumentCollectionIfNotExistsAsync(
-            DocumentClient client,
+            IDocumentClient client,
             string collectionId)
         {
             Throw.IfNull(client, nameof(client));
@@ -74,12 +74,12 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
             return (IEnumerable<T>)(IEnumerable<dynamic>)documents;
         }
 
-        public DocumentClient GetClient()
+        public IDocumentClient GetClient()
         {
             return _client;
         }
 
-        public Document GetDocumentById<T>(DocumentClient client, string collectionId, T id)
+        public Document GetDocumentById<T>(IDocumentClient client, string collectionId, T id)
         {
             Throw.IfNull(client, nameof(client));
             Throw.IfNullOrWhiteSpace(collectionId, nameof(collectionId));
@@ -100,7 +100,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Helpers
         }
 
         public async Task<Document> UpdateDocumentAsync(
-            DocumentClient client,
+            IDocumentClient client,
             string collectionId,
             object document)
         {
