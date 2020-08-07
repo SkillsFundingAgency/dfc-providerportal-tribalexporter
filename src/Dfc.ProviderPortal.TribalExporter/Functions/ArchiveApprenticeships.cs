@@ -79,7 +79,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         }
                         continuation = queryResponse.ResponseContinuation;
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         continuation = null;
                     }

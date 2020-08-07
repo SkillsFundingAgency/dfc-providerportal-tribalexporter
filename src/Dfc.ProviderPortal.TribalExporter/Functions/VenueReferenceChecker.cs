@@ -333,7 +333,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         apprenticeships.AddRange(queryResponse);
                         continuation = queryResponse.ResponseContinuation;
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         continuation = null;
                     }
