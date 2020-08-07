@@ -216,6 +216,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
                 var liveCourses = (decimal)courses.SelectMany(c => c.CourseRuns.Where(cr => cr.RecordStatus == RecordStatus.Live)).Count();
                 var migratedDataValue = ((decimal)courses.SelectMany(c => c.CourseRuns.Where(cr => migratedStatusList.Contains(cr.RecordStatus))).Count());
 
+                if (migratedDataValue == 0)
+                {
+                    return 0;
+                }
+
                 return ((liveCourses / migratedDataValue) * 100);
             }
 
@@ -223,6 +228,11 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             {
                     var liveApprenticeship = (decimal)apprenticeships.Where(cr => cr.RecordStatus == RecordStatus.Live).Count();
                     var migratedDataValue = (decimal)apprenticeships.Where(cr => migratedStatusList.Contains(cr.RecordStatus)).Count();
+
+                    if (migratedDataValue == 0)
+                    {
+                        return 0;
+                    }
 
                     return ((liveApprenticeship / migratedDataValue) * 100);
             }
