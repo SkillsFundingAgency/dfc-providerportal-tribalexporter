@@ -10,6 +10,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Interfaces
         Task<bool> ProviderExists(int ukprn);
 
         Task<Provider> GetDocumentByUkprn(int ukprn);
+        Task<IList<Provider>> GetDocumentsByUkprn(IList<int> ukprns);
 
         Task<List<Provider>> GetAllMigratedProviders(string udpatedBy);
     }

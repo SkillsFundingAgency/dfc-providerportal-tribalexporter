@@ -6,7 +6,6 @@ using Dfc.CourseDirectory.Models.Enums;
 using Dfc.CourseDirectory.Models.Models.Apprenticeships;
 using Dfc.CourseDirectory.Models.Models.Courses;
 using Dfc.CourseDirectory.Models.Models.Providers;
-using Dfc.ProviderPortal.TribalExporter.Functions;
 using Dfc.ProviderPortal.TribalExporter.Interfaces;
 using Dfc.ProviderPortal.TribalExporter.Services;
 using FluentAssertions;
@@ -67,9 +66,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Tests.Functions
 
             var mockProviderCollectionService = new Mock<IProviderCollectionService>();
 
-            mockProviderCollectionService.Setup(m => m.GetDocumentByUkprn(It.IsAny<int>()))
-                .ReturnsAsync((int ukPrn) =>
-                    testProviders.Single(p => p.UnitedKingdomProviderReferenceNumber == ukPrn.ToString()));
+            mockProviderCollectionService.Setup(m => m.GetDocumentsByUkprn(It.IsAny<List<int>>()))
+                .ReturnsAsync(testProviders);
 
             mockProviderCollectionService.Setup(m => m.GetAllMigratedProviders(It.IsAny<string>()))
                 .ReturnsAsync(new List<Provider>());
