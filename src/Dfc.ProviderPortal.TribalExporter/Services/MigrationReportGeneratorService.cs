@@ -119,7 +119,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
                         }
 
                         // Deal with courses, create one entry for course only
-                        if (provider.ProviderType == CourseDirectory.Models.Models.Providers.ProviderType.Both)
+                        if (provider.ProviderType == CourseDirectory.Models.Models.Providers.ProviderType.Both
+                            || provider.ProviderType == CourseDirectory.Models.Models.Providers.ProviderType.FE)
                         {
                             MigrationReportEntry courseReportEntry = await migrationReportCollectionService.GetReportForCoursesByUkprn(ukprn);
                             if (courseReportEntry == null)
