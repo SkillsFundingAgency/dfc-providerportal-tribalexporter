@@ -21,13 +21,13 @@ trigger:
   batch: true
   branches:
     include:
-    - master
+    - main
     - dev
 
 pr:
   branches:
     include:
-    - master
+    - main
     - dev
 
 steps:
