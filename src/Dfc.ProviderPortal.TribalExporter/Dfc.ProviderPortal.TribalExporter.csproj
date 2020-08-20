@@ -6,9 +6,11 @@
     <OldToolsVersion>2.0</OldToolsVersion>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="2020-01-24_0325-venues-backup.json" />
     <None Remove="VenueLookup.txt" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="2020-01-24_0325-venues-backup.json" />
     <EmbeddedResource Include="VenueLookup.txt" />
   </ItemGroup>
   <ItemGroup>
