@@ -248,7 +248,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         }
 
                         //rereference apprenticeship locations
-                        //if there is a venue that has been replaced but is referenced by an apprenticeshiplocation then the apprenticeship 
+                        //if there is a venue that has been replaced but is referenced by an apprenticeshiplocation then the apprenticeship
                         //record needs to be updated to point the the new venue record to save data loss.
                         foreach (var apprenticeship in allApprenticeshipsForProvider)
                         {
@@ -261,7 +261,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                     updated = true;
                                     location.LocationGuidId = replacedVenue.Item3;
                                 }
-                            } 
+                            }
 
                             if (updated)
                             {
@@ -401,7 +401,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         apprenticeships.AddRange(queryResponse);
                         continuation = queryResponse.ResponseContinuation;
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         continuation = null;
                     }

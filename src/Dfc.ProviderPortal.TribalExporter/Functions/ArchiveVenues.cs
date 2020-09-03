@@ -92,7 +92,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         //archive duplicate venues
                         foreach (var item in uniqueGroups)
                         {
-                            //tribal venues & trival locations when venues were migrated, both locations and & venues from tribal 
+                            //tribal venues & trival locations when venues were migrated, both locations and & venues from tribal
                             //were migrated as seperate records even though the address was the same. The below attempts to merge the two.
                             var migratedVenues = item.ToList().Where(x => x.CreatedBy == "VenueMigrator" && x.UpdatedBy != updatedBy); //expecting more than one here.
                             var tribalLocationVenue = migratedVenues.FirstOrDefault(x => x.LocationId != null);  //Migrated Location
@@ -101,8 +101,8 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                             //If there is no current venue, it means that either the venue was created by a previous migration
                             //e.g. CreatedBy != VenueMigrator and all Venues must be Archived
-                            //OR 
-                            //the Archiver has already archived this group e.g. UpdatedBy == "ArchiveVenues" and therefore we skip changing 
+                            //OR
+                            //the Archiver has already archived this group e.g. UpdatedBy == "ArchiveVenues" and therefore we skip changing
                             //this record to archived, as the duplicates have already been removed.
                             if (currentVenue == null)
                             {
@@ -133,7 +133,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                 continue;
                             }
 
-                            var nonCurrentVenues = item.ToList().Where(x => x.ID != currentVenue.ID).ToList();  // All venues that will be archived 
+                            var nonCurrentVenues = item.ToList().Where(x => x.ID != currentVenue.ID).ToList();  // All venues that will be archived
 
                             //if there is a location venue & venue, add venue to list of non current venues
                             //and update the currentVenue to indicate it has been merged.
@@ -218,7 +218,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                                                                                       .ToList()
                                                                                                       .ForEach(x =>
                                                                                                       {
-                                                                                                          
+
                                                                                                           //update apprenticeship location
                                                                                                           x.LocationGuidId = Guid.Parse(currentVenue.ID);
                                                                                                           x.UpdatedBy = updatedBy;
@@ -308,7 +308,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 else
                     selectedVenue = "None";
 
-                //if there are two venues, one with a venue id & one with a location id. 
+                //if there are two venues, one with a venue id & one with a location id.
                 //merge them.
                 if (locationVenue != null && venue != null)
                 {
@@ -392,7 +392,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                         apprenticeships.AddRange(queryResponse);
                         continuation = queryResponse.ResponseContinuation;
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         continuation = null;
                     }

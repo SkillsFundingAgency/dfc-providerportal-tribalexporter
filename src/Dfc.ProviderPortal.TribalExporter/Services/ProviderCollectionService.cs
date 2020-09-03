@@ -19,7 +19,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
         private readonly ICosmosDbHelper _cosmosDbHelper;
         private readonly ICosmosDbSettings _cosmosDbSettings;
         private readonly ICosmosDbCollectionSettings _cosmosDbCollectionSettings;
-        private readonly DocumentClient _client;
+        private readonly IDocumentClient _client;
 
         public ProviderCollectionService(
             ICosmosDbHelper cosmosDbHelper,
@@ -79,6 +79,23 @@ namespace Dfc.ProviderPortal.TribalExporter.Services
             }
 
             return providerList.OrderByDescending(x => x.DateUpdated).FirstOrDefault();
+        }
+
+        public async Task<IList<Provider>> GetDocumentsByUkprn(IList<int> ukprns)
+        {
+            var uri = UriFactory.CreateDocumentCollectionUri(_cosmosDbSettings.DatabaseId, _cosmosDbCollectionSettings.ProvidersCollectionId);
+            var sql = $"SELECT * FROM p WHERE p.UnitedKingdomProviderReferenceNumber IN ('{string.Join("','", ukprns)}')";
+
+            var options = new FeedOptions { EnableCrossPartitionQuery = true, MaxItemCount = -1 };
+
+            var providerList = new List<Provider>();
+            var query = _client.CreateDocumentQuery<Document>(uri, sql, options).AsDocumentQuery();
+            while (query.HasMoreResults)
+            {
+                providerList.AddRange(await query.ExecuteNextAsync<Provider>());
+            }
+
+            return providerList;
         }
 
         public async Task<List<Provider>> GetAllMigratedProviders(string udpatedBy)

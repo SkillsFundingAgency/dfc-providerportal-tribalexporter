@@ -188,7 +188,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                                 AddResultMessage(existingItem.UKPRN, "DELETE", $"Record {existingItem.id} with UKPRN {existingItem.UKPRN} deleted as not in source.");
                             }
-                            catch (Exception ex)
+                            catch (Exception)
                             {
                                 AddResultMessage(existingItem.UKPRN, "ERROR", $"Error deleting in destination record {existingItem.id} with UKPRN {existingItem.UKPRN}.");
                             }
@@ -205,7 +205,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                                 AddResultMessage(existingItem.UKPRN, "DELETE", $"Record {existingItem.id} with UKPRN {existingItem.UKPRN} deleted as duplicate in Cosmos.");
                             }
-                            catch(Exception ex)
+                            catch(Exception)
                             {
                                 AddResultMessage(existingItem.UKPRN, "ERROR", $"Error deleting in destination record {existingItem.id} with UKPRN {existingItem.UKPRN}.");
                             }
@@ -222,7 +222,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                                 AddResultMessage(existingItem.UKPRN, "DELETE", $"Record {existingItem.id} with UKPRN {existingItem.UKPRN} deleted as duplicate in Cosmos.");
                             }
-                            catch(Exception ex)
+                            catch(Exception)
                             {
                                 AddResultMessage(existingItem.UKPRN, "ERROR", $"Error deleting in destination record {existingItem.id} with UKPRN {existingItem.UKPRN}.");
                             }
@@ -247,26 +247,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             {
                 var validateResult = new FeChoicesDataResultMessage() { ProviderId = providerId, Status = status, Message = message };
                 result.Add(validateResult);
-            }
-
-            double? FixData(double? valueToFix)
-            {
-                var valueToReturn = valueToFix;
-
-                if(valueToFix == 0)
-                {
-                    valueToReturn = null;
-                }
-                else if(valueToFix > 10 && valueToFix < 100)
-                {
-                    valueToReturn = valueToFix / 10;
-                }
-                else if (valueToFix < 0 || valueToFix > 100)
-                {
-                    valueToReturn = null;
-                }
-
-                return valueToReturn;
             }
 
 
