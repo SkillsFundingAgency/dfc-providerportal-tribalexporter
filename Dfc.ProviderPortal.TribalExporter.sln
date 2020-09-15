@@ -15,6 +15,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dfc.CourseDirectory.Common"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dfc.ProviderPortal.ApprenticeshipMigration", "src\Dfc.ProviderPortal.ApprenticeshipMigration\Dfc.ProviderPortal.ApprenticeshipMigration.csproj", "{F1B19E49-AB6B-41F7-93F8-FDE7881F6F0E}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{EDCABE12-834B-4567-9AF3-6FCD0F141FA8}"
+ProjectSection(SolutionItems) = preProject
+	README.md = README.md
+	LICENSE = LICENSE
+EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
