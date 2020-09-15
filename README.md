@@ -1,3 +1,3 @@
 # dfc-providerportal-tribalexporter
 
-[![Build status](https://sfa-gov-uk.visualstudio.com/Digital First Careers/_apis/build/status/Find an Opportunity/dfc-providerportal-tribalexporter?branchName=main)](https://sfa-gov-uk.visualstudio.com/Digital First Careers/_build/latest?definitionId=1523)
+[![Build status](https://sfa-gov-uk.visualstudio.com/Digital%20First%20Careers/_apis/build/status/Find%20an%20Opportunity/dfc-providerportal-tribalexporter?branchName=main)](https://sfa-gov-uk.visualstudio.com/Digital%20First%20Careers/_build/results?buildId=245254&view=results)
