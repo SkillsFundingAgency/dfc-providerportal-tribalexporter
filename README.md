@@ -1,6 +1,6 @@
 # dfc-providerportal-tribalexporter
 
-[![Build status](https://sfa-gov-uk.visualstudio.com/Digital%20First%20Careers/_apis/build/status/Find%20an%20Opportunity/dfc-providerportal-tribalexporter?branchName=main)](https://sfa-gov-uk.visualstudio.com/Digital%20First%20Careers/_build/results?buildId=245254&view=results)
+[![Build Status](https://sfa-gov-uk.visualstudio.com/Digital%20First%20Careers/_apis/build/status/Find%20an%20Opportunity/dfc-providerportal-tribalexporter?repoName=SkillsFundingAgency%2Fdfc-providerportal-tribalexporter&branchName=main)](https://sfa-gov-uk.visualstudio.com/Digital%20First%20Careers/_build/latest?definitionId=1959&repoName=SkillsFundingAgency%2Fdfc-providerportal-tribalexporter&branchName=main)
 
 A set of Azure Function Apps that operate on the NCS Course Directory data.
 
