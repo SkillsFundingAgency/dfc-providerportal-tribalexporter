@@ -27,7 +27,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
         [NoAutomaticTrigger]
         public static async Task Run(
                     string input,  // Work around https://github.com/Azure/azure-functions-vs-build-sdk/issues/168
-                    ILogger log,
+                    ILogger logger,
                     [Inject] IConfigurationRoot configuration,
                     [Inject] IVenueCollectionService venueCollectionService,
                     [Inject] IProviderCollectionService providerCollectionService,
@@ -35,11 +35,13 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     [Inject] IBlobStorageHelper blobhelper
                     )
         {
+            logger.LogDebug("VenueRestorer: Starting...");
             var connectionString = configuration.GetConnectionString("TribalRestore");
             var venuesCollectionId = configuration["CosmosDbCollectionSettings:VenuesCollectionId"];
             var blobContainer = configuration["BlobStorageSettings:Container"];
             var container = configuration["BlobStorageSettings:Container"];
             var whiteListProviders = await GetProviderWhiteList();
+            logger.LogDebug($"VenueRestorer: {whiteListProviders.Count} white-listed providers to process");
             var coursesCollectionId = "courses";
             var apprenticeshipCollectionId = "apprenticeship";
             var databaseId = configuration["CosmosDbSettings:DatabaseId"];
@@ -67,6 +69,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
             var totalInvalidApprenticeshipLocationReferences = 0;
             var invalidApprenticeshipLocationReferences = 0;
 
+            int processedProviderCount = 0;
             using (var logStream = new MemoryStream())
             using (var logStreamWriter = new StreamWriter(logStream))
             using (var logCsvWriter = new CsvWriter(logStreamWriter, CultureInfo.InvariantCulture))
@@ -74,7 +77,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 foreach (var ukprn in whiteListProviders)
                 {
                     //reference for old venue so that courseruns & apprenticeship locations can be
-                    //rereferenced
+                    //re-referenced
                     var venuesReplacedForProvider = new List<Tuple<Venue, Venue, Guid>>();
                     try
                     {
@@ -119,7 +122,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
 
                                             replacedInvalidVenues.Add(invalidReferencedVenue);
 
-                                            //store old venue so that apprenticeship locations can be rereferenced
+                                            //store old venue so that apprenticeship locations can be re-referenced
                                             venuesReplacedForProvider.Add(Tuple.Create(restoredVenue, invalidReferencedVenue, newId));
 
                                             //log changes
@@ -189,7 +192,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                         //replace existing venue with old venue if a match is found
                                         if (restoredVenue != null && restoredVenue.UKPRN == apprenticeship.ProviderUKPRN)
                                         {
-                                            Console.WriteLine($"Invalid Apprenticeship location, apprenticeship should reference {restoredVenue.VenueName}");
+                                            logger.LogDebug($"VenueRestorer: Invalid Apprenticeship location, apprenticeship should reference {restoredVenue.VenueName}");
 
                                             //old venue from json backup is the correct venue that should be referenced
                                             //swap invalid venue, with restoredVenue
@@ -199,7 +202,7 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                                             var newId = Guid.NewGuid();
                                             await ReplaceVenue(newId.ToString(), invalidReferencedVenue, updatedBy);
 
-                                            //store old venue so that apprenticeship locations can be rereferenced
+                                            //store old venue so that apprenticeship locations can be re-referenced
                                             venuesReplacedForProvider.Add(Tuple.Create(restoredVenue, invalidReferencedVenue, newId));
 
                                             //reload venues as we have just replaced a venue
@@ -275,14 +278,19 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                     }
                     catch (Exception e)
                     {
-                        log.LogError(e.Message, e);
-                        Console.WriteLine("error occurred while fetching data");
+                        logger.LogError($"VenueRestorer: error for ukprn {ukprn}: {e.Message}", e);
                     }
 
-                    //total for provider
-                    Console.WriteLine($"{invalidCourseRunReferences} invalid venue references for {ukprn}");
-                    Console.WriteLine($"{invalidApprenticeshipLocationReferences} invalid apprenticeship references for {ukprn}");
-                    Console.WriteLine($"{rereferencedApprenticeshipLocations} apprenticeship locations were rereferenced");
+                    processedProviderCount++;
+                    if (processedProviderCount % 100 == 0)
+                    {
+                        logger.LogInformation($"VenueRestorer: {processedProviderCount}/{whiteListProviders.Count} providers processed.");
+                    }
+                    logger.LogDebug(
+                        $"VenueRestorer: completed for UKPRN {ukprn}, {processedProviderCount}/{whiteListProviders.Count}. " +
+                        $"{invalidCourseRunReferences} invalid venue references, " +
+                        $"{invalidApprenticeshipLocationReferences} invalid apprenticeship references, " +
+                        $"{rereferencedApprenticeshipLocations} apprenticeship locations were re-referenced.");
                 }
 
                 //write csv file
@@ -295,19 +303,19 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 }
 
                 // Upload log CSV to blob storage
-                {
-                    logStreamWriter.Flush();
-                    logStream.Seek(0L, SeekOrigin.Begin);
-                    var blob = blobhelper.GetBlobContainer(blobContainer).GetBlockBlobReference(logFileName);
-                    await blob.UploadFromStreamAsync(logStream);
-                }
+                logStreamWriter.Flush();
+                logStream.Seek(0L, SeekOrigin.Begin);
+                var blob = blobhelper.GetBlobContainer(blobContainer).GetBlockBlobReference(logFileName);
+                await blob.UploadFromStreamAsync(logStream);
+                logger.LogInformation($"VenueRestorer: log uploaded as {logFileName}");
             }
 
-            //
-            Console.WriteLine($"{totalInvalidCourseRunReferences} courserun invalid references in total");
-            Console.WriteLine($"{totalInvalidApprenticeshipLocationReferences} apprenticeship location invalid references in total");
-            Console.WriteLine($"{replacedInvalidVenues.Count()} venues have been reverted back to old venues");
-            Console.WriteLine($"{uniqueInvalidVenues.Count()} Venues were invalid");
+            logger.LogInformation(
+                $"VenueRestorer: completed. " +
+                $"{totalInvalidCourseRunReferences} invalid CourseRun references in total, " +
+                $"{totalInvalidApprenticeshipLocationReferences} Apprenticeship location invalid references in total, " +
+                $"{replacedInvalidVenues.Count()} Venues have been reverted back to old venues, " +
+                $"{uniqueInvalidVenues.Count()} Venues were invalid");
 
             async Task<List<Course>> GetCourses(int ukprn)
             {
@@ -333,7 +341,6 @@ namespace Dfc.ProviderPortal.TribalExporter.Functions
                 while (continuation != null);
                 return courses;
             }
-
 
             async Task<List<Venue>> GetVenues(int ukprn)
             {
