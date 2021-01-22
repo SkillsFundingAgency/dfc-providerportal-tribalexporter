@@ -91,6 +91,9 @@
     },
     "tribalDatabaseConnectionString": {
       "value": "not-a-real-connection-string"
+    },
+    "providerPortalApplicationInsights":{
+      "value": "dfc-dev-prov-as-ai"
     }
   }
 }
