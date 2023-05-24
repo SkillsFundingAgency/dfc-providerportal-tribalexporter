@@ -24,6 +24,8 @@ trigger:
     include:
     - release/*
     - main
+    - monitoring
+
 
 pr:
   branches:
