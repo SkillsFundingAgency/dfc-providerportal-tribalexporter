@@ -14,27 +14,6 @@
     "storageConnectionString": {
       "value": "DefaultEndpointsProtocol=https;AccountName=dfcfooprovstr;AccountKey=this_is_not_a_real_account==;EndpointSuffix=core.windows.net"
     },
-    "cosmosDBfqdn": {
-      "value": "https://dfc-foo-bar-cdb.documents.azure.com:443/"
-    },
-    "cosmosDBkey": {
-      "value": "this-is-not-a-real-key"
-    },
-    "cosmosDBdatabase": {
-      "value": "providerportal"
-    },
-    "cosmosDBcollectionCourses": {
-      "value": "courses"
-    },
-    "cosmosDBcollectionProviders": {
-      "value": "providers"
-    },
-    "cosmosDBcollectionVenues": {
-      "value": "venues"
-    },
-    "cosmosDBcollectionApprencticeship": {
-      "value": "apprenticeship"
-    },
     "schedule": {
       "value": "0 0 23 * * *"
     },
